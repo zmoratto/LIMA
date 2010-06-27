@@ -513,8 +513,6 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[1] = 1000*127.53606522819;
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
-
-  //#if 0
   
   string inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
   string inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
@@ -587,68 +585,10 @@ int main( int argc, char *argv[] ) {
     
   }
 
+  UpdateMatchingParams(trackPts, DRGFilename);
 
-  //#endif
 
-  #if 0
-  string inputDEMFile = string("/Users/anefian/projects/stereopipeline/data/lola/ldem_45N_100m.tif");
-  string synthImgFile = string("../results/synth_45N_100m.tif");
-  DiskImageView<PixelGray<uint8> >   inputDEM(inputDEMFile); 
-  GeoReference inputDEMGeo;
-  read_georeference(inputDEMGeo, inputDEMFile);
-
-  //ImageView<PixelMask<PixelGray<float> > > synthImg (inputDEM.cols(), inputDEM.rows());  
-
-  //TODO: determine the bounding box (XYZ coordinates) for the lola data
-
-  //TODO: read the real image
-
-  //TODO: create an artificial image
-  for (int k = 1 ; k < 1000/*inputDEM.rows()*/; k++) {
-    for (int l = 1; l < 1000/*inputDEM.cols()*/; l++) {     
-
-	 printf("l = %d, k = %d\n", l, k); 
-	 Vector2 lonlat2; 
-	 //get the XYZ coordinates of the current point        
-         Vector2 inputDEMVal(l,k);
-         lonlat2 = inputDEMGeo.pixel_to_lonlat(inputDEMVal);
-         Vector3 lonlat3(lonlat2(0),lonlat2(1),(inputDEM)(l,k));
-	 Vector3 xyz = inputDEMGeo.datum().geodetic_to_cartesian(lonlat3);
-         printf("xyz[0]=%f, xyz[1]=%f, xyz[2]=%f\n", xyz(0), xyz(1), xyz(2));
-
-         //get the XYZ coordinates of the left point  
-	 Vector2 inputDEMLeftVal;
-	 inputDEMLeftVal(0) = l-1;
-	 inputDEMLeftVal(1) = k;
-	 lonlat2 = inputDEMGeo.pixel_to_lonlat(inputDEMLeftVal);
-	 Vector3 lonlat3Left(lonlat2(0),lonlat2(1),(inputDEM)(l-1,k));
-	 Vector3 xyzLeft = inputDEMGeo.datum().geodetic_to_cartesian(lonlat3Left);
-	 
-	 //get the XYZ coordinates of the top point  
-	 Vector2 inputDEMTopVal;
-	 inputDEMTopVal(0) = l;
-	 inputDEMTopVal(1) = k-1;
-         lonlat2 = inputDEMGeo.pixel_to_lonlat(inputDEMTopVal);
-         Vector3 lonlat3Top(lonlat2(0),lonlat2(1),(inputDEM)(l,k-1));
-	 Vector3 xyzTop = inputDEMGeo.datum().geodetic_to_cartesian(lonlat3Top);
-
-         Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-         float reflectance = ComputeReflectance(normal, xyz, t_modelParams, globalParams);
-         printf("n[0]=%f, n[1]=%f, n[2]=%f, reflectance = %f\n", normal(0), normal(1), normal(2), reflectance);
-      
-         //synthImg(l,k) = reflectance;
-      }
-  }
-  #endif
-  /*
-  //write the synthetic image
-  write_georeferenced_image(synthImgFile, 
-                            channel_cast<uint8>(clamp(synthImg,0.0,255.0)),
-                            inputDEMGeo, TerminalProgressCallback());
-  */
-  //TODO: determine the feature points in the synthetic image
-  
-  //TODO: determine the feature points in the real image
+ 
 }
 
 
