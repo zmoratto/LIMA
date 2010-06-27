@@ -4,8 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef COREGISTER_H
-#define COREGISTER_H
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -35,6 +33,7 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Photometry.h>
 #include <vw/Math.h>
+#include <vw/Math/Matrix.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -42,32 +41,9 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
+//#include <cv.h>
+//#include <highgui.h>
 
-struct ShotTime
-{
-  int year;
-  int month;
-  int day;
-  int hour; //24hr format
-  int min;
-  float sec;
-};
+#include "coregister.h"
 
-struct pointCloud
-{
-  int year;
-  int month;
-  int day;
-  int hour; //24hr format
-  int min;
-  float sec;
-  int s; //detector id
-  Vector3 coords;
-};
-
-struct LOLAShot
-{
-  vector<pointCloud> LOLAPt;
-};
-
-#endif /* COREGISTER_H */
+void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename);
