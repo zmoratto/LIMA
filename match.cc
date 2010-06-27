@@ -44,13 +44,17 @@ using namespace std;
 //#include <cv.h>
 //#include <highgui.h>
 
+#include "io.h"
 #include "coregister.h"
 
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename)
+void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
 
    DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-
+   
+   int k = 0;
+   vector<float> imgPts;
+   imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
    
    ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
    ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);

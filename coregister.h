@@ -70,4 +70,7 @@ struct LOLAShot
   vector<pointCloud> LOLAPt;
 };
 
+vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);
+vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
+
 #endif /* COREGISTER_H */

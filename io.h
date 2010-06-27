@@ -43,7 +43,23 @@ using namespace std;
 #include <math.h>
 //#include <cv.h>
 //#include <highgui.h>
-
+#include "match.h"
 #include "coregister.h"
 
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams);
+void SaveVectorToFile(vector<float> v, string filename);
+vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
