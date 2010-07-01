@@ -108,7 +108,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
     while (! myfile.eof() )
     {
       getline (myfile,line);
-     
+      if(!myfile.eof()){ 
       if (lineIndex > 0){//skip header
      
         //float lon, lat, rad;
@@ -221,6 +221,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	delete detID;
       } 
       lineIndex++; 
+    }
     }
     myfile.close();
   }
