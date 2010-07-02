@@ -440,23 +440,26 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[1] = 1000*127.53606522819;
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
-  /*
-  int comp_number = 1; // 0 = Ara's paths, 1 = Dave's paths
+  
+  int comp_number = 0; // 0 = Ara's paths, 1 = Dave's paths
+  string inputCSVFilename; 
+  string inputDEMFilename;
+  string DRGFilename;  
+  string DEMFilename; 
   if (comp_number == 0)
   {
-  string inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-  string inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-  string DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  string DEMFilename = string("../results/dem.tiff"); 
+    inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+    inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
+    DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+    DEMFilename = string("../results/dem.tiff"); 
   }
   if(comp_number == 1)
   {
-  */
-  string inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-  string inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
-  string DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  string DEMFilename = string("../../results/dem.tiff"); 
-  //}
+    inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+    inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
+    DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
+    DEMFilename = string("../../results/dem.tiff"); 
+  }
   
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
   printf("numTracks = %d\n", trackPts.size());
