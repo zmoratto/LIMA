@@ -309,6 +309,7 @@ vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename
 }
 
 
+
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
 {
   DiskImageView<PixelGray<float> >   DEM(DEMFilename);
@@ -413,6 +414,7 @@ float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array)
 
   return n_here;
 }
+
 
 
 int main( int argc, char *argv[] ) {
@@ -528,33 +530,9 @@ int main( int argc, char *argv[] ) {
       }
     }
 
-
-    //determine the scalling factor - START
-    float nominator =0.0;
-    int numValidPts = 0;
-    float scaleFactor = 1;
-
-    for(int m = 0; m < reflectance.size(); m ++){
-      if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
-          nominator += allImgPts[m]/reflectance[m];
-          numValidPts += 1;
-      }
-    }
-
-    if (numValidPts != 0){ 
-       scaleFactor = nominator/numValidPts;
-    }
-
-    vector<float>synthImg;
-    synthImg.resize(reflectance.size());
-    for(int m = 0; m < reflectance.size(); m ++){
-      if (reflectance[m] == -1){
-	synthImg[m] = -1;
-      }
-      else{
-        synthImg[m] = reflectance[m]*scaleFactor;
-      }
-    }
+    //determine the scalling factor and save the synthetic image points- START
+    float scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
+    vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
     std::string synthImgPtsFilename;
     char* synthImgPtsFilename_char = new char[500];
     sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);

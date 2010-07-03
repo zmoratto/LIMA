@@ -47,7 +47,52 @@ using namespace std;
 #include "io.h"
 #include "coregister.h"
 
+float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
+{
+    float nominator =0.0;
+    int numValidPts = 0;
+    float scaleFactor = 1;
 
+    for(int m = 0; m < reflectance.size(); m ++){
+      if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
+          nominator += allImgPts[m]/reflectance[m];
+          numValidPts += 1;
+      }
+    }
+
+    if (numValidPts != 0){ 
+       scaleFactor = nominator/numValidPts;
+    }
+
+    return scaleFactor;
+}
+
+vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance)
+{
+    vector<float>synthImg;
+    synthImg.resize(reflectance.size());
+    for(int m = 0; m < reflectance.size(); m ++){
+      if (reflectance[m] == -1){
+	synthImg[m] = -1;
+      }
+      else{
+        synthImg[m] = reflectance[m]*scaleFactor;
+      }
+    }
+
+    return synthImg;
+}
+
+float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
+{
+  float error = 0.0;
+  for (int i = 0; i < reflectancePts.size(); i++){
+    if (reflectancePts[i]!=-1){
+      error = error + fabs(reflectancePts[i]-imgPts[i]);
+    }
+  }
+  return error;
+}
 void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
 
