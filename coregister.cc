@@ -523,12 +523,49 @@ int main( int argc, char *argv[] ) {
     for(int m = 0; m < reflectance.size(); m ++){
       if(reflectance[m]!= -1){
         normalizer_top += allImgPts[m];
+        //normalizer_top += allImgPts[m]/reflectance[m];
         num_valid += 1.0;
       }
     }
-    printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f\n",k,normalizer_top,num_valid);
+
+
+    //determine the scalling factor - START
+    float nominator =0.0;
+    int numValidPts = 0;
+    float scaleFactor = 1;
+
+    for(int m = 0; m < reflectance.size(); m ++){
+      if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
+          nominator += allImgPts[m]/reflectance[m];
+          numValidPts += 1;
+      }
+    }
+
+    if (numValidPts != 0){ 
+       scaleFactor = nominator/numValidPts;
+    }
+
+    vector<float>synthImg;
+    synthImg.resize(reflectance.size());
+    for(int m = 0; m < reflectance.size(); m ++){
+      if (reflectance[m] == -1){
+	synthImg[m] = -1;
+      }
+      else{
+        synthImg[m] = reflectance[m]*scaleFactor;
+      }
+    }
+    std::string synthImgPtsFilename;
+    char* synthImgPtsFilename_char = new char[500];
+    sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
+    synthImgPtsFilename = std::string(synthImgPtsFilename_char);
+    SaveVectorToFile(synthImg, synthImgPtsFilename);
+    //determine the scalling factor - END
+
+    printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f, scaleFactor = %f\n",
+	   k, normalizer_top, num_valid, scaleFactor);
     //reflectance.clear();
-    
+    //
     vector<float> demPts;
     demPts = GetTrackPtsFromDEM(trackPts[k], inputDEMFilename, 3);
     std::string demPtsFilename;

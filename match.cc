@@ -48,7 +48,6 @@ using namespace std;
 #include "coregister.h"
 
 
-
 void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
 
