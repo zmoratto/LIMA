@@ -93,6 +93,8 @@ float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
   }
   return error;
 }
+
+
 void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
 

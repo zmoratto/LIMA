@@ -48,6 +48,8 @@ using namespace std;
 
 void SaveVectorToFile(vector<float> v, string filename);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
+Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
+void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices);
 
 
 

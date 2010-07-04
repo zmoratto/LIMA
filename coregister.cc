@@ -67,47 +67,7 @@ vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
   return pts;
 }
 
-Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
-{
-  float minLat = 180;
-  float maxLat = -180;
-  float minLon = 180;
-  float maxLon = -180;
 
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int j = 0; j < trackPts[i].size(); j++){
-      for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
-        float lon = trackPts[i][j].LOLAPt[k].coords[0];
-        float lat = trackPts[i][j].LOLAPt[k].coords[1];
-
-        if (lat < minLat){
-          minLat = lat;
-        }
-
-        if (lon < minLon){
-          minLon = lon;
-        }
-
-        if (lat > maxLat){
-          maxLat = lat;
-        }
-
-        if (lon > maxLon){
-          maxLon = lon;
-        }
-      }
-    }
-  }
-
-  Vector4 coords;
-  coords(0) = minLat; 
-  coords(1) = maxLat; 
-  coords(2) = minLon; 
-  coords(3) = maxLon;
-
-  return coords;
-
-}
 
 pointCloud GetPointFromIndex(vector<pointCloud> LOLAPts, int index)
 {
@@ -346,60 +306,7 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
   return demPts;
 }
 
-void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices)
-{
-  int l, m, n;  
-  ImageView<PixelGray<float> > DEMImage(numHorPts, numVerPts);
-  GeoReference DEMgeo;
 
-  Vector4 coords = FindMinMaxLat(trackPts);
-
-  printf("minLat=%f, maxLat=%f, minLon=%f maxLon=%f\n", coords(0), coords(1), coords(2), coords(3));
-
-  float minLat = coords(0); 
-  float maxLat = coords(1); 
-  float minLon = coords(2); 
-  float maxLon = coords(3);
-
-  float lonDelta = (maxLon-minLon)/numHorPts;
-  float latDelta = (maxLat-minLat)/numVerPts;
-
-  //printf("lonDelta = %f, latDelta = %f\n", lonDelta, latDelta);
-  //init the DEM
-  for (l = 0; l < numHorPts; l++){
-    for (m = 0; m < numVerPts; m++){
-      DEMImage(l, m) = 0.0;
-    }
-  }
-  //fill the DEM
-
-  printf("numTracks = %d\n", trackIndices.size());
-  for (int k = 0; k < trackIndices.size();k++){
-    int trackIndex = trackIndices[k];
-    printf("trackIndex = %d\n", trackIndex);
-    for (n = 0; n < trackPts[trackIndex].size(); n++){ 
-      for (int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
-
-        float lon_index = (trackPts[trackIndex][n].LOLAPt[s].coords[0] - minLon)/lonDelta;
-        float lat_index = (trackPts[trackIndex][n].LOLAPt[s].coords[1] - minLat)/latDelta;
-        l = (int)floor(lon_index);
-        m = (int)floor(lat_index);
-
-        if ((m < numVerPts) && (l<numHorPts)){ 
-          DEMImage(l, m) = trackPts[trackIndex][n].LOLAPt[s].coords[2]; 
-        }
-        else{
-          printf("Error\n");
-          printf("l = %d, m = %d, numHorPts = %d, numVerPts = %d\n", l, m, numHorPts, numVerPts);
-        }
-      }
-    }
-  }
-  write_georeferenced_image(DEMFilename, 
-      DEMImage,
-      DEMgeo, TerminalProgressCallback("{Core}","Processing:"));
-
-}
 
 float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array){
   float n_here = 0;
@@ -533,6 +440,9 @@ int main( int argc, char *argv[] ) {
     //determine the scalling factor and save the synthetic image points- START
     float scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
     vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
+    float matchingErr = ComputeMatchingError(synthImg, allImgPts);
+    printf("matchingError  %f\n", matchingErr);
+
     std::string synthImgPtsFilename;
     char* synthImgPtsFilename_char = new char[500];
     sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
