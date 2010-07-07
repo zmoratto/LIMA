@@ -34,6 +34,7 @@ namespace fs = boost::filesystem;
 #include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -117,6 +118,10 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
    float xx = x_base + d[0] * ii + d[1] * jj + d[2];
    float yy = y_base + d[3] * ii + d[4] * jj + d[5];
    
+  
+   InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
+                interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
+
    // Fill in symmetric entries
    rhs(1,0) = rhs(0,1);
    rhs(2,0) = rhs(0,2);
