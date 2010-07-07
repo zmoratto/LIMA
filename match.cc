@@ -48,6 +48,8 @@ using namespace std;
 #include "io.h"
 #include "coregister.h"
 
+
+
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 {
     float nominator =0.0;
@@ -102,8 +104,9 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
    DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
    
    int k = 0;
-   vector<float> imgPts;
-   imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
+
+   vector<Vector3> imgPts;
+   imgPts = GetTrackPtsFromImage(trackPts[k],DRGFilename);
    
    ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
    ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);
@@ -115,6 +118,9 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
    Vector<float,6> lhs;
 
    int ii, jj, x_base, y_base;
+   //x_base and y_base are the initial 2D positions of the image points
+   x_base = imgPts[0][1];
+   y_base = imgPts[0][2];
    float xx = x_base + d[0] * ii + d[1] * jj + d[2];
    float yy = y_base + d[3] * ii + d[4] * jj + d[5];
    

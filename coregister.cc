@@ -268,7 +268,55 @@ vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename
   return allImgPts;
 }
 
+vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
+{ 
+  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, DRGFilename);
 
+  vector<Vector3> allImgPts;
+  
+  allImgPts.resize(trackPts.size());  
+  vector<pointCloud> ptHere;
+
+  ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
+        ConstantEdgeExtension()),
+      BilinearInterpolation());
+
+  for(int i = 0; i < trackPts.size(); i++){
+    ptHere = trackPts[i].LOLAPt;
+    pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
+    pointCloud topPt     = GetPointFromIndex( ptHere, 2);
+    pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
+
+    if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
+      
+      float lon = centerPt.coords[0];
+      float lat = centerPt.coords[1];
+      float rad = centerPt.coords[2];
+
+      Vector2 DEM_lonlat(lon, lat);
+      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+
+      int x = (int)DRG_pix[0];
+      int y = (int)DRG_pix[1];
+
+      PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
+
+      //insert data
+      allImgPts[i][0] = (float) DRGVal;
+      allImgPts[i][1] = x;
+      allImgPts[i][2] = y;
+    }else {
+      //write -1 to designate and invalid point
+      allImgPts[i][0] = -1;
+      allImgPts[i][1] = -1;
+      allImgPts[i][2] = -1;
+    }
+  }
+  
+  return allImgPts;
+}
 
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
 {
