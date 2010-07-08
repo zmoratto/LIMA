@@ -48,8 +48,6 @@ using namespace std;
 #include "io.h"
 #include "coregister.h"
 
-
-
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 {
     float nominator =0.0;
@@ -59,6 +57,26 @@ float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
     for(int m = 0; m < reflectance.size(); m ++){
       if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
           nominator += allImgPts[m]/reflectance[m];
+          numValidPts += 1;
+      }
+    }
+
+    if (numValidPts != 0){ 
+       scaleFactor = nominator/numValidPts;
+    }
+
+    return scaleFactor;
+}
+
+float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance)
+{
+    float nominator =0.0;
+    int numValidPts = 0;
+    float scaleFactor = 1;
+
+    for(int m = 0; m < reflectance.size(); m ++){
+      if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
+          nominator += allImgPts[m][0]/reflectance[m];
           numValidPts += 1;
       }
     }
@@ -104,10 +122,16 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
    DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
    
    int k = 0;
-
+   
+   //get the true image points
    vector<Vector3> imgPts;
    imgPts = GetTrackPtsFromImage(trackPts[k],DRGFilename);
-   
+
+   //compute the synthetic image values
+   vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
+   float scaleFactor = ComputeScaleFactor(imgPts, reflectance);
+   vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
+        
    ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
    ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);
    
@@ -124,9 +148,51 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
    float xx = x_base + d[0] * ii + d[1] * jj + d[2];
    float yy = y_base + d[3] * ii + d[4] * jj + d[5];
    
-  
+ 
    InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
                 interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
+      
+   for (int i = 0; i < imgPts.size(); i++){
+        
+        float I_x_sqr, I_x_I_y, I_y_sqr; 
+        float I_e_val = imgPts[i][0]-synthImg[i];
+        float I_y_val, I_x_val;
+
+        int ii = imgPts[i][1];
+        int jj = imgPts[i][2];
+
+        // Left hand side
+        lhs(0) += ii * I_x_val * I_e_val;
+        lhs(1) += jj * I_x_val * I_e_val;
+        lhs(2) +=      I_x_val * I_e_val;
+        lhs(3) += ii * I_y_val * I_e_val;
+        lhs(4) += jj * I_y_val * I_e_val;
+        lhs(5) +=      I_y_val * I_e_val;
+
+        // Right Hand Side UL
+        rhs(0,0) += ii*ii * I_x_sqr;
+        rhs(0,1) += ii*jj * I_x_sqr;
+        rhs(0,2) += ii    * I_x_sqr;
+        rhs(1,1) += jj*jj * I_x_sqr;
+        rhs(1,2) += jj    * I_x_sqr;
+        rhs(2,2) +=         I_x_sqr;
+
+        // Right Hand Side UR
+        rhs(0,3) += ii*ii * I_x_I_y;
+        rhs(0,4) += ii*jj * I_x_I_y;
+        rhs(0,5) += ii    * I_x_I_y;
+        rhs(1,4) += jj*jj * I_x_I_y;
+        rhs(1,5) += jj    * I_x_I_y;
+        rhs(2,5) +=         I_x_I_y;
+
+        // Right Hand Side LR
+        rhs(3,3) += ii*ii * I_y_sqr;
+        rhs(3,4) += ii*jj * I_y_sqr;
+        rhs(3,5) += ii    * I_y_sqr;
+        rhs(4,4) += jj*jj * I_y_sqr;
+        rhs(4,5) += jj    * I_y_sqr;
+        rhs(5,5) +=         I_y_sqr;
+   }
 
    // Fill in symmetric entries
    rhs(1,0) = rhs(0,1);
