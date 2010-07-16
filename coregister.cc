@@ -374,7 +374,8 @@ float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array)
 
 int main( int argc, char *argv[] ) {
 
-
+  cout << "remove SEGFAULTS" << endl;
+  
   GlobalParams globalParams;
   //globalParams.reflectanceType = NO_REFL;
   globalParams.reflectanceType = LUNAR_LAMBERT;
@@ -398,7 +399,7 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
   
-  int comp_number = 0; // 0 = Ara's paths, 1 = Dave's paths
+  int comp_number = 1; // 0 = Ara's paths, 1 = Dave's paths
   string inputCSVFilename; 
   string inputDEMFilename;
   string DRGFilename;  
@@ -417,7 +418,7 @@ int main( int argc, char *argv[] ) {
     DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
     DEMFilename = string("../../results/dem.tiff"); 
   }
-  
+  cout << "get data loaded?"<< endl;
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
   printf("numTracks = %d\n", trackPts.size());
   for(int i = 0; i < trackPts.size(); i++){
@@ -436,9 +437,11 @@ int main( int argc, char *argv[] ) {
   MakeGrid(trackPts, numVerPts, numHorPts, DEMFilename, trackIndices);
 
   //debugg GetTrackPtsFromImage by calling a little test function that looks very similar and records/prints out some important statistics.
-  WhenBuildImgPts(trackPts[1]);
+  //WhenBuildImgPts(trackPts[1]);
   float normalizer_top = 0.0;
   float num_valid = 0.0;
+  cout << "Line 443: running smooth" << endl;
+  /*
   for (int k = 1; k < trackPts.size(); k++){
 
 
@@ -475,6 +478,8 @@ int main( int argc, char *argv[] ) {
     sprintf(allImgPtsFilename_char, "../results/all_img_track_orbit_%d.txt",k);
     allImgPtsFilename = std::string(allImgPtsFilename_char);
     SaveVectorToFile(allImgPts, allImgPtsFilename);
+    
+    cout << "Starting normalization calc." << endl;
 
     //account for normalization here
     for(int m = 0; m < reflectance.size(); m ++){
@@ -529,9 +534,11 @@ int main( int argc, char *argv[] ) {
     delete[] filename_char;
     
   }
-
- // UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams);
-
+  */
+  
+  cout << "Calling UpdateMatchingParams, line 539"<< endl;
+  Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams);
+  cout << "UpdateMatchingParams finsihed..." << endl;
   //save the, # valid, normalizer, & the division
   
   vector<float> norm_consts;

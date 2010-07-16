@@ -49,5 +49,5 @@ using namespace std;
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
 vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance);
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams);
+Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams);
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);

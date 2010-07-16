@@ -116,50 +116,103 @@ float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
 }
 
 
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
+Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
-
    DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
    
    int k = 0;
    
    //get the true image points
+   //cout << "UMP calling: GetTrackPtsFromImage" << endl;
+   //cout << "rather sure this function doesn't exist here...!"<< endl;
    vector<Vector3> imgPts;
    imgPts = GetTrackPtsFromImage(trackPts[k],DRGFilename);
+   
+   //cout << "UMP finished: GetTrackPtsFRomImage " << endl; 
 
    //compute the synthetic image values
-   vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
-   float scaleFactor = ComputeScaleFactor(imgPts, reflectance);
-   vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
-        
+   cout << "UMP: ComputeTrackReflectance..." << endl;
+  vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
+    cout << "UMP: ComputeScaleFactor..." << endl;
+float scaleFactor = ComputeScaleFactor(imgPts, reflectance);
+      //isn't this a bit self-serving?  The scale factor should be computed a priori or conditioned from a learned distribution.  Here, we are confusing our training & testing data.
+    cout << "UMP: ComputeSynthImgPts..." << endl;
+  vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
+       
+   cout << "UMP: calculate min & max pixel locations..."<< endl;    
+   
+   int i_min = 0;
+   int i_max = DRG.rows();
+   int j_min = 0;
+   int j_max = DRG.cols();
+   
+
+   printf("x range from: %f -> %f \ny range from: %f -> %f \n",i_min,i_max,j_min,j_max);
+
+
+   cout << "UMP: derivative_filter "<< endl; 
    ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
    ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);
-   
+
+  //the following is for affine (NOT perspective) transforms
+
    Vector<float,6> d;//defines the affine transform
    d(0) = 1.0;
    d(4) = 1.0;
    Matrix<float,6,6> rhs;
    Vector<float,6> lhs;
 
-   int ii, jj, x_base, y_base;
+   int ii, jj;
+   float x_base, y_base;
+   float xx,yy;
+   /*
    //x_base and y_base are the initial 2D positions of the image points
    x_base = imgPts[0][1];
    y_base = imgPts[0][2];
+   //how does the following make sense - ii & jj are not initialized?/!
    float xx = x_base + d[0] * ii + d[1] * jj + d[2];
    float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-   
- 
+   */
+    cout << "UMP: interpolate ..." << endl ;
    InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
                 interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
-      
-   for (int i = 0; i < imgPts.size(); i++){
+  int iter=0;
+  cout << "line 162, central iteration UpdateModelParams" << endl; 
+  while(iter < 20) // gradient descent loop to iterate to optimal transform
+  {
+
+   for (int i = 0; i < imgPts.size(); i++)
+   {
+  
+        //
+        if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
+        {
+          // the above if statement will eventually encompas everything!
         
+        // lola pixel coordinates
+        x_base = imgPts[i][1];
+        y_base = imgPts[i][2];
+        
+        // find image coordinates of the lola point based on the current transform
+        ii = (int) floor(d[0]*x_base + d[1]*y_base + d[2]);
+        
+        jj = (int) floor(d[3]*x_base + d[4]*y_base + d[5]);
+        
+
+        // load up (x_base, y_base)
+        // if(){} // check that the points is 1. valid & 2. !0
+
         float I_x_sqr, I_x_I_y, I_y_sqr; 
         float I_e_val = imgPts[i][0]-synthImg[i];
         float I_y_val, I_x_val;
-
-        int ii = imgPts[i][1];
-        int jj = imgPts[i][2];
+        
+        //calculate numerical dirivatives (ii,jj)... 
+        printf("i = %d: (%d,%d)",ii,jj);
+        I_x_val = x_deriv(ii,jj); 
+        I_y_val = y_deriv(ii,jj); 
+        I_x_I_y = I_x_val*I_y_val;        
+        I_x_sqr = I_x_sqr*I_x_sqr;
+        I_y_sqr = I_y_sqr*I_y_sqr;
 
         // Left hand side
         lhs(0) += ii * I_x_val * I_e_val;
@@ -192,8 +245,9 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
         rhs(4,4) += jj*jj * I_y_sqr;
         rhs(4,5) += jj    * I_y_sqr;
         rhs(5,5) +=         I_y_sqr;
-   }
-
+   
+        }// end of if statement
+   }// end of for loop over all data  points
    // Fill in symmetric entries
    rhs(1,0) = rhs(0,1);
    rhs(2,0) = rhs(0,2);
@@ -225,8 +279,15 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
                 //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
                 //             exit(0);
    }
-   d += lhs;
-}
+   d += lhs; // update parameters
+   
+   // calculate stopping condition - currently at just 
+    iter ++;
+  }// end of while loop  updating parameters
+ return d;
+} //end of function
+
+
 
 
 
