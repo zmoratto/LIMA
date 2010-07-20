@@ -117,11 +117,12 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
         ConstantEdgeExtension()),
       BilinearInterpolation());
-
+  
+  int i_tot = 0;
   for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
       ptHere = trackPts[k][i].LOLAPt;
-      pointCloud centerPt  = ::GetPointFromIndex( ptHere, 3);
+      pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
       pointCloud topPt     = GetPointFromIndex( ptHere, 2);
       pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
 
@@ -140,115 +141,47 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
         PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
 
         //insert data
-        allImgPts[i][0] = (float) DRGVal;
-        allImgPts[i][1] = x;
-        allImgPts[i][2] = y;
-      }else {
+        allImgPts[i_tot + i][0] = (float) DRGVal;
+        allImgPts[i_tot + i][1] = DRG_pix[0];
+        allImgPts[i_tot + i][2] = DRG_pix[1];
+        
+        /* Debugg statements to check data is correctly copied
+        //The incorrect cast from int -> float is root cause
+        if(i%15==0)
+        {
+          printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
+        }
+        //
+        //
+        if(i%30==0)
+        {
+        cout <<"Is DRG_pix fractional?" << endl;        
+        printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
+        }
+        */
+  }else {
         //write -1 to designate and invalid point
-        allImgPts[i][0] = -1;
-        allImgPts[i][1] = -1;
-        allImgPts[i][2] = -1;
+        allImgPts[i_tot + i][0] = -1;
+        allImgPts[i_tot + i][1] = -1;
+        allImgPts[i_tot + i][2] = -1;
       }
     }
-  }
-  return allImgPts;
-}
-/*
-float ComputeReflectance(vector<pointCloud> LOLAPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-  pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-  pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
-
-  if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-    Datum moon;
-    moon.set_well_known_datum("D_MOON");
-
-    centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
-    topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
-    leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
-    printf("c = %f, t = %f, l = %f\n", centerPt.coords[2],topPt.coords[2],leftPt.coords[2]);
-
-    Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
-    Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
-    Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
-    printf("xyz = %f %f %f\n", xyz(0), xyz(1), xyz(2));
-    Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-    //printf("normal = %f %f %f\n", normal(0), normal(1), normal(2));
-    float reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-
-    return reflectance;
-  }
-  else{
-    return -1;
-  }
-}
-
-
-
-vector<float> ComputeAllReflectance(vector< vector<LOLAShot> > trackPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  vector<float> reflectance;
-  int num_rflc = 0;
-  for(int k = 0; k < trackPts.size(); k++) 
-  {
-    num_rflc += trackPts[k].size() ;
+    i_tot += trackPts[k].size();  
   }
   
-  reflectance.resize(num_rflc);
-  vector<LOLAShot> LolaPts;
-  for(int k = 0; k < trackPts.size();k++){
-    for (int m = 0; m < trackPts[k].size();m++){
-      LolaPts = trackPts[k][m];
-      reflectance[m] = ComputeReflectance(LolaPts, modelParams, globalParams);
-     // printf("ref = %f\n", reflectance[m]);
+  /* debugg statement: is data correctly copied?
+  printf("GetAllPtsFromImg: print some pnts...\n");
+  for(int i = 0; i< allImgPts.size(); i++)
+  {
+    if(i%150==0)
+    {
+      printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
     }
   }
-  return reflectance;
+  */
+
+  return allImgPts;
 }
-*/
-/*
-float ComputeReflectance(vector<pointCloud> LOLAPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-  pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-  pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
-
-  if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-    Datum moon;
-    moon.set_well_known_datum("D_MOON");
-
-    centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
-    topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
-    leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
-    printf("c = %f, t = %f, l = %f\n", centerPt.coords[2],topPt.coords[2],leftPt.coords[2]);
-
-    Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
-    Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
-    Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
-    printf("xyz = %f %f %f\n", xyz(0), xyz(1), xyz(2));
-    Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-    //printf("normal = %f %f %f\n", normal(0), normal(1), normal(2));
-    float reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-
-    return reflectance;
-  }
-  else{
-    return -1;
-  }
-}
-vector<float> ComputeTrackReflectance(vector<LOLAShot> trackPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  vector<float> reflectance;
-  reflectance.resize(trackPts.size());
-  for (int m = 0; m < trackPts.size();m++){
-    reflectance[m] = ComputeReflectance(trackPts[m].LOLAPt, modelParams, globalParams);
-    printf("ref = %f\n", reflectance[m]);
-  }
-  return reflectance;
-}
-
-*/
 
 vector<float> ComputeAllReflectance( vector< vector<LOLAShot> >  allTracks, ModelParams modelParams, GlobalParams globalParams)
 {
@@ -340,13 +273,13 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   int i_max = x_deriv.rows();
   int j_min = 0;
   int j_max = y_deriv.cols();
-  printf("x range from: %f -> %f \ny range from: %f -> %f \n",i_min,i_max,j_min,j_max);
+  printf("x range from: %d -> %d \ny range from: %d -> %d \n",i_min,i_max,j_min,j_max);
 
   //the following is for affine (NOT perspective) transforms
   Vector<float,6> d;//defines the affine transform
-  d[0] = 1.0; d[1] = 0.0; d[2] = 0.0;
-  d[3] = 0.0; d[4] = 1.0; d[5] = 0.0;
-  printf("d = [ %d, %d, %d, %d %d %d]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
+  d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
+  d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
+  printf("d = [ %f, %f, %f, %f %f %f]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
   Matrix<float,6,6> rhs;
   Vector<float,6> lhs;
 
@@ -355,28 +288,29 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   float xx,yy;
   int row_max, col_max;
   
-  //get row_max, col_max
+  //get row_max, col_max - improve this!
   row_max = x_deriv.rows();
   col_max = x_deriv.cols();
- /*
-  //x_base and y_base are the initial 2D positions of the image points
-  x_base = imgPts[0][1];
-  y_base = imgPts[0][2];
-  //how does the following make sense - ii & jj are not initialized?/!
-  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-   */
-  cout << "UMP: interpolate ..." << endl ;
+  printf("row_max = %d, col_max = %d\n",row_max,col_max);
+
+
+ cout << "UMP: interpolate ..." << endl ;
   InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
     interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
+  
   int iter=0;
-  cout << "line 162, central iteration UpdateModelParams" << endl; 
-  while(iter < 2) //gradient descent => optimal transform
+  cout << "UMP: grad descend loop ..." << endl; 
+  while(iter <= 2) //gradient descent => optimal transform
   {
     int num_valid = 0;
     for (int i = 0; i < imgPts.size(); i++)
     {
-      if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
+     /*
+     if(i<50){
+      printf("i =%d\n",i);
+     }
+     */
+     if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
       {
         num_valid += 1;
         // lola pixel coordinates
@@ -387,12 +321,15 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         ii = (int) floor(d[0]*x_base + d[1]*y_base + d[2]);
         jj = (int) floor(d[3]*x_base + d[4]*y_base + d[5]);
        
-        if(i<50){
-          printf("LOLA pnt: %d of intensity %f, at (%d,%d) transformed to (%d,%d)\n",i,imgPts[i][0],x_base,y_base,ii,jj);
+        /* debugg statement: checks data transcription       
+        if( num_valid % 50 == 0){
+          //printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],x_base,y_base,ii,jj); 
+          printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],imgPts[i][1],imgPts[i][2],ii,jj);
         }
+        */ 
 
         // check (ii,jj) are inside the image!
-        if( ( ii> 0) && ( ii<= x_deriv.rows()) && ( jj> 0) && ( jj<= y_deriv.cols())){
+        if( ( ii> 0) && ( ii<= row_max) && ( jj> 0) && ( jj<= col_max)){
 
         //initialize constants
         float I_x_sqr, I_x_I_y, I_y_sqr; 
@@ -400,11 +337,6 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         float I_y_val, I_x_val;
 
         //calculate numerical dirivatives (ii,jj)... 
-        if( i <100)
-        {
-        //  printf("i = %d: (%d,%d)\n",i,ii,jj);
-        }
-
         I_x_val = x_deriv(ii,jj); 
         I_y_val = y_deriv(ii,jj); 
         I_x_I_y = I_x_val*I_y_val;        
@@ -478,8 +410,13 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
       //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
       //             exit(0);
     }
-  
+      
+    //print out previous and updates
+    printf("at end of iteration %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     d += lhs; // update parameter
+    iter ++;
+    printf("at start of iteration %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+    
     iter ++;
   }
   return d;

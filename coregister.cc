@@ -110,12 +110,12 @@ float ComputeReflectance(vector<pointCloud> LOLAPts, ModelParams modelParams, Gl
     centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
     topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
     leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
-    printf("c = %f, t = %f, l = %f\n", centerPt.coords[2],topPt.coords[2],leftPt.coords[2]);
+    //printf("c = %f, t = %f, l = %f\n", centerPt.coords[2],topPt.coords[2],leftPt.coords[2]);
 
     Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
     Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
     Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
-    printf("xyz = %f %f %f\n", xyz(0), xyz(1), xyz(2));
+    //printf("xyz = %f %f %f\n", xyz(0), xyz(1), xyz(2));
     Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
     //printf("normal = %f %f %f\n", normal(0), normal(1), normal(2));
     float reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
@@ -132,7 +132,7 @@ vector<float> ComputeTrackReflectance(vector<LOLAShot> trackPts, ModelParams mod
   reflectance.resize(trackPts.size());
   for (int m = 0; m < trackPts.size();m++){
     reflectance[m] = ComputeReflectance(trackPts[m].LOLAPt, modelParams, globalParams);
-    printf("ref = %f\n", reflectance[m]);
+    //printf("ref = %f\n", reflectance[m]);
   }
   return reflectance;
 }
