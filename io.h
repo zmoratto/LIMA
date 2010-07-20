@@ -4,6 +4,8 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#ifndef IO_H
+#define IO_H
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -51,12 +53,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices);
 
-
-
-
-
-
-
+#endif//IO_H
 
 
 

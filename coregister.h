@@ -65,6 +65,9 @@ struct pointCloud
   Vector3 coords;
 };
 
+// prototype for GetPointFromIndex
+pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
+
 struct LOLAShot
 {
   vector<pointCloud> LOLAPt;

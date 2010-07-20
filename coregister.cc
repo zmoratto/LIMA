@@ -69,7 +69,7 @@ vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
 
 
 
-pointCloud GetPointFromIndex(vector<pointCloud> LOLAPts, int index)
+pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 {
   pointCloud pt;
   pt.s = -1;//invalid pointCloud
