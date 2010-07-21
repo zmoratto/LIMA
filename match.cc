@@ -193,10 +193,10 @@ vector<float> ComputeAllReflectance( vector< vector<LOLAShot> >  allTracks, Mode
   {
     num_reflc += allTracks[k].size(); 
   }
-  cout << "num_reflc: " << num_reflc << endl;
+  //cout << "num_reflc: " << num_reflc << endl;
 
   //reflectance.resize();
-  cout << "reflectance.size() should be: " << reflectance.size() << endl; 
+  //cout << "reflectance.size() should be: " << reflectance.size() << endl; 
   for( int k = 0; k < allTracks.size(); k++)
   {    
     // call computeReflectance
@@ -216,7 +216,18 @@ vector<float> ComputeAllReflectance( vector< vector<LOLAShot> >  allTracks, Mode
   return reflectance;
 }
 
+void print_rhs( Matrix<float,6,6> rhs)
+{
+  printf("Printing out RHS:\n");
 
+  printf("[ %f %f %f] [ %f %f %f]\n",rhs(0,0), rhs(0,1), rhs(0,2), rhs(0,3), rhs(0,4), rhs(0,5) );   
+  printf("[ %f %f %f] [ %f %f %f]\n", rhs(1,0), rhs(1,1), rhs(1,2), rhs(1,3), rhs(1,4),rhs(1,5) ); 
+  printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(2,0), rhs(2,1),rhs(2,2), rhs(2,3), rhs(2,4), rhs(2,5) );
+ 
+ printf("[ %f %f %f] [ %f %f %f]\n", rhs(3,0), rhs(3,1), rhs(3,2), rhs(3,3), rhs(3,4), rhs(3,5) );
+ printf("[ %f %f %f] [ %f %f %f]\n", rhs(4,0), rhs(4,1), rhs(4,2), rhs(4,3), rhs(4,4), rhs(4,5) );
+ printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
+}
 
 Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
 {
@@ -268,20 +279,16 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   }
 
 
-  cout << "UMP: calculate min & max pixel locations..."<< endl;
-  int i_min = 0;
-  int i_max = x_deriv.rows();
-  int j_min = 0;
-  int j_max = y_deriv.cols();
-  printf("x range from: %d -> %d \ny range from: %d -> %d \n",i_min,i_max,j_min,j_max);
-
   //the following is for affine (NOT perspective) transforms
   Vector<float,6> d;//defines the affine transform
   d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
   d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
   printf("d = [ %f, %f, %f, %f %f %f]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
-  Matrix<float,6,6> rhs;
-  Vector<float,6> lhs;
+  const int tf_size = 6;//transform size
+  Matrix<float,tf_size,tf_size> rhs;
+  Vector<float,tf_size> lhs;
+  print_rhs(rhs);
+
 
   int ii, jj;
   float x_base, y_base;
@@ -289,6 +296,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   int row_max, col_max;
   
   //get row_max, col_max - improve this!
+  cout << "UMP: max pixel locations..." << endl; 
   row_max = x_deriv.rows();
   col_max = x_deriv.cols();
   printf("row_max = %d, col_max = %d\n",row_max,col_max);
@@ -300,16 +308,11 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   
   int iter=0;
   cout << "UMP: grad descend loop ..." << endl; 
-  while(iter <= 2) //gradient descent => optimal transform
+  while(iter <= 3) //gradient descent => optimal transform
   {
     int num_valid = 0;
     for (int i = 0; i < imgPts.size(); i++)
-    {
-     /*
-     if(i<50){
-      printf("i =%d\n",i);
-     }
-     */
+    {     
      if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
       {
         num_valid += 1;
@@ -327,13 +330,27 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
           printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],imgPts[i][1],imgPts[i][2],ii,jj);
         }
         */ 
+       
+       //let's chanck( ii, jj) are changing with the       
+        if(num_valid < 15)
+        {
+         // will the point be accepted into this round of the computation?
+         int accept_comp = 0;
+         if( ( ii> 0) && ( ii<= row_max) && ( jj> 0) && ( jj<= col_max)){
+          accept_comp = 1; 
+         }
 
+         printf("inter = %d, num_valid = %d, pixel( %d) = ( %d, %d), accept_comp = %d\n",iter,num_valid,i,ii,jj,accept_comp);
+        }
         // check (ii,jj) are inside the image!
         if( ( ii> 0) && ( ii<= row_max) && ( jj> 0) && ( jj<= col_max)){
 
         //initialize constants
         float I_x_sqr, I_x_I_y, I_y_sqr; 
         float I_e_val = imgPts[i][0]-synthImg[i];
+        //the above is incorrect right?
+        // as (ii,jj) change so should intensity!
+        // or then the synthImg[i] should change!       
         float I_y_val, I_x_val;
 
         //calculate numerical dirivatives (ii,jj)... 
@@ -412,20 +429,44 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
     }
       
     //print out previous and updates
-    printf("at end of iteration %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
-    d += lhs; // update parameter
+    printf("A. iter: %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+    printf("A. iter %d: lhs = [ %f, %f, %f, %f, %f, %f]\n",iter, lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], lhs[5]);
+    print_rhs(rhs);
+    d += lhs; // update parameter - should this be d = lsh?
     iter ++;
-    printf("at start of iteration %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+    printf("B. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+   
+    //reset rhs & lhs before next iter
+    for(int i_RHS = 0; i_RHS < tf_size; i_RHS++)
+    {
+      for(int j_RHS = 0; j_RHS < tf_size; j_RHS++)
+      {
+        rhs(i_RHS,j_RHS) = 0.0;
+      }
+      lhs(i_RHS) = 0.0;
+    }
     
-    iter ++;
-  }
+    
+
+
+   }
   return d;
 } 
 
 
 
+/*Notes on current behavior
+We are seeing two things we don't like:
 
+1. blatantly wrong answer on the first stage of the iteration
 
+2. (Solved) later iterations only appear add the output of the first stage to the previous result.  Current results point towards rhs not changing at all after iter 1!
+  => does rhs change after iteration 1?
 
+  No change in rhs after iter-1, we need to reset!
+
+3. Should we be using d = lhs or d += lhs as we are currently doing.  I need to think more about this. 
+
+*/
 
 

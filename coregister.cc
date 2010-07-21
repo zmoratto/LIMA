@@ -34,6 +34,7 @@ namespace fs = boost::filesystem;
 #include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -147,7 +148,7 @@ void WhenBuildImgPts(vector<LOLAShot> trackPts){
  */
  
   //1. # of track points
-  printf("\n\n# trackPts = %d\n",trackPts.size());
+  //printf("\n\n# trackPts = %d\n",trackPts.size());
   
   //2. # accepted on id==3
   int number_pass = 0;
@@ -419,11 +420,14 @@ int main( int argc, char *argv[] ) {
     DEMFilename = string("../../results/dem.tiff"); 
   }
   cout << "get data loaded?"<< endl;
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-  printf("numTracks = %d\n", trackPts.size());
+
+// Need this! Commented out for debugging! 
+ vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
+  /*printf("numTracks = %d\n", trackPts.size());
   for(int i = 0; i < trackPts.size(); i++){
     printf("numShots[%d] = %d\n", i, trackPts[i].size());
   }
+  */
 
   int numVerPts = 6000;
   int numHorPts = 6000;
@@ -432,15 +436,16 @@ int main( int argc, char *argv[] ) {
   for (int i = 0; i < trackPts.size(); i++){
     trackIndices[i] = i;
   }
-
+// see need this above
   //write all tracks to image
+// Need this! Commented out for debugging! 
   MakeGrid(trackPts, numVerPts, numHorPts, DEMFilename, trackIndices);
 
   //debugg GetTrackPtsFromImage by calling a little test function that looks very similar and records/prints out some important statistics.
-  //WhenBuildImgPts(trackPts[1]);
+//WhenBuildImgPts(trackPts[1]);
   float normalizer_top = 0.0;
   float num_valid = 0.0;
-  cout << "Line 443: running smooth" << endl;
+  //cout << "Line 443: running smooth" << endl;
   /*
   for (int k = 1; k < trackPts.size(); k++){
 
@@ -536,11 +541,11 @@ int main( int argc, char *argv[] ) {
   }
   */
   
-  cout << "Calling UpdateMatchingParams, line 539"<< endl;
+  cout << "Calling UpdateMatchingParams, line 544"<< endl;
   Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams);
-  cout << "UpdateMatchingParams finsihed..." << endl;
+ cout << "UpdateMatchingParams finsihed..." << endl;
   //save the, # valid, normalizer, & the division
-  
+/*  
   vector<float> norm_consts;
   norm_consts.push_back( normalizer_top);
   norm_consts.push_back(  num_valid);
@@ -551,7 +556,10 @@ int main( int argc, char *argv[] ) {
   normConstsFilename = std::string(normConstsFilename_char);
   SaveVectorToFile(norm_consts, normConstsFilename);
  
-  delete[] normConstsFilename_char;
+  delete normConstsFilename_char;
+*/
+
+ return 0;
 }
 
 

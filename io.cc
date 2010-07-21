@@ -133,26 +133,26 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
         char s[2];
 	
 	string detIDs = detID;
-
+    //NOTE: all of the following atoi where orignally atof but where changed to remove compiler warnings - dtj, 2010_07_21
         if (time.length() > 1){
 	  size_t length;
 	  length = time.copy(year, 4, 0);
           //printf("length = %d\n", length);
 	  year[length] = '\0';
-          currPt.year = atof(year); 
+          currPt.year = atoi(year); 
        
 	  length = time.copy(month, 2, 5);
           //printf("length = %d\n", length);
 	  month[length] = '\0';
-          currPt.month = atof(month); 
+          currPt.month = atoi(month); 
 
 	  length = time.copy(day, 2, 8);
 	  day[length] = '\0';  
-          currPt.day = atof(day);
+          currPt.day = atoi(day);
 
 	  length = time.copy(hour, 2, 11);
 	  hour[length] = '\0';
-          currPt.hour = atof(hour);
+          currPt.hour = atoi(hour);
 
 	  length = time.copy(min, 2, 14);
 	  min[length] = '\0';
@@ -162,7 +162,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 
           length = detIDs.copy(s, 1, 2);
           s[length] = '\0';
-          currPt.s = atof(s);
+          currPt.s = atoi(s);
 	  //printf("%s %s %s %s %s %s detID = %s\n", year, month, day, hour, min, sec, s);
 	}
 	
