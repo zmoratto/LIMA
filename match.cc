@@ -332,7 +332,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         */ 
        
        //let's chanck( ii, jj) are changing with the       
-        if(num_valid < 15)
+        if(num_valid < 0)
         {
          // will the point be accepted into this round of the computation?
          int accept_comp = 0;
@@ -343,7 +343,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
          printf("inter = %d, num_valid = %d, pixel( %d) = ( %d, %d), accept_comp = %d\n",iter,num_valid,i,ii,jj,accept_comp);
         }
         // check (ii,jj) are inside the image!
-        if( ( ii> 0) && ( ii<= row_max) && ( jj> 0) && ( jj<= col_max)){
+        if( ( ii>= 0) && ( ii<= row_max) && ( jj>= 0) && ( jj<= col_max)){
 
         //initialize constants
         float I_x_sqr, I_x_I_y, I_y_sqr; 
@@ -357,8 +357,8 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         I_x_val = x_deriv(ii,jj); 
         I_y_val = y_deriv(ii,jj); 
         I_x_I_y = I_x_val*I_y_val;        
-        I_x_sqr = I_x_sqr*I_x_sqr;
-        I_y_sqr = I_y_sqr*I_y_sqr;
+        I_x_sqr = I_x_val*I_x_val;
+        I_y_sqr = I_y_val*I_y_val;
 
         // Left hand side
         lhs(0) += ii * I_x_val * I_e_val;
@@ -391,6 +391,16 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         rhs(4,4) += jj*jj * I_y_sqr;
         rhs(4,5) += jj    * I_y_sqr;
         rhs(5,5) +=         I_y_sqr;
+
+
+        if( num_valid < 50){
+          // print out stuff, questions to ask:
+              //1. Why the zeros in the upper left?
+              //2. What about the Inf/NaN in the lr
+
+              printf("num_valid %d: I_x_val = %f,  I_x_sqr = %f\n",num_valid,I_x_val,I_x_sqr);
+        }
+
         }// end of if statement: inside image
       }// end of if statement: valid reflectance  
     }// end of for loop over all data  points
@@ -429,7 +439,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
     }
       
     //print out previous and updates
-    printf("A. iter: %d, d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+    printf("A. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     printf("A. iter %d: lhs = [ %f, %f, %f, %f, %f, %f]\n",iter, lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], lhs[5]);
     print_rhs(rhs);
     d += lhs; // update parameter - should this be d = lsh?
