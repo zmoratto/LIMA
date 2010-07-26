@@ -251,7 +251,7 @@ void print_rhs( Matrix<float,6,6> rhs)
   printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
 }
 
-Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
+Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams )
 {
   DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
 
@@ -325,32 +325,31 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   col_max = x_deriv.cols();
   printf("row_max = %d, col_max = %d\n",row_max,col_max);
 
-
-  cout << "UMP: interpolate ..." << endl ;
-  InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-    interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
-
   int iter=0;
   cout << "UMP: grad descend loop ..." << endl; 
 
   // Calculate center points of the images
-  center_ij = pixel_center_LOLA_pnts(imgPts,d);
-  int i_C = center_ij[0];
-  int j_C = center_ij[1];
+  cout << "UMP: access size, rows: " << row_max << ", cols:"<< col_max << endl;
+  int i_C =  row_max/2;
+  int j_C = col_max/2;
+  cout << "Center at: (" << i_C << ", " << j_C << ")" << endl;
+
   int iA = 0;
   int jA = 0;
-  while( iter <= 100) //gradient descent => optimal transform
+  
+  //Create disk view resources -access image pnts by pixel
+  
+  //DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, DRGFilename);
+
+  ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
+        ConstantEdgeExtension()),
+      BilinearInterpolation());
+
+  while( iter <= 300) //gradient descent => optimal transform
   {
     int num_valid = 0;
-    // placed outside while loop so iA & jA are constant
-    // otherwise addative nature of d += lhs will be messed
-    // by changing centroid
-    //
-    // Calculate center points of the images
-    center_ij = pixel_center_LOLA_pnts(imgPts,d);
-    iA = center_ij[0];
-    jA = center_ij[1];
-
     for (int i = 0; i < imgPts.size(); i++)
     {     
       if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
@@ -401,6 +400,9 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
           float I_e_val = imgPts[i][0]-synthImg[i];
           //above line is incorrect - must access pixel (jA,iA):
           //I_e_val = DRG_img_view_resourse(jA,iA) - synthImg[i];
+          
+          I_e_val = interpDRG(jA,iA) - synthImg[i];
+
           float I_y_val, I_x_val;
 
           //calculate numerical dirivatives (ii,jj)... 

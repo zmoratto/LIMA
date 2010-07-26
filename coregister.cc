@@ -544,20 +544,44 @@ int main( int argc, char *argv[] ) {
   cout << "Calling UpdateMatchingParams, line 544"<< endl;
   Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams);
  cout << "UpdateMatchingParams finsihed..." << endl;
+/*
   //save the, # valid, normalizer, & the division
-/*  
+  std::string matchingParamsFilename;
+  char* matchingParamsFilename_char = new char[500];
+  sprintf( matchingParamsFilename_char, "../results/matching_params");
+  matchingParamsFilename = std::string(matchingParamsFilename);
+ 
+ // the following is very silly
+ vector<float> read_out;
+ for(int i=0; i< d.size(); i++ )
+ {
+   read_out.push_back(d[i]);
+ }
+ SaveVectorToFile(read_out,matchingParamsFilename);
+    */
+
+/*
   vector<float> norm_consts;
   norm_consts.push_back( normalizer_top);
   norm_consts.push_back(  num_valid);
   norm_consts.push_back( normalizer_top/num_valid);
   std::string normConstsFilename;
   char* normConstsFilename_char = new char[500];
-  sprintf (normConstsFilename_char, "../results/save_normalizer_constants.txt");
+  //sprintf (normConstsFilename_char, "../results/save_normalizer_constants.txt");
   normConstsFilename = std::string(normConstsFilename_char);
   SaveVectorToFile(norm_consts, normConstsFilename);
  
   delete normConstsFilename_char;
 */
+
+  //validation...?
+  // 'basin of attraction'...
+  // how sensitive is the solution to the initialization
+  // i.e. if we shift the initial position (- 10, + 5) pixels does this affect the final solution.  Can we move +/- 2000 pixels and still get the same solution?  I.e. is the problem convex.
+
+  // working to accomplish this by changing the update params interface
+  
+
 
  return 0;
 }
