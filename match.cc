@@ -117,7 +117,7 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
         ConstantEdgeExtension()),
       BilinearInterpolation());
-  
+
   int i_tot = 0;
   for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
@@ -144,12 +144,12 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
         allImgPts[i_tot + i][0] = (float) DRGVal;
         allImgPts[i_tot + i][1] = DRG_pix[0];
         allImgPts[i_tot + i][2] = DRG_pix[1];
-        
+
         /* Debugg statements to check data is correctly copied
         //The incorrect cast from int -> float is root cause
         if(i%15==0)
         {
-          printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
+        printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
         }
         //
         //
@@ -158,8 +158,8 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
         cout <<"Is DRG_pix fractional?" << endl;        
         printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
         }
-        */
-  }else {
+         */
+      }else {
         //write -1 to designate and invalid point
         allImgPts[i_tot + i][0] = -1;
         allImgPts[i_tot + i][1] = -1;
@@ -168,17 +168,17 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
     }
     i_tot += trackPts[k].size();  
   }
-  
+
   /* debugg statement: is data correctly copied?
-  printf("GetAllPtsFromImg: print some pnts...\n");
-  for(int i = 0; i< allImgPts.size(); i++)
-  {
-    if(i%150==0)
-    {
-      printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
-    }
-  }
-  */
+     printf("GetAllPtsFromImg: print some pnts...\n");
+     for(int i = 0; i< allImgPts.size(); i++)
+     {
+     if(i%150==0)
+     {
+     printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
+     }
+     }
+   */
 
   return allImgPts;
 }
@@ -216,6 +216,28 @@ vector<float> ComputeAllReflectance( vector< vector<LOLAShot> >  allTracks, Mode
   return reflectance;
 }
 
+vector<int> pixel_center_LOLA_pnts( vector<Vector3> imgPts, Vector<float,6> d)
+{
+  vector<int> center_ij;
+  center_ij.resize(2);
+  float i_c = 0.0;
+  float j_c = 0.0;
+  int num_S = imgPts.size();
+  //get average pixel location after current transform
+  for(int i = 0; i < num_S; i++)
+  {
+    i_c += d[0]*imgPts[i][1] + d[1]*imgPts[i][2] + d[2];  
+    j_c += d[3]*imgPts[i][1] + d[4]*imgPts[i][2] + d[5];
+  }
+
+  center_ij[0] = (int) floor( i_c / (float) num_S);
+  center_ij[1] = (int) floor( j_c / (float) num_S);
+
+  return center_ij;
+
+}
+
+
 void print_rhs( Matrix<float,6,6> rhs)
 {
   printf("Printing out RHS:\n");
@@ -223,10 +245,10 @@ void print_rhs( Matrix<float,6,6> rhs)
   printf("[ %f %f %f] [ %f %f %f]\n",rhs(0,0), rhs(0,1), rhs(0,2), rhs(0,3), rhs(0,4), rhs(0,5) );   
   printf("[ %f %f %f] [ %f %f %f]\n", rhs(1,0), rhs(1,1), rhs(1,2), rhs(1,3), rhs(1,4),rhs(1,5) ); 
   printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(2,0), rhs(2,1),rhs(2,2), rhs(2,3), rhs(2,4), rhs(2,5) );
- 
- printf("[ %f %f %f] [ %f %f %f]\n", rhs(3,0), rhs(3,1), rhs(3,2), rhs(3,3), rhs(3,4), rhs(3,5) );
- printf("[ %f %f %f] [ %f %f %f]\n", rhs(4,0), rhs(4,1), rhs(4,2), rhs(4,3), rhs(4,4), rhs(4,5) );
- printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
+
+  printf("[ %f %f %f] [ %f %f %f]\n", rhs(3,0), rhs(3,1), rhs(3,2), rhs(3,3), rhs(3,4), rhs(3,5) );
+  printf("[ %f %f %f] [ %f %f %f]\n", rhs(4,0), rhs(4,1), rhs(4,2), rhs(4,3), rhs(4,4), rhs(4,5) );
+  printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
 }
 
 Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams)
@@ -241,7 +263,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   //compute the synthetic image values
   cout << "UMP: ComputeTrackReflectance..." << endl;
   vector<float> reflectance = ComputeAllReflectance( trackPts, modelParams, globalParams);
-  
+
   cout << "UMP: ComputeScaleFactor..." << endl;
   float scaleFactor = ComputeScaleFactor(imgPts, reflectance);
   //isn't this a bit self-serving?  The scale factor should be computed a priori or conditioned from a learned distribution.  Here, we confuse training & test data.
@@ -272,10 +294,10 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
     string y_dirv_name = "../results/Apennine_escarpment_y-dir.tiff";   
     x_deriv = derivative_filter( DRG, 1, 0);
     y_deriv = derivative_filter( DRG, 0, 1);
-      
+
     write_image( x_dirv_name, x_deriv, TerminalProgressCallback("vw", "saving x_deriv: "));
     write_image( y_dirv_name, y_deriv, TerminalProgressCallback("vw", "saving y_deriv: "));
-    
+
   }
 
 
@@ -289,12 +311,14 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   Vector<float,tf_size> lhs;
   print_rhs(rhs);
 
-
+  int i_access, j_access;
   int ii, jj;
+  int i_Center, j_Center;
+  vector<int> center_ij;
   float x_base, y_base;
   float xx,yy;
   int row_max, col_max;
-  
+
   //get row_max, col_max - improve this!
   cout << "UMP: max pixel locations..." << endl; 
   row_max = x_deriv.rows();
@@ -302,104 +326,130 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   printf("row_max = %d, col_max = %d\n",row_max,col_max);
 
 
- cout << "UMP: interpolate ..." << endl ;
+  cout << "UMP: interpolate ..." << endl ;
   InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > > , ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
     interpolate(DRG, BilinearInterpolation(), ZeroEdgeExtension());
-  
+
   int iter=0;
   cout << "UMP: grad descend loop ..." << endl; 
-  while(iter <= 3) //gradient descent => optimal transform
+
+  // Calculate center points of the images
+  center_ij = pixel_center_LOLA_pnts(imgPts,d);
+  int i_C = center_ij[0];
+  int j_C = center_ij[1];
+  int iA = 0;
+  int jA = 0;
+  while( iter <= 100) //gradient descent => optimal transform
   {
     int num_valid = 0;
+    // placed outside while loop so iA & jA are constant
+    // otherwise addative nature of d += lhs will be messed
+    // by changing centroid
+    //
+    // Calculate center points of the images
+    center_ij = pixel_center_LOLA_pnts(imgPts,d);
+    iA = center_ij[0];
+    jA = center_ij[1];
+
     for (int i = 0; i < imgPts.size(); i++)
     {     
-     if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
+      if( (synthImg[i]!= -1) && (synthImg[i]!=0) )
       {
         num_valid += 1;
         // lola pixel coordinates
         x_base = imgPts[i][1];
         y_base = imgPts[i][2];
 
+        // calculate access 
+
         // image coordinates under the current transform
-        ii = (int) floor(d[0]*x_base + d[1]*y_base + d[2]);
-        jj = (int) floor(d[3]*x_base + d[4]*y_base + d[5]);
-       
-        /* debugg statement: checks data transcription       
-        if( num_valid % 50 == 0){
-          //printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],x_base,y_base,ii,jj); 
-          printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],imgPts[i][1],imgPts[i][2],ii,jj);
+        iA = (int) floor(d[0]*x_base + d[1]*y_base + d[2]);
+        jA = (int) floor(d[3]*x_base + d[4]*y_base + d[5]);
+
+        /* pulled out of 'for' loop - constant reference frame for d += lhs
+           ii = (int) floor(d[0]*x_base + d[1]*y_base + d[2]);
+           jj = (int) floor(d[3]*x_base + d[4]*y_base + d[5]);
+         */
+
+        // caluculate ii & jj
+        ii = iA - i_C;
+        jj = jA - j_C;
+
+        /* debugg statement: checks data transcription    
+           if( num_valid % 50 == 0){
+        //printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],x_base,y_base,ii,jj); 
+        printf("LOLA pnt: %d of intensity %f, at (%f,%f) transformed to (%d,%d)\n",i,imgPts[i][0],imgPts[i][1],imgPts[i][2],ii,jj);
         }
-        */ 
-       
-       //let's chanck( ii, jj) are changing with the       
+         */ 
+
+        //let's chanck( ii, jj) are changing with the       
         if(num_valid < 0)
         {
-         // will the point be accepted into this round of the computation?
-         int accept_comp = 0;
-         if( ( ii> 0) && ( ii<= row_max) && ( jj> 0) && ( jj<= col_max)){
-          accept_comp = 1; 
-         }
+          // will the point be accepted into this round of the computation?
+          int accept_comp = 0;
+          if( ( iA >= 0) && ( iA <= row_max) && ( jA >= 0) && ( jA <= col_max)){
+            accept_comp = 1; 
+          }
 
-         printf("inter = %d, num_valid = %d, pixel( %d) = ( %d, %d), accept_comp = %d\n",iter,num_valid,i,ii,jj,accept_comp);
+          printf("inter = %d, num_valid = %d, pixel( %d) = ( %d, %d), accept_comp = %d\n",iter,num_valid,i,iA,jA,accept_comp);
         }
         // check (ii,jj) are inside the image!
-        if( ( ii>= 0) && ( ii<= row_max) && ( jj>= 0) && ( jj<= col_max)){
+        if( ( iA >= 0) && ( iA <= row_max) && ( jA >= 0) && ( jA <= col_max)){
 
-        //initialize constants
-        float I_x_sqr, I_x_I_y, I_y_sqr; 
-        float I_e_val = imgPts[i][0]-synthImg[i];
-        //the above is incorrect right?
-        // as (ii,jj) change so should intensity!
-        // or then the synthImg[i] should change!       
-        float I_y_val, I_x_val;
+          //initialize constants
+          float I_x_sqr, I_x_I_y, I_y_sqr; 
+          float I_e_val = imgPts[i][0]-synthImg[i];
+          //above line is incorrect - must access pixel (jA,iA):
+          //I_e_val = DRG_img_view_resourse(jA,iA) - synthImg[i];
+          float I_y_val, I_x_val;
 
-        //calculate numerical dirivatives (ii,jj)... 
-        I_x_val = x_deriv(ii,jj); 
-        I_y_val = y_deriv(ii,jj); 
-        I_x_I_y = I_x_val*I_y_val;        
-        I_x_sqr = I_x_val*I_x_val;
-        I_y_sqr = I_y_val*I_y_val;
+          //calculate numerical dirivatives (ii,jj)... 
+          I_x_val = x_deriv(jA,iA); 
+          I_y_val = y_deriv(jA,iA); 
+          I_x_I_y = I_x_val*I_y_val;        
+          I_x_sqr = I_x_val*I_x_val;
+          I_y_sqr = I_y_val*I_y_val;
 
-        // Left hand side
-        lhs(0) += ii * I_x_val * I_e_val;
-        lhs(1) += jj * I_x_val * I_e_val;
-        lhs(2) +=      I_x_val * I_e_val;
-        lhs(3) += ii * I_y_val * I_e_val;
-        lhs(4) += jj * I_y_val * I_e_val;
-        lhs(5) +=      I_y_val * I_e_val;
+          // Left hand side
+          lhs(0) += ii * I_x_val * I_e_val;
+          lhs(1) += jj * I_x_val * I_e_val;
+          lhs(2) +=      I_x_val * I_e_val;
+          lhs(3) += ii * I_y_val * I_e_val;
+          lhs(4) += jj * I_y_val * I_e_val;
+          lhs(5) +=      I_y_val * I_e_val;
 
-        // Right Hand Side UL
-        rhs(0,0) += ii*ii * I_x_sqr;
-        rhs(0,1) += ii*jj * I_x_sqr;
-        rhs(0,2) += ii    * I_x_sqr;
-        rhs(1,1) += jj*jj * I_x_sqr;
-        rhs(1,2) += jj    * I_x_sqr;
-        rhs(2,2) +=         I_x_sqr;
+          // Right Hand Side UL
+          rhs(0,0) += ii*ii * I_x_sqr;
+          rhs(0,1) += ii*jj * I_x_sqr;
+          rhs(0,2) += ii    * I_x_sqr;
+          rhs(1,1) += jj*jj * I_x_sqr;
+          rhs(1,2) += jj    * I_x_sqr;
+          rhs(2,2) +=         I_x_sqr;
 
-        // Right Hand Side UR
-        rhs(0,3) += ii*ii * I_x_I_y;
-        rhs(0,4) += ii*jj * I_x_I_y;
-        rhs(0,5) += ii    * I_x_I_y;
-        rhs(1,4) += jj*jj * I_x_I_y;
-        rhs(1,5) += jj    * I_x_I_y;
-        rhs(2,5) +=         I_x_I_y;
+          // Right Hand Side UR
+          rhs(0,3) += ii*ii * I_x_I_y;
+          rhs(0,4) += ii*jj * I_x_I_y;
+          rhs(0,5) += ii    * I_x_I_y;
+          rhs(1,4) += jj*jj * I_x_I_y;
+          rhs(1,5) += jj    * I_x_I_y;
+          rhs(2,5) +=         I_x_I_y;
 
-        // Right Hand Side LR
-        rhs(3,3) += ii*ii * I_y_sqr;
-        rhs(3,4) += ii*jj * I_y_sqr;
-        rhs(3,5) += ii    * I_y_sqr;
-        rhs(4,4) += jj*jj * I_y_sqr;
-        rhs(4,5) += jj    * I_y_sqr;
-        rhs(5,5) +=         I_y_sqr;
+          // Right Hand Side LR
+          rhs(3,3) += ii*ii * I_y_sqr;
+          rhs(3,4) += ii*jj * I_y_sqr;
+          rhs(3,5) += ii    * I_y_sqr;
+          rhs(4,4) += jj*jj * I_y_sqr;
+          rhs(4,5) += jj    * I_y_sqr;
+          rhs(5,5) +=         I_y_sqr;
 
 
-        if( num_valid < 50){
-          // print out stuff, questions to ask:
-              //1. Why the zeros in the upper left?
-              //2. What about the Inf/NaN in the lr
+          if( num_valid < 0){
+            // print out stuff, questions to ask:
+            //1. Why the zeros in the upper left?
+            //2. What about the Inf/NaN in the lr
 
-              printf("num_valid %d: I_x_val = %f,  I_x_sqr = %f\n",num_valid,I_x_val,I_x_sqr);
-        }
+            printf("num_valid %d: I_x_val = %f,  I_x_sqr = %f\n",num_valid,I_x_val,I_x_sqr);
+          }
 
         }// end of if statement: inside image
       }// end of if statement: valid reflectance  
@@ -437,15 +487,15 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
       //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
       //             exit(0);
     }
-      
+
     //print out previous and updates
-    printf("A. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
+    //printf("A. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     printf("A. iter %d: lhs = [ %f, %f, %f, %f, %f, %f]\n",iter, lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], lhs[5]);
     print_rhs(rhs);
     d += lhs; // update parameter - should this be d = lsh?
-    iter ++;
     printf("B. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
-   
+    iter ++;
+
     //reset rhs & lhs before next iter
     for(int i_RHS = 0; i_RHS < tf_size; i_RHS++)
     {
@@ -455,28 +505,28 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
       }
       lhs(i_RHS) = 0.0;
     }
-    
-    
 
 
-   }
+
+
+  }
   return d;
 } 
 
 
 
 /*Notes on current behavior
-We are seeing two things we don't like:
+  We are seeing two things we don't like:
 
-1. blatantly wrong answer on the first stage of the iteration
+  1. blatantly wrong answer on the first stage of the iteration
 
-2. (Solved) later iterations only appear add the output of the first stage to the previous result.  Current results point towards rhs not changing at all after iter 1!
+  2. (Solved) later iterations only appear add the output of the first stage to the previous result.  Current results point towards rhs not changing at all after iter 1!
   => does rhs change after iteration 1?
 
   No change in rhs after iter-1, we need to reset!
 
-3. Should we be using d = lhs or d += lhs as we are currently doing.  I need to think more about this. 
+  3. Should we be using d = lhs or d += lhs as we are currently doing.  I need to think more about this. 
 
-*/
+ */
 
 
