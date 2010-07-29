@@ -540,9 +540,14 @@ int main( int argc, char *argv[] ) {
     
   }
   */
-  
+ 
+  bool other_d = false;
+  vector<float> d2;
+  d2.resize(6);
+  d2[0] = 1.0; d2[1] = 0.0; d2[2] = -100;
+  d2[3] = 0.0; d2[4] = 1.0; d2[5] = 150;
   cout << "Calling UpdateMatchingParams, line 544"<< endl;
-  Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams);
+  Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams,other_d,d2);
  cout << "UpdateMatchingParams finsihed..." << endl;
 /*
   //save the, # valid, normalizer, & the division

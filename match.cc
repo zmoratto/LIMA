@@ -251,7 +251,7 @@ void print_rhs( Matrix<float,6,6> rhs)
   printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
 }
 
-Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams )
+Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams, bool other_d, vector<float> d2 )
 {
   DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
 
@@ -303,8 +303,19 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
 
   //the following is for affine (NOT perspective) transforms
   Vector<float,6> d;//defines the affine transform
-  d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
-  d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
+  cout << "UMP: other_d = " << other_d << endl;
+  if(!other_d)
+  {
+    //cout << "UMP:  " << endl;
+    d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
+    d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
+  }else{
+    cout << "UMP: setting d2 = d" << endl;
+    d(0) = d2[0]; d(1) = d2[1]; d(2) = d2[2];
+    d(3) = d2[3]; d(4) = d2[4]; d(5) = d2[5];
+  
+  printf("d = [ %f, %f, %f, %f %f %f]\n",d2[0],d2[1],d2[2],d2[3],d2[4],d2[5]);
+  }
   printf("d = [ %f, %f, %f, %f %f %f]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
   const int tf_size = 6;//transform size
   Matrix<float,tf_size,tf_size> rhs;
@@ -347,7 +358,12 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
         ConstantEdgeExtension()),
       BilinearInterpolation());
 
-  while( iter <= 300) //gradient descent => optimal transform
+  //open stuff up...skip automatic naming!
+  FILE* sFile; 
+  sFile = fopen("../results/latest_match_output.txt","w");
+  float g_error = 0.0; 
+  
+  while( iter <= 5) //gradient descent => optimal transform
   {
     int num_valid = 0;
     for (int i = 0; i < imgPts.size(); i++)
@@ -402,7 +418,7 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
           //I_e_val = DRG_img_view_resourse(jA,iA) - synthImg[i];
           
           I_e_val = interpDRG(jA,iA) - synthImg[i];
-
+          g_error += abs(I_e_val);
           float I_y_val, I_x_val;
 
           //calculate numerical dirivatives (ii,jj)... 
@@ -494,6 +510,13 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
     //printf("A. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     printf("A. iter %d: lhs = [ %f, %f, %f, %f, %f, %f]\n",iter, lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], lhs[5]);
     print_rhs(rhs);
+    
+    //write out 
+    fprintf(sFile,"iter= %d g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n",iter, g_error, d(0), d(1), d(2), d(3), d(4), d(5));
+    g_error = 0.0;    
+
+    cout << "UMP: Just written to latest... "<< endl;
+    
     d += lhs; // update parameter - should this be d = lsh?
     printf("B. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     iter ++;
