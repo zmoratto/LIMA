@@ -48,6 +48,27 @@ using namespace std;
 #include "match.h"
 #include "coregister.h"
 
+float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
+{
+  float nominator =0.0;
+  int numValidPts = 0;
+  float scaleFactor = 1;
+
+  for(int m = 0; m < reflectance.size(); m ++){
+    if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
+      nominator += allImgPts[m]/reflectance[m];
+      numValidPts += 1;
+    }
+  }
+
+  if (numValidPts != 0){ 
+    scaleFactor = nominator/numValidPts;
+  }
+
+  return scaleFactor;
+}
+
+
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
 {
@@ -446,7 +467,7 @@ int main( int argc, char *argv[] ) {
   float normalizer_top = 0.0;
   float num_valid = 0.0;
   //cout << "Line 443: running smooth" << endl;
-  /*
+  
   for (int k = 1; k < trackPts.size(); k++){
 
 
@@ -539,7 +560,7 @@ int main( int argc, char *argv[] ) {
     delete[] filename_char;
     
   }
-  */
+  
  
   bool other_d = false;
   vector<float> d2;
