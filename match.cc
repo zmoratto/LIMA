@@ -139,6 +139,8 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
         int y = (int)DRG_pix[1];
 
         PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
+        //PixelGray<uint8> DRGVal = interpDRG(x, y);
+        //Pixel<PixelGray<uint8> > DRGVal = interpDRG(x,y);
 
         //insert data
         allImgPts[i_tot + i][0] = (float) DRGVal;

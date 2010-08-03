@@ -160,46 +160,46 @@ vector<float> ComputeTrackReflectance(vector<LOLAShot> trackPts, ModelParams mod
 }
 
 void WhenBuildImgPts(vector<LOLAShot> trackPts){
- //this function is to understand which pts GetTrackPtsFromImage will extract
- 
- /* First set of tests:
-    1. what is the length of trackPts[0] // [0] is the index being fed in
-    2. what is the # accepted based on the id == 3 condition
-    3. what is the # accepted on the valid refl. condition?
- */
- 
+  //this function is to understand which pts GetTrackPtsFromImage will extract
+
+  /* First set of tests:
+     1. what is the length of trackPts[0] // [0] is the index being fed in
+     2. what is the # accepted based on the id == 3 condition
+     3. what is the # accepted on the valid refl. condition?
+   */
+
   //1. # of track points
   //printf("\n\n# trackPts = %d\n",trackPts.size());
-  
+
   //2. # accepted on id==3
   int number_pass = 0;
   int ID = 3;
   for(int i = 0; i < trackPts.size(); i++){
     for(int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-      
+
       int id = trackPts[i].LOLAPt[k].s; 
       if (id == ID){
-      //  imgPts.push_back((float)DRGVal);
+        //  imgPts.push_back((float)DRGVal);
         number_pass += 1;
       }
 
     }
   }
   printf("number img pts = %d\n",number_pass);
-  
+
   //3. # valid refl.
   int numb_refl_valid = 0;
   vector<pointCloud> ptHere;
   pointCloud centerPt;
   pointCloud topPt;
   pointCloud leftPt;
- 
+
   for(int i = 1; i < trackPts.size(); i++){
     ptHere = trackPts[i].LOLAPt;
     centerPt = GetPointFromIndex(ptHere, 3);
     topPt = GetPointFromIndex(ptHere, 2);
     leftPt = GetPointFromIndex(ptHere, 1);
-    
+
     if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1))
     {
       numb_refl_valid += 1;
@@ -268,7 +268,7 @@ vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename
     pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
 
     if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-      
+
       float lon = centerPt.coords[0];
       float lat = centerPt.coords[1];
       float rad = centerPt.coords[2];
@@ -297,7 +297,7 @@ vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilena
   read_georeference(DRGGeo, DRGFilename);
 
   vector<Vector3> allImgPts;
-  
+
   allImgPts.resize(trackPts.size());  
   vector<pointCloud> ptHere;
 
@@ -312,7 +312,7 @@ vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilena
     pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
 
     if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-      
+
       float lon = centerPt.coords[0];
       float lat = centerPt.coords[1];
       float rad = centerPt.coords[2];
@@ -336,7 +336,7 @@ vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilena
       allImgPts[i][2] = -1;
     }
   }
-  
+
   return allImgPts;
 }
 
@@ -385,7 +385,7 @@ float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array)
     if(refl_array[i]!= -1){
       printf("If statement in: norm... works");
       n_here += img_vals[i];
-     
+
     }
   }
 
@@ -397,7 +397,7 @@ float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array)
 int main( int argc, char *argv[] ) {
 
   cout << "remove SEGFAULTS" << endl;
-  
+
   GlobalParams globalParams;
   //globalParams.reflectanceType = NO_REFL;
   globalParams.reflectanceType = LUNAR_LAMBERT;
@@ -420,12 +420,16 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[1] = 1000*127.53606522819;
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
-  
+
   int comp_number = 1; // 0 = Ara's paths, 1 = Dave's paths
   string inputCSVFilename; 
   string inputDEMFilename;
   string DRGFilename;  
   string DEMFilename; 
+
+  bool aligned_set_up_tracks = true;
+  bool update_model_params = true;
+
   if (comp_number == 0)
   {
     inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
@@ -435,20 +439,39 @@ int main( int argc, char *argv[] ) {
   }
   if(comp_number == 1)
   {
-    inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-    inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
-    DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
-    DEMFilename = string("../../results/dem.tiff"); 
+    int data_source = 1;
+    if(data_source == 1){
+
+      aligned_set_up_tracks = true;
+      update_model_params = true;
+      typedef PixelMask<uint8> DRG_access;
+
+      inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+      inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
+      DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
+      DEMFilename = string("../../results/dem.tiff"); 
+    }else if( data_source == 2){
+
+      aligned_set_up_tracks = false;
+      update_model_params = true;
+      typedef PixelGray<uint8>  DRG_access;
+
+      // Unaligned Hadley Rille - no Alpha channel
+      inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+      //inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
+      DRGFilename = string("../../data/Hadley Rille/AS15-M-1134_map.tif");  
+      DEMFilename = string("../../results/Hadley Rille/dem.tiff"); 
+    }
   }
   cout << "get data loaded?"<< endl;
 
-// Need this! Commented out for debugging! 
- vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
+  // Need this! Commented out for debugging! 
+  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
   /*printf("numTracks = %d\n", trackPts.size());
-  for(int i = 0; i < trackPts.size(); i++){
+    for(int i = 0; i < trackPts.size(); i++){
     printf("numShots[%d] = %d\n", i, trackPts[i].size());
-  }
-  */
+    }
+   */
 
   int numVerPts = 6000;
   int numHorPts = 6000;
@@ -457,148 +480,150 @@ int main( int argc, char *argv[] ) {
   for (int i = 0; i < trackPts.size(); i++){
     trackIndices[i] = i;
   }
-// see need this above
+  // see need this above
   //write all tracks to image
-// Need this! Commented out for debugging! 
-  MakeGrid(trackPts, numVerPts, numHorPts, DEMFilename, trackIndices);
+  // Need this! Commented out for debugging! 
+  //MakeGrid(trackPts, numVerPts, numHorPts, DEMFilename, trackIndices);
 
   //debugg GetTrackPtsFromImage by calling a little test function that looks very similar and records/prints out some important statistics.
-//WhenBuildImgPts(trackPts[1]);
+  //WhenBuildImgPts(trackPts[1]);
   float normalizer_top = 0.0;
   float num_valid = 0.0;
   //cout << "Line 443: running smooth" << endl;
-  
-  for (int k = 1; k < trackPts.size(); k++){
+  if( aligned_set_up_tracks ){
+    for (int k = 1; k < trackPts.size(); k++){
 
 
-    std::string filename;
-    char* filename_char = new char[500];
-    sprintf (filename_char, "../results/dem_orbit_%d.txt", k);
-    filename = std::string(filename_char);
-    vector<float> pts = GetTrackPtsByID(trackPts[k], 3);
-    SaveVectorToFile(pts, filename);
+      std::string filename;
+      char* filename_char = new char[500];
+      sprintf (filename_char, "../results/dem_orbit_%d.txt", k);
+      filename = std::string(filename_char);
+      vector<float> pts = GetTrackPtsByID(trackPts[k], 3);
+      SaveVectorToFile(pts, filename);
 
-    vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
-    std::string reflectanceFilename;
-    char* reflectanceFilename_char = new char[500];
-    sprintf (reflectanceFilename_char, "../results/refl_orbit_%d.txt", k);
-    reflectanceFilename = std::string(reflectanceFilename_char);
-    SaveVectorToFile(reflectance, reflectanceFilename);
-    printf("k = %d, reflectance.size() = %d\n", k, reflectance.size());
-    //normalizer = normalizer_for_this_track(img_vals,refl_array);
-      
-    vector<float> imgPts;
-    imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
-    std::string imgPtsFilename;
-    char* imgPtsFilename_char = new char[500];
-    sprintf (imgPtsFilename_char, "../results/img_orbit_%d.txt", k);
-    imgPtsFilename = std::string(imgPtsFilename_char);
-    SaveVectorToFile(imgPts, imgPtsFilename);
+      vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
+      std::string reflectanceFilename;
+      char* reflectanceFilename_char = new char[500];
+      sprintf (reflectanceFilename_char, "../results/refl_orbit_%d.txt", k);
+      reflectanceFilename = std::string(reflectanceFilename_char);
+      SaveVectorToFile(reflectance, reflectanceFilename);
+      printf("k = %d, reflectance.size() = %d\n", k, reflectance.size());
+      //normalizer = normalizer_for_this_track(img_vals,refl_array);
 
-    // We have two choices output: output image at every pt or every valid refl
-    // allImagPts.size() = trackPts.size(), at points where the track is invalid we havea -1
-    vector<float> allImgPts;
-    allImgPts = AllTrackPtsFromImage(trackPts[k],DRGFilename);
-    std::string allImgPtsFilename;
-    char* allImgPtsFilename_char = new char[500]; 
-    sprintf(allImgPtsFilename_char, "../results/all_img_track_orbit_%d.txt",k);
-    allImgPtsFilename = std::string(allImgPtsFilename_char);
-    SaveVectorToFile(allImgPts, allImgPtsFilename);
-    
-    cout << "Starting normalization calc." << endl;
+      vector<float> imgPts;
+      imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
+      std::string imgPtsFilename;
+      char* imgPtsFilename_char = new char[500];
+      sprintf (imgPtsFilename_char, "../results/img_orbit_%d.txt", k);
+      imgPtsFilename = std::string(imgPtsFilename_char);
+      SaveVectorToFile(imgPts, imgPtsFilename);
 
-    //account for normalization here
-    for(int m = 0; m < reflectance.size(); m ++){
-      if(reflectance[m]!= -1){
-        normalizer_top += allImgPts[m];
-        //normalizer_top += allImgPts[m]/reflectance[m];
-        num_valid += 1.0;
+      // We have two choices output: output image at every pt or every valid refl
+      // allImagPts.size() = trackPts.size(), at points where the track is invalid we havea -1
+      vector<float> allImgPts;
+      allImgPts = AllTrackPtsFromImage(trackPts[k],DRGFilename);
+      std::string allImgPtsFilename;
+      char* allImgPtsFilename_char = new char[500]; 
+      sprintf(allImgPtsFilename_char, "../results/all_img_track_orbit_%d.txt",k);
+      allImgPtsFilename = std::string(allImgPtsFilename_char);
+      SaveVectorToFile(allImgPts, allImgPtsFilename);
+
+      cout << "Starting normalization calc." << endl;
+
+      //account for normalization here
+      for(int m = 0; m < reflectance.size(); m ++){
+        if(reflectance[m]!= -1){
+          normalizer_top += allImgPts[m];
+          //normalizer_top += allImgPts[m]/reflectance[m];
+          num_valid += 1.0;
+        }
       }
+
+      //determine the scalling factor and save the synthetic image points- START
+      float scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
+      vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
+      float matchingErr = ComputeMatchingError(synthImg, allImgPts);
+      printf("matchingError  %f\n", matchingErr);
+
+      std::string synthImgPtsFilename;
+      char* synthImgPtsFilename_char = new char[500];
+      sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
+      synthImgPtsFilename = std::string(synthImgPtsFilename_char);
+      SaveVectorToFile(synthImg, synthImgPtsFilename);
+      //determine the scalling factor - END
+
+      printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f, scaleFactor = %f\n",
+          k, normalizer_top, num_valid, scaleFactor);
+      //reflectance.clear();
+      //
+      vector<float> demPts;
+      demPts = GetTrackPtsFromDEM(trackPts[k], inputDEMFilename, 3);
+      std::string demPtsFilename;
+      char* demPtsFilename_char = new char[500];
+      sprintf (demPtsFilename_char, "../results/sdem_orbit_%d.txt", k);
+      demPtsFilename = std::string(demPtsFilename_char);
+      SaveVectorToFile(demPts, demPtsFilename);
+
+      //write individual tracks to image
+      string outDEMFilename;
+      char* outDEMFilename_char = new char[500];
+      sprintf (outDEMFilename_char, "../results/dem_%d.tiff", k);
+      outDEMFilename = std::string(outDEMFilename_char);
+      printf("demfilename = %s\n", outDEMFilename.c_str());
+      vector<int> trackIndices;
+      trackIndices.resize(1);
+      trackIndices[0] = k;
+      MakeGrid(trackPts, numVerPts, numHorPts, outDEMFilename, trackIndices);
+
+      delete[] outDEMFilename_char;
+      delete[] demPtsFilename_char;
+      delete[] allImgPtsFilename_char;
+      delete[] imgPtsFilename_char;
+      delete[] reflectanceFilename_char;
+      delete[] filename_char;
+
     }
-
-    //determine the scalling factor and save the synthetic image points- START
-    float scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
-    vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
-    float matchingErr = ComputeMatchingError(synthImg, allImgPts);
-    printf("matchingError  %f\n", matchingErr);
-
-    std::string synthImgPtsFilename;
-    char* synthImgPtsFilename_char = new char[500];
-    sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
-    synthImgPtsFilename = std::string(synthImgPtsFilename_char);
-    SaveVectorToFile(synthImg, synthImgPtsFilename);
-    //determine the scalling factor - END
-
-    printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f, scaleFactor = %f\n",
-	   k, normalizer_top, num_valid, scaleFactor);
-    //reflectance.clear();
-    //
-    vector<float> demPts;
-    demPts = GetTrackPtsFromDEM(trackPts[k], inputDEMFilename, 3);
-    std::string demPtsFilename;
-    char* demPtsFilename_char = new char[500];
-    sprintf (demPtsFilename_char, "../results/sdem_orbit_%d.txt", k);
-    demPtsFilename = std::string(demPtsFilename_char);
-    SaveVectorToFile(demPts, demPtsFilename);
-
-    //write individual tracks to image
-    string outDEMFilename;
-    char* outDEMFilename_char = new char[500];
-    sprintf (outDEMFilename_char, "../results/dem_%d.tiff", k);
-    outDEMFilename = std::string(outDEMFilename_char);
-    printf("demfilename = %s\n", outDEMFilename.c_str());
-    vector<int> trackIndices;
-    trackIndices.resize(1);
-    trackIndices[0] = k;
-    MakeGrid(trackPts, numVerPts, numHorPts, outDEMFilename, trackIndices);
-  
-    delete[] outDEMFilename_char;
-    delete[] demPtsFilename_char;
-    delete[] allImgPtsFilename_char;
-    delete[] imgPtsFilename_char;
-    delete[] reflectanceFilename_char;
-    delete[] filename_char;
-    
   }
-  
- 
-  bool other_d = false;
-  vector<float> d2;
-  d2.resize(6);
-  d2[0] = 1.0; d2[1] = 0.0; d2[2] = -100;
-  d2[3] = 0.0; d2[4] = 1.0; d2[5] = 150;
-  cout << "Calling UpdateMatchingParams, line 544"<< endl;
-  Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams,other_d,d2);
- cout << "UpdateMatchingParams finsihed..." << endl;
-/*
+
+  if( update_model_params){
+    bool other_d = false;
+    vector<float> d2;
+    d2.resize(6);
+    d2[0] = 1.0; d2[1] = 0.0; d2[2] = -100;
+    d2[3] = 0.0; d2[4] = 1.0; d2[5] = 150;
+    cout << "Calling UpdateMatchingParams, line 544"<< endl;
+    Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams,other_d,d2);
+    cout << "UpdateMatchingParams finsihed..." << endl;
+  }
+  /*
   //save the, # valid, normalizer, & the division
   std::string matchingParamsFilename;
   char* matchingParamsFilename_char = new char[500];
   sprintf( matchingParamsFilename_char, "../results/matching_params");
   matchingParamsFilename = std::string(matchingParamsFilename);
- 
- // the following is very silly
- vector<float> read_out;
- for(int i=0; i< d.size(); i++ )
- {
-   read_out.push_back(d[i]);
- }
- SaveVectorToFile(read_out,matchingParamsFilename);
-    */
 
-/*
-  vector<float> norm_consts;
-  norm_consts.push_back( normalizer_top);
-  norm_consts.push_back(  num_valid);
-  norm_consts.push_back( normalizer_top/num_valid);
-  std::string normConstsFilename;
-  char* normConstsFilename_char = new char[500];
+  // the following is very silly
+  vector<float> read_out;
+  for(int i=0; i< d.size(); i++ )
+  {
+  read_out.push_back(d[i]);
+  }
+  SaveVectorToFile(read_out,matchingParamsFilename);
+   */
+
+  /*
+     vector<float> norm_consts;
+     norm_consts.push_back( normalizer_top);
+     norm_consts.push_back(  num_valid);
+     norm_consts.push_back( normalizer_top/num_valid);
+     std::string normConstsFilename;
+     char* normConstsFilename_char = new char[500];
   //sprintf (normConstsFilename_char, "../results/save_normalizer_constants.txt");
   normConstsFilename = std::string(normConstsFilename_char);
   SaveVectorToFile(norm_consts, normConstsFilename);
- 
+
   delete normConstsFilename_char;
-*/
+   */
 
   //validation...?
   // 'basin of attraction'...
@@ -606,10 +631,10 @@ int main( int argc, char *argv[] ) {
   // i.e. if we shift the initial position (- 10, + 5) pixels does this affect the final solution.  Can we move +/- 2000 pixels and still get the same solution?  I.e. is the problem convex.
 
   // working to accomplish this by changing the update params interface
-  
 
 
- return 0;
+
+  return 0;
 }
 
 
