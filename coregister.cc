@@ -340,6 +340,54 @@ vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilena
   return allImgPts;
 }
 
+void ShowTrackPtsOnImage(vector<LOLAShot> trackPts, string DRGFilename, string outFilename)
+{ 
+  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, DRGFilename);
+
+  ImageView<PixelGray<float> > OutImage(DRG.cols(), DRG.rows());
+  GeoReference DEMgeo;
+
+  //ImageView<PixelMask<PixelGray<uint8> > > output_img (DRG.cols(), DRG.rows());
+
+  vector<pointCloud> ptHere;
+
+  //ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
+  //      ConstantEdgeExtension()),
+  //    BilinearInterpolation());
+
+  for(int i = 0; i < trackPts.size(); i++){
+    ptHere = trackPts[i].LOLAPt;
+    pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
+    pointCloud topPt     = GetPointFromIndex( ptHere, 2);
+    pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
+
+    if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
+      
+      float lon = centerPt.coords[0];
+      float lat = centerPt.coords[1];
+      float rad = centerPt.coords[2];
+
+      Vector2 DEM_lonlat(lon, lat);
+      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+
+      int x = (int)DRG_pix[0];
+      int y = (int)DRG_pix[1];
+
+      OutImage(x,y) = 255;
+    }
+      
+  }
+  
+  //write output image
+  write_georeferenced_image(outFilename,
+                            //channel_cast<uint8>(clamp(output_img,0.0,255.0)),
+                            OutImage,
+                            DRGGeo, TerminalProgressCallback("Core","Processing:"));
+  
+}
+
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
 {
   DiskImageView<PixelGray<float> >   DEM(DEMFilename);
@@ -396,7 +444,6 @@ float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array)
 
 int main( int argc, char *argv[] ) {
 
-  cout << "remove SEGFAULTS" << endl;
 
   GlobalParams globalParams;
   //globalParams.reflectanceType = NO_REFL;
@@ -421,7 +468,6 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
 
-  int comp_number = 1; // 0 = Ara's paths, 1 = Dave's paths
   string inputCSVFilename; 
   string inputDEMFilename;
   string DRGFilename;  
@@ -430,40 +476,14 @@ int main( int argc, char *argv[] ) {
   bool aligned_set_up_tracks = true;
   bool update_model_params = true;
 
-  if (comp_number == 0)
-  {
-    inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-    inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-    DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-    DEMFilename = string("../results/dem.tiff"); 
-  }
-  if(comp_number == 1)
-  {
-    int data_source = 1;
-    if(data_source == 1){
 
-      aligned_set_up_tracks = true;
-      update_model_params = true;
-      typedef PixelMask<uint8> DRG_access;
+  aligned_set_up_tracks = false;
+  inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+  inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
+  //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
+  DEMFilename = string("../results/dem.tiff"); 
 
-      inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-      inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
-      DRGFilename = string("../../data/Apollo15-DRG/1134_1135-DRG.tif");  
-      DEMFilename = string("../../results/dem.tiff"); 
-    }else if( data_source == 2){
-
-      aligned_set_up_tracks = false;
-      update_model_params = true;
-      typedef PixelGray<uint8>  DRG_access;
-
-      // Unaligned Hadley Rille - no Alpha channel
-      inputCSVFilename = string("../../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-      //inputDEMFilename = string("../../data/Apollo15-DEM/1134_1135-DEM.tif");
-      DRGFilename = string("../../data/Hadley Rille/AS15-M-1134_map.tif");  
-      DEMFilename = string("../../results/Hadley Rille/dem.tiff"); 
-    }
-  }
-  cout << "get data loaded?"<< endl;
 
   // Need this! Commented out for debugging! 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
@@ -493,7 +513,10 @@ int main( int argc, char *argv[] ) {
   if( aligned_set_up_tracks ){
     for (int k = 1; k < trackPts.size(); k++){
 
-
+    //string outFilename = "demo.tiff";
+    //if (k == 1){
+    //ShowTrackPtsOnImage(trackPts[k], DRGFilename, outFilename);
+    //}
       std::string filename;
       char* filename_char = new char[500];
       sprintf (filename_char, "../results/dem_orbit_%d.txt", k);
