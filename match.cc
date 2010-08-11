@@ -35,6 +35,8 @@ namespace fs = boost::filesystem;
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 
+#include <stdio.h>
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -211,6 +213,36 @@ GetAllPtsFromImage( vector<vector<LOLAShot > > trackPts,  ImageViewBase<ViewT> c
 }
 
 
+bool deriv_cached(string & input_name, string & cached_table){
+  bool identified = false;
+  string line;
+  fstream myfile(cached_table.c_str());
+  // does the name exist
+  if(myfile.is_open()){
+    while(! myfile.eof()){
+      getline(myfile,line);
+      cout << line << endl;
+      if(line == input_name){
+        identified = true;
+        cout << "Fount it!" << endl; 
+      }
+    }
+  }
+  myfile.close();
+  
+  //if not add the name to the cached file
+  if(!identified){
+    // if we didn't find the file append the file to the document of saves
+    ofstream file_change;
+    file_change.open(cached_table.c_str(),ios::out | ios:: app);
+    file_change << input_name << "\n";
+    file_change.close();
+  }
+  
+
+  return identified;
+}
+
 
 
 vector<float> ComputeAllReflectance( vector< vector<LOLAShot> >  allTracks, ModelParams modelParams, GlobalParams globalParams)
@@ -308,16 +340,24 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
 
+  cout << "sufix_from_filename(DRGFilename): "<< sufix_from_filename(DRGFilename) << endl;
+  cout << "UPM: temp = " << temp << endl;
+  cout << "prefix_less3_from_filename(temp): "<< prefix_less3_from_filename(temp) << endl;
+
   cout<<xDerivFilename<<endl;
 
   if ( !boost::filesystem::exists( xDerivFilename ) ) {
-
+    cout << "UMP: trying to compute x_derivative" << endl;
     ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DRG),1,0);
     DiskImageResourceGDAL rsrc( xDerivFilename,
                                 temp.format(), Vector2i(512,512) );
+    cout << "UMP: trying to write x_derivative" << endl;
     block_write_image(rsrc, temp,
                       TerminalProgressCallback("asp", "Derivative:") );
+    cin.get();
   }
+  cout << "Trying to read in x_deriv( xDerivFilename ) " << endl;
+  
   DiskImageView<float> x_deriv( xDerivFilename );
 
   if ( !boost::filesystem::exists( yDerivFilename ) ) {
@@ -328,7 +368,78 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
                       TerminalProgressCallback("asp", "Derivative:") );
   }
   DiskImageView<float> y_deriv( yDerivFilename );
+
+/*
+  // single threaded version - should work better on Dave's machine
+  // we have strings xDerivFilename & yDerivFilename
+  cout << "UMP: STARTING NEW DERIVATIVE CODE!!" << endl;
+  ImageView<float> x_deriv;
+  ImageView<float> y_deriv;
   
+  string hold_file = "derivate_cache_names.txt";
+
+  if(deriv_cached( xDerivFilename, hold_file)){
+    cout << "UMP: found "<< xDerivFilename << endl;
+    cout << "UMP: loading " << xDerivFilename <<  endl;
+       
+    read_image( x_deriv,  xDerivFilename);
+
+  }else{
+    //append cache list - accomplished in deriv_cache   
+    cout << "UMP: did not find " << xDerivFilename << endl;
+    cout << "UMP: Compute & Cache " << xDerivFilename  << endl;
+    
+    x_deriv = derivative_filter(pixel_cast_rescale<float>( DRG), 1, 0);
+    write_image( xDerivFilename, x_deriv, TerminalProgressCallback("vw", "saving x_deriv: "));
+  }
+
+  if(deriv_cached( yDerivFilename, hold_file)){
+    cout << "UMP: found "<< yDerivFilename << endl;
+    cout << "UMP: Compute & Cache " << xDerivFilename << endl;
+    
+    read_image( y_deriv, yDerivFilename);
+
+  }else{ 
+    //append cache list - accomplished in deriv_cached
+    cout << "UMP: did not find " << yDerivFilename << endl;
+    cout << "UMP: Compute & Cache " << yDerivFilename << endl;
+  
+    y_deriv = derivative_filter(pixel_cast_rescale<float>( DRG), 0, 1);
+    write_image( yDerivFilename, y_deriv, TerminalProgressCallback("vw", "saving y_deriv: "));
+    
+  }
+ 
+*/
+/* // old & incomplete derivative caching code - used as a model for the single threaded version that appears above.
+  cout << "UMP: derivative_filter..."<< endl; 
+  //ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
+  //ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);
+
+  ImageView<float> x_deriv;
+  ImageView<float> y_deriv;
+
+  if( DRGFilename == "../../data/Apollo15-DRG/1134_1135-DRG.tif" )
+  {
+    // load dirivatives that have already been calculated
+    string x_dirv_load_name = "../results/Apennine_escarpment_x-dir.tiff";
+    string y_dirv_load_name = "../results/Apennine_escarpment_y-dir.tiff" ;
+
+    read_image( x_deriv, x_dirv_load_name);
+    read_image( y_deriv, y_dirv_load_name);
+    printf("UMP: loaded x_deriv & y_deriv...\n");
+  }else{
+    //calculate derivative image & save under the correct name
+    string x_dirv_name = "../results/Apennine_escarpment_x-dir.tiff";
+    string y_dirv_name = "../results/Apennine_escarpment_y-dir.tiff";   
+    x_deriv = derivative_filter( DRG, 1, 0);
+    y_deriv = derivative_filter( DRG, 0, 1);
+
+    write_image( x_dirv_name, x_deriv, TerminalProgressCallback("vw", "saving x_deriv: "));
+    write_image( y_dirv_name, y_deriv, TerminalProgressCallback("vw", "saving y_deriv: "));
+
+  }
+*/
+
  
   //the following is for affine (NOT perspective) transforms
   Vector<float,6> d;//defines the affine transform
@@ -381,10 +492,41 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   
   //open stuff up...skip automatic naming!
   FILE* sFile; 
-  sFile = fopen("../results/latest_match_output.txt","w");
-  float g_error = 0.0; 
+  //string result_file = ;
+ 
+  // std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   
-  while( iter <= 5) //gradient descent => optimal transform
+  std::string temp_name_sNow = sufix_from_filename(DRGFilename);
+  //cout << "UMP: before crash temp = " << temp_name_sNow << endl;
+  std::string save_name_file = "../results" + prefix_less3_from_filename(temp_name_sNow) + "lima_results.txt";  
+  cout << "UMP: save_name_file = " << save_name_file << endl;
+  std::string d_final_filename = "../results" + prefix_less3_from_filename(temp_name_sNow) + "d_final.txt";  
+  cout << "UMP: d_final_filename = " << d_final_filename << endl;
+  //printf("\n\n\n\t save_name_file = %s\n\n\n",save_name_file);
+  //sFile = fopen("../results/latest_match_output.txt","w");
+  
+  /*
+  int str_length_input = save_name_file.length();
+  char * lima_save_name = new char[str_length_input];
+  sprintf(lima_save_name,save_name_file,"k");
+  strcpy(lima_save_name,save_name_file);
+  */
+
+  char*lima_save_name = new char[save_name_file.size()+1];
+  lima_save_name[save_name_file.size()]=0;
+  memcpy(lima_save_name,save_name_file.c_str(),save_name_file.size());
+  sFile = fopen(lima_save_name,"w"); 
+  delete []lima_save_name;
+
+  /*
+  char*d_save_name = new char[d_final_filename.size()+1];
+  d_save_name[d_final_filename..size()]=0;
+  memcpy(lima_save_name,save_name_file.c_str(),save_name_file.size());
+  sFile = fopen(lima_save_name,"w"); 
+  delete []lima_save_name;
+ */ 
+  float g_error = 0.0; 
+  while( iter <= 25) //gradient descent => optimal transform
   {
     int num_valid = 0;
     for (int i = 0; i < imgPts.size(); i++)
