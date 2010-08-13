@@ -480,8 +480,8 @@ int main( int argc, char *argv[] ) {
   aligned_set_up_tracks = false;
   inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-  DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
- // DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
+//  DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
   DEMFilename = string("../results/dem.tiff"); 
 
 

@@ -292,6 +292,22 @@ void print_rhs( Matrix<float,6,6> rhs)
   printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
 }
 
+
+vector <float> error_offset_explore( vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams, GlobalParams globalParams, int track_use, vector<int> offsets){
+  //prepare variables
+  
+  
+  //select a track - load points
+  vector< LOLAShot> = trackPts[track_use];
+  vector<float> track_rflc = ComputeTrackReflectance( allTracks[track_use], modelParams, globalParams);
+   
+  //calculate - "lowest error" offset
+  //shift +/- 50, 100, 150, 200, 250, 300, 500 pixels
+  //calculate & save error surface
+  //make and image w/cyan "true" and red "imposture" positions
+}
+
+
 Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams, bool other_d, vector<float> d2 )
 {
 
@@ -518,13 +534,13 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   sFile = fopen(lima_save_name,"w"); 
   delete []lima_save_name;
 
-  /*
+  FILE *d_FILE;
   char*d_save_name = new char[d_final_filename.size()+1];
-  d_save_name[d_final_filename..size()]=0;
-  memcpy(lima_save_name,save_name_file.c_str(),save_name_file.size());
-  sFile = fopen(lima_save_name,"w"); 
-  delete []lima_save_name;
- */ 
+  d_save_name[d_final_filename.size()]=0;
+  memcpy(d_save_name,d_final_filename.c_str(),d_final_filename.size());
+  d_FILE = fopen(d_save_name,"w"); // write the final result to the d_File at the end of this program
+  delete []d_save_name;
+  
   float g_error = 0.0; 
   while( iter <= 25) //gradient descent => optimal transform
   {
@@ -700,6 +716,9 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
 
 
   }
+  // here - write final 'd'
+ fprintf(d_FILE,"d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", d(0), d(1), d(2), d(3), d(4), d(5));
+  
   return d;
 } 
 
