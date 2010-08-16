@@ -44,9 +44,6 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
-
 #include "io.h"
 #include "coregister.h"
 
@@ -293,43 +290,30 @@ void print_rhs( Matrix<float,6,6> rhs)
 }
 
 
-vector <float> error_offset_explore( vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams, GlobalParams globalParams, int track_use, vector<int> offsets){
-  //prepare variables
-  
-  
-  //select a track - load points
-  vector< LOLAShot> = trackPts[track_use];
-  vector<float> track_rflc = ComputeTrackReflectance( allTracks[track_use], modelParams, globalParams);
-   
-  //calculate - "lowest error" offset
-  //shift +/- 50, 100, 150, 200, 250, 300, 500 pixels
-  //calculate & save error surface
-  //make and image w/cyan "true" and red "imposture" positions
-}
 
-
-Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams, bool other_d, vector<float> d2 )
+void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename,  
+                     ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
+                     vector<Vector<float, 6> >d2_array, vector<Vector<float, 6> >&final_d_array, 
+                     vector<float> &error_array )
 {
-
-  //DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
  
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
   GeoReference DRGGeo;
   read_georeference(DRGGeo, DRGFilename);
- 
-
-  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-                                                                        ConstantEdgeExtension()),
-							    BilinearInterpolation());
-   cout <<"Done interpolating the subsampled image"<<endl;
   
+
+   ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+                                                                         ConstantEdgeExtension()),
+  							    BilinearInterpolation());
+
+  cout <<"Done interpolating the subsampled image"<<endl;
+  
+
   //get the true image points
   cout << "UMP calling: GetAllPtsFromImage..." << endl;
   vector<Vector3> imgPts;
 
-  //imgPts = GetAllPtsFromImage( trackPts, DRGFilename );
-
-  imgPts = GetAllPtsFromImage(trackPts,  DRG, DRGGeo);
+  imgPts = GetAllPtsFromImage(trackPts,  interpDRG, DRGGeo);
 
   //compute the synthetic image values
   cout << "UMP: ComputeTrackReflectance..." << endl;
@@ -350,8 +334,6 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   //DiskCacheImageView<float> y_deriv = derivative_filter(DRG,0,1);
 
   std::string temp = sufix_from_filename(DRGFilename);
-  //std::string xDerivFilename = "x_derivative.tif";
-  //std::string yDerivFilename = "y_derivative.tif";
 
   std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
@@ -455,29 +437,6 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
 
   }
 */
-
- 
-  //the following is for affine (NOT perspective) transforms
-  Vector<float,6> d;//defines the affine transform
-  cout << "UMP: other_d = " << other_d << endl;
-  if(!other_d)
-  {
-    //cout << "UMP:  " << endl;
-    d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
-    d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
-  }else{
-    cout << "UMP: setting d2 = d" << endl;
-    d(0) = d2[0]; d(1) = d2[1]; d(2) = d2[2];
-    d(3) = d2[3]; d(4) = d2[4]; d(5) = d2[5];
-  
-  printf("d = [ %f, %f, %f, %f %f %f]\n",d2[0],d2[1],d2[2],d2[3],d2[4],d2[5]);
-  }
-  printf("d = [ %f, %f, %f, %f %f %f]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
-  const int tf_size = 6;//transform size
-  Matrix<float,tf_size,tf_size> rhs;
-  Vector<float,tf_size> lhs;
-  print_rhs(rhs);
-
   int i_access, j_access;
   int ii, jj;
   int i_Center, j_Center;
@@ -485,6 +444,19 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   float x_base, y_base;
   float xx,yy;
   int row_max, col_max;
+
+
+  //the loop will start here
+ 
+  //the following is for affine (NOT perspective) transforms
+  Vector<float,6> d;//defines the affine transform
+  d = d2_array[0];
+  printf("d = [ %f, %f, %f, %f %f %f]\n",d[0],d[1],d[2],d[3],d[4],d[5]);
+ 
+  const int tf_size = 6;//transform size
+  Matrix<float,tf_size,tf_size> rhs;
+  Vector<float,tf_size> lhs;
+  print_rhs(rhs);
 
   //get row_max, col_max - improve this!
   cout << "UMP: max pixel locations..." << endl; 
@@ -507,42 +479,23 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
   //Create disk view resources -access image pnts by pixel
   
   //open stuff up...skip automatic naming!
-  FILE* sFile; 
+  
   //string result_file = ;
  
   // std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   
   std::string temp_name_sNow = sufix_from_filename(DRGFilename);
-  //cout << "UMP: before crash temp = " << temp_name_sNow << endl;
   std::string save_name_file = "../results" + prefix_less3_from_filename(temp_name_sNow) + "lima_results.txt";  
-  cout << "UMP: save_name_file = " << save_name_file << endl;
   std::string d_final_filename = "../results" + prefix_less3_from_filename(temp_name_sNow) + "d_final.txt";  
-  cout << "UMP: d_final_filename = " << d_final_filename << endl;
-  //printf("\n\n\n\t save_name_file = %s\n\n\n",save_name_file);
-  //sFile = fopen("../results/latest_match_output.txt","w");
+
+  FILE* sFile;
+  sFile = fopen(save_name_file.c_str(),"w"); 
   
-  /*
-  int str_length_input = save_name_file.length();
-  char * lima_save_name = new char[str_length_input];
-  sprintf(lima_save_name,save_name_file,"k");
-  strcpy(lima_save_name,save_name_file);
-  */
-
-  char*lima_save_name = new char[save_name_file.size()+1];
-  lima_save_name[save_name_file.size()]=0;
-  memcpy(lima_save_name,save_name_file.c_str(),save_name_file.size());
-  sFile = fopen(lima_save_name,"w"); 
-  delete []lima_save_name;
-
   FILE *d_FILE;
-  char*d_save_name = new char[d_final_filename.size()+1];
-  d_save_name[d_final_filename.size()]=0;
-  memcpy(d_save_name,d_final_filename.c_str(),d_final_filename.size());
-  d_FILE = fopen(d_save_name,"w"); // write the final result to the d_File at the end of this program
-  delete []d_save_name;
-  
+  d_FILE = fopen(d_final_filename.c_str(),"w"); // write the final result to the d_File at the end of this program
+ 
   float g_error = 0.0; 
-  while( iter <= 25) //gradient descent => optimal transform
+  while( iter <= numMaxIter) //gradient descent => optimal transform
   {
     int num_valid = 0;
     for (int i = 0; i < imgPts.size(); i++)
@@ -694,11 +647,15 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
     
     //write out 
     fprintf(sFile,"iter= %d g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n",iter, g_error, d(0), d(1), d(2), d(3), d(4), d(5));
+    
+    error_array[0] = g_error;
+    final_d_array[0] = d;
+
     g_error = 0.0;    
 
     cout << "UMP: Just written to latest... "<< endl;
     
-    d += lhs; // update parameter - should this be d = lsh?
+    d += lhs; // update parameter - should this be d = lhs?
     printf("B. iter %d: d = [ %f, %f, %f, %f %f %f]\n",iter,d[0],d[1],d[2],d[3],d[4],d[5]);
     iter ++;
 
@@ -712,14 +669,13 @@ Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string 
       lhs(i_RHS) = 0.0;
     }
 
-
-
-
   }
   // here - write final 'd'
- fprintf(d_FILE,"d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", d(0), d(1), d(2), d(3), d(4), d(5));
+  fprintf(d_FILE,"d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", d(0), d(1), d(2), d(3), d(4), d(5));
   
-  return d;
+
+  //loop will end here
+
 } 
 
 

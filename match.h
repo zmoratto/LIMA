@@ -43,15 +43,19 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
-
 #include "coregister.h"
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
 vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance);
-Vector<float,6> UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, ModelParams modelParams,GlobalParams globalParams, bool other_d, vector<float> d2);
+
+
+ 
+void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, 
+                     ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
+                     vector<Vector<float, 6> > init_d_array,  vector<Vector<float, 6> >&final_d_array, 
+                     vector<float> &error_array);
+
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);
 
 #endif//MATCH_H

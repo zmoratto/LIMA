@@ -42,8 +42,6 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
 #include "io.h"
 #include "match.h"
 #include "coregister.h"
@@ -480,7 +478,8 @@ int main( int argc, char *argv[] ) {
   aligned_set_up_tracks = false;
   inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-//  DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  
+  //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
   DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
   DEMFilename = string("../results/dem.tiff"); 
 
@@ -609,14 +608,46 @@ int main( int argc, char *argv[] ) {
   }
 
   if( update_model_params){
-    bool other_d = false;
-    vector<float> d2;
-    d2.resize(6);
-    d2[0] = 1.0; d2[1] = 0.0; d2[2] = -100;
-    d2[3] = 0.0; d2[4] = 1.0; d2[5] = 150;
-    cout << "Calling UpdateMatchingParams, line 544"<< endl;
-    Vector<float> d = UpdateMatchingParams(trackPts, DRGFilename, modelParams, globalParams,other_d,d2);
-    cout << "UpdateMatchingParams finsihed..." << endl;
+ 
+    int maxNumIter = 25;
+    int maxNumStarts = 10;
+    vector<Vector<float, 6> >init_d_array;
+    init_d_array.resize(maxNumStarts);
+    for (int i = 0; i < maxNumStarts; i++){
+      init_d_array[i][0] = 1.0;
+      init_d_array[i][1] = 0.0;
+      init_d_array[i][2] = (i-maxNumStarts/2)*50;
+      init_d_array[i][3] = 0.0;
+      init_d_array[i][4] = 1.0;
+      init_d_array[i][5] = (i-maxNumStarts/2)*50;
+    }    
+
+    /*
+    Vector<float, 6> init_d;    
+    init_d[0] = 1.0; init_d[1] = 0.0; init_d[2] = 0.0;//-100;
+    init_d[3] = 0.0; init_d[4] = 1.0; init_d[5] = 0.0;//150;
+    */
+
+    vector<Vector<float, 6> > final_d_array;
+    vector<float> error_array;
+    error_array.resize(maxNumStarts);
+    final_d_array.resize(maxNumStarts);
+  
+ 
+    cout << "Calling UpdateMatchingParams ..."<< endl;
+
+    //return matching error and transform
+    UpdateMatchingParams(trackPts, DRGFilename, 
+                         modelParams, globalParams,maxNumIter,  
+                         init_d_array, final_d_array, error_array);
+
+     printf("OUUUT: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+                    error_array[0], final_d_array[0](0), final_d_array[0](1), 
+                                    final_d_array[0](2), final_d_array[0](3),
+	                            final_d_array[0](4), final_d_array[0](5));
+    
+    //TO DO: write results to image outside matching
+    cout << "UpdateMatchingParams finshed." << endl;
   }
   /*
   //save the, # valid, normalizer, & the division
