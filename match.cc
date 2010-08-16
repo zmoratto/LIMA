@@ -408,35 +408,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
   }
  
 */
-/* // old & incomplete derivative caching code - used as a model for the single threaded version that appears above.
-  cout << "UMP: derivative_filter..."<< endl; 
-  //ImageView<float> x_deriv = derivative_filter(DRG, 1, 0);
-  //ImageView<float> y_deriv = derivative_filter(DRG, 0, 1);
 
-  ImageView<float> x_deriv;
-  ImageView<float> y_deriv;
-
-  if( DRGFilename == "../../data/Apollo15-DRG/1134_1135-DRG.tif" )
-  {
-    // load dirivatives that have already been calculated
-    string x_dirv_load_name = "../results/Apennine_escarpment_x-dir.tiff";
-    string y_dirv_load_name = "../results/Apennine_escarpment_y-dir.tiff" ;
-
-    read_image( x_deriv, x_dirv_load_name);
-    read_image( y_deriv, y_dirv_load_name);
-    printf("UMP: loaded x_deriv & y_deriv...\n");
-  }else{
-    //calculate derivative image & save under the correct name
-    string x_dirv_name = "../results/Apennine_escarpment_x-dir.tiff";
-    string y_dirv_name = "../results/Apennine_escarpment_y-dir.tiff";   
-    x_deriv = derivative_filter( DRG, 1, 0);
-    y_deriv = derivative_filter( DRG, 0, 1);
-
-    write_image( x_dirv_name, x_deriv, TerminalProgressCallback("vw", "saving x_deriv: "));
-    write_image( y_dirv_name, y_deriv, TerminalProgressCallback("vw", "saving y_deriv: "));
-
-  }
-*/
   int i_access, j_access;
   int ii, jj;
   int i_Center, j_Center;
