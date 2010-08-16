@@ -622,12 +622,6 @@ int main( int argc, char *argv[] ) {
       init_d_array[i][5] = (i-maxNumStarts/2)*50;
     }    
 
-    /*
-    Vector<float, 6> init_d;    
-    init_d[0] = 1.0; init_d[1] = 0.0; init_d[2] = 0.0;//-100;
-    init_d[3] = 0.0; init_d[4] = 1.0; init_d[5] = 0.0;//150;
-    */
-
     vector<Vector<float, 6> > final_d_array;
     vector<float> error_array;
     error_array.resize(maxNumStarts);
@@ -641,11 +635,13 @@ int main( int argc, char *argv[] ) {
                          modelParams, globalParams,maxNumIter,  
                          init_d_array, final_d_array, error_array);
 
-     printf("OUUUT: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-                    error_array[0], final_d_array[0](0), final_d_array[0](1), 
-                                    final_d_array[0](2), final_d_array[0](3),
-	                            final_d_array[0](4), final_d_array[0](5));
-    
+    for (int index = 0; index < init_d_array.size(); index++){
+        printf("OUT: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+              error_array[index], final_d_array[index](0), final_d_array[index](1), 
+              final_d_array[index](2), final_d_array[index](3),
+	      final_d_array[index](4), final_d_array[index](5));
+    }    
+
     //TO DO: write results to image outside matching
     cout << "UpdateMatchingParams finshed." << endl;
   }
