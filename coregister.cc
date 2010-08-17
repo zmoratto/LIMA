@@ -45,6 +45,7 @@ using namespace std;
 #include "io.h"
 #include "match.h"
 #include "coregister.h"
+#include "display.h"
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 {
@@ -338,53 +339,6 @@ vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilena
   return allImgPts;
 }
 
-void ShowTrackPtsOnImage(vector<LOLAShot> trackPts, string DRGFilename, string outFilename)
-{ 
-  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-
-  ImageView<PixelGray<float> > OutImage(DRG.cols(), DRG.rows());
-  GeoReference DEMgeo;
-
-  //ImageView<PixelMask<PixelGray<uint8> > > output_img (DRG.cols(), DRG.rows());
-
-  vector<pointCloud> ptHere;
-
-  //ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-  //      ConstantEdgeExtension()),
-  //    BilinearInterpolation());
-
-  for(int i = 0; i < trackPts.size(); i++){
-    ptHere = trackPts[i].LOLAPt;
-    pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
-    pointCloud topPt     = GetPointFromIndex( ptHere, 2);
-    pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
-
-    if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-      
-      float lon = centerPt.coords[0];
-      float lat = centerPt.coords[1];
-      float rad = centerPt.coords[2];
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DRG_pix[0];
-      int y = (int)DRG_pix[1];
-
-      OutImage(x,y) = 255;
-    }
-      
-  }
-  
-  //write output image
-  write_georeferenced_image(outFilename,
-                            //channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                            OutImage,
-                            DRGGeo, TerminalProgressCallback("Core","Processing:"));
-  
-}
 
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
 {
@@ -508,7 +462,7 @@ int main( int argc, char *argv[] ) {
   //WhenBuildImgPts(trackPts[1]);
   float normalizer_top = 0.0;
   float num_valid = 0.0;
-  //cout << "Line 443: running smooth" << endl;
+
   if( aligned_set_up_tracks ){
     for (int k = 1; k < trackPts.size(); k++){
 
@@ -610,16 +564,16 @@ int main( int argc, char *argv[] ) {
   if( update_model_params){
  
     int maxNumIter = 25;
-    int maxNumStarts = 10;
+    int maxNumStarts = 40;
     vector<Vector<float, 6> >init_d_array;
     init_d_array.resize(maxNumStarts);
     for (int i = 0; i < maxNumStarts; i++){
       init_d_array[i][0] = 1.0;
       init_d_array[i][1] = 0.0;
-      init_d_array[i][2] = (i-maxNumStarts/2)*50;
+      init_d_array[i][2] = (i-maxNumStarts/2)*25;
       init_d_array[i][3] = 0.0;
       init_d_array[i][4] = 1.0;
-      init_d_array[i][5] = (i-maxNumStarts/2)*50;
+      init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;
     }    
 
     vector<Vector<float, 6> > final_d_array;
@@ -635,14 +589,25 @@ int main( int argc, char *argv[] ) {
                          modelParams, globalParams,maxNumIter,  
                          init_d_array, final_d_array, error_array);
 
+    int bestResult = 0;
+    float smallestError = error_array[0];
     for (int index = 0; index < init_d_array.size(); index++){
-        printf("OUT: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-              error_array[index], final_d_array[index](0), final_d_array[index](1), 
+        printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+	      index, error_array[index], 
+              final_d_array[index](0), final_d_array[index](1), 
               final_d_array[index](2), final_d_array[index](3),
 	      final_d_array[index](4), final_d_array[index](5));
+        if  (error_array[index] < smallestError){
+	     smallestError = error_array[index]; 
+             bestResult = index;
+        }      
     }    
 
-    //TO DO: write results to image outside matching
+    //write results to image outside matching
+    string outFilename = "../results/results.tif";
+    printf("bestResult = %d\n", bestResult);
+    ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
+                             DRGFilename, outFilename);
     cout << "UpdateMatchingParams finshed." << endl;
   }
   /*
