@@ -515,19 +515,22 @@ int main( int argc, char *argv[] ) {
         }
       }
 
+      float scaleFactor;
+      /*
       //determine the scalling factor and save the synthetic image points- START
-      float scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
+      
+      scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
       vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
       float matchingErr = ComputeMatchingError(synthImg, allImgPts);
       printf("matchingError  %f\n", matchingErr);
-
+      
       std::string synthImgPtsFilename;
       char* synthImgPtsFilename_char = new char[500];
       sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
       synthImgPtsFilename = std::string(synthImgPtsFilename_char);
       SaveVectorToFile(synthImg, synthImgPtsFilename);
       //determine the scalling factor - END
-
+      */
       printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f, scaleFactor = %f\n",
           k, normalizer_top, num_valid, scaleFactor);
       //reflectance.clear();
@@ -563,14 +566,14 @@ int main( int argc, char *argv[] ) {
 
   if( update_model_params){
  
-    int maxNumIter = 25;
-    int maxNumStarts = 60;
+    int maxNumIter = 10;
+    int maxNumStarts = 160;
     vector<Vector<float, 6> >init_d_array;
     init_d_array.resize(maxNumStarts);
     for (int i = 0; i < maxNumStarts; i++){
       init_d_array[i][0] = 1.0;
       init_d_array[i][1] = 0.0;
-      init_d_array[i][2] = (i-maxNumStarts/2)*15;
+      init_d_array[i][2] = (i-maxNumStarts/2)*5;
       init_d_array[i][3] = 0.0;
       init_d_array[i][4] = 1.0;
       init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;

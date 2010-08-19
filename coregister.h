@@ -81,6 +81,8 @@ struct LOLAShot
   int valid;
   vector<pointCloud> LOLAPt;
   vector<imgPoint> imgPt;
+  float reflectance;
+  float synthImage;
 };
 
 vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);

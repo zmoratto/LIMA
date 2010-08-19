@@ -47,7 +47,7 @@ using namespace std;
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
-vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance);
+//vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance);
 
 
  
