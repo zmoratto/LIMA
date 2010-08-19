@@ -65,6 +65,14 @@ struct pointCloud
   Vector3 coords;
 };
 
+struct imgPoint
+{
+  double x;
+  double y;
+  double val;
+};
+
+
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
 
@@ -72,6 +80,7 @@ struct LOLAShot
 {
   int valid;
   vector<pointCloud> LOLAPt;
+  vector<imgPoint> imgPt;
 };
 
 vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);

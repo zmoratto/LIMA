@@ -564,7 +564,7 @@ int main( int argc, char *argv[] ) {
   if( update_model_params){
  
     int maxNumIter = 25;
-    int maxNumStarts = 70;
+    int maxNumStarts = 60;
     vector<Vector<float, 6> >init_d_array;
     init_d_array.resize(maxNumStarts);
     for (int i = 0; i < maxNumStarts; i++){

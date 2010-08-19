@@ -95,157 +95,104 @@ float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
 }
 
 template <class ViewT>
-vector<Vector3>
-GetAllPtsFromImage( vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
+vector<Vector3> 
+GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
 {
  
-  //typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
-
   vector<Vector3> allImgPts;
 
   int num_allImgPts = 0;
-  for(int k = 0; k<trackPts.size();k++)
-  {
+  for(int k = 0; k<trackPts.size();k++){
     num_allImgPts += trackPts[k].size();
   }
-
   allImgPts.resize(num_allImgPts);  
-  vector<pointCloud> ptHere;
+  
+  vector<pointCloud> LOLAPts;
 
-  //ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-  //      ConstantEdgeExtension()),
-  //    BilinearInterpolation());
-  /*
-  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-                                                            ConstantEdgeExtension()),
-                                                            BilinearInterpolation())
-  */
-
+ 
   ImageViewRef<float> interpDRG;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
 							  ConstantEdgeExtension()),
 					      BilinearInterpolation()) );
 
-    cout << "NOT masked" <<endl;
+    //cout << "NOT masked" <<endl;
   } else {
     interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
 							  ConstantEdgeExtension()),
 					      BilinearInterpolation()) );
-     cout << "MASKED" <<endl;
+    //cout << "MASKED" <<endl;
   }
 
-  int i_tot = 0;
+  
+  int index = 0;
+
   for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
-      ptHere = trackPts[k][i].LOLAPt;
-      pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
-      pointCloud topPt     = GetPointFromIndex( ptHere, 2);
-      pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
+   
+      LOLAPts = trackPts[k][i].LOLAPt;
+      trackPts[k][i].imgPt.resize(LOLAPts.size());
 
-      if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-
-	trackPts[k][i].valid = 1; 
-      
-        float lon = centerPt.coords[0];
-        float lat = centerPt.coords[1];
-        float rad = centerPt.coords[2];
+      for (int j = 0; j < LOLAPts.size(); j++){
+          
+	    float lon = LOLAPts[j].coords[0];
+	    float lat = LOLAPts[j].coords[1];
+	    float rad = LOLAPts[j].coords[2];
      
-        Vector2 DEM_lonlat(lon, lat);
-        Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+	    Vector2 DEM_lonlat(lon, lat);
+	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+	  
+	    float x = DRG_pix[0];
+	    float y = DRG_pix[1];
 
-        //int x = (int)DRG_pix[0];
-        //int y = (int)DRG_pix[1];
-        //cout << "lon="<< lon << "lat=" << lat << endl; 
-        
-        float x = DRG_pix[0];
-        float y = DRG_pix[1];
-        //cout << "x="<< x << "y=" << y << endl; 
-        //PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
-        //PixelGray<uint8> DRGVal = interpDRG(x, y);
-        //Pixel<PixelGray<uint8> > DRGVal = interpDRG(x,y);
-
-
-        //insert data
-        //allImgPts[i_tot + i][0] = (float) DRGVal;
-        //cout<< "interp = " << interpDRG(x,y) << endl;
-        allImgPts[i_tot + i][0] = interpDRG(x, y);
-        allImgPts[i_tot + i][1] = DRG_pix[0];
-        allImgPts[i_tot + i][2] = DRG_pix[1];
-
-        /* Debugg statements to check data is correctly copied
-        //The incorrect cast from int -> float is root cause
-        if(i%15==0)
-        {
-        printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
-        }
-        //
-        //
-        if(i%30==0)
-        {
-        cout <<"Is DRG_pix fractional?" << endl;        
-        printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
-        }
-         */
-      }
-      else {
-        //write -1 to designate and invalid point
-        allImgPts[i_tot + i][0] = -1;
-        allImgPts[i_tot + i][1] = -1;
-        allImgPts[i_tot + i][2] = -1;
-         
-        trackPts[k][i].valid = 0; 
+	    trackPts[k][i].imgPt[j].val = interpDRG(x, y);
+	    trackPts[k][i].imgPt[j].x = DRG_pix[0];
+	    trackPts[k][i].imgPt[j].y = DRG_pix[1];
+	
       }
 
-    }
-    i_tot += trackPts[k].size();  
-  }
+      trackPts[k][i].valid = 0; 
 
-  /* debugg statement: is data correctly copied?
-     printf("GetAllPtsFromImg: print some pnts...\n");
-     for(int i = 0; i< allImgPts.size(); i++)
-     {
-     if(i%150==0)
-     {
-     printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
-     }
-     }
-   */
+      allImgPts[index][0] = -1;
+      allImgPts[index][1] = -1;
+      allImgPts[index][2] = -1;
+
+      //check for valid shot
+      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
+      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
+      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
+
+      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAPts.size() <=5)){//valid LOLA shot
+          
+          trackPts[k][i].valid = 1;
+           
+          for (int j = 0; j < LOLAPts.size(); j++){
+          
+	    if (LOLAPts[j].s == 3){//center point of a valid shot
+	     
+	       allImgPts[index][0] = trackPts[k][i].imgPt[j].val;
+	       allImgPts[index][1] = trackPts[k][i].imgPt[j].x ;
+	       allImgPts[index][2] = trackPts[k][i].imgPt[j].y;
+	     
+	    }   
+	  }
+	 
+      }
+      
+ 
+      //write the image points
+     
+      index++;
+
+    }//i  
+  }//k
+
+  
 
   return allImgPts;
 }
 
-/*
-bool deriv_cached(string & input_name, string & cached_table){
-  bool identified = false;
-  string line;
-  fstream myfile(cached_table.c_str());
-  // does the name exist
-  if(myfile.is_open()){
-    while(! myfile.eof()){
-      getline(myfile,line);
-      cout << line << endl;
-      if(line == input_name){
-        identified = true;
-        cout << "Fount it!" << endl; 
-      }
-    }
-  }
-  myfile.close();
-  
-  //if not add the name to the cached file
-  if(!identified){
-    // if we didn't find the file append the file to the document of saves
-    ofstream file_change;
-    file_change.open(cached_table.c_str(),ios::out | ios:: app);
-    file_change << input_name << "\n";
-    file_change.close();
-  }
-  
 
-  return identified;
-}
-*/
 bool deriv_cached(string & input_name, string & cached_table){
   bool identified = false;
   string line;
@@ -358,7 +305,6 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
   cout << "UMP: ComputeScaleFactor..." << endl;
   float scaleFactor = ComputeScaleFactor(imgPts, reflectance);
-  //isn't this a bit self-serving?  The scale factor should be computed a priori or conditioned from a learned distribution.  Here, we confuse training & test data.
 
   cout << "UMP: ComputeSynthImgPts..." << endl;
   vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
@@ -821,4 +767,109 @@ vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string D
   return allImgPts;
 }
 
+#endif
+
+#if 0
+template <class ViewT>
+vector<Vector3>
+GetAllPtsFromImageOld( vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
+{
+ 
+  //typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
+
+  vector<Vector3> allImgPts;
+
+  int num_allImgPts = 0;
+  for(int k = 0; k<trackPts.size();k++)
+  {
+    num_allImgPts += trackPts[k].size();
+  }
+
+  allImgPts.resize(num_allImgPts);  
+  vector<pointCloud> LOLAShot;
+
+ 
+  ImageViewRef<float> interpDRG;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+
+    cout << "NOT masked" <<endl;
+  } else {
+    interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+     cout << "MASKED" <<endl;
+  }
+
+  int i_tot = 0;
+  for(int k = 0; k < trackPts.size();k++){
+    for(int i = 0; i < trackPts[k].size(); i++){
+   
+      LOLAShot = trackPts[k][i].LOLAPt;
+ 
+      pointCloud centerPt  = GetPointFromIndex( LOLAShot, 3);
+      pointCloud topPt     = GetPointFromIndex( LOLAShot, 2);
+      pointCloud leftPt    = GetPointFromIndex( LOLAShot, 1);
+
+      if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAShot.size() <= 5)){
+
+	trackPts[k][i].valid = 1; 
+         
+        float lon = centerPt.coords[0];
+        float lat = centerPt.coords[1];
+        float rad = centerPt.coords[2];
+     
+        Vector2 DEM_lonlat(lon, lat);
+        Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+        
+        float x = DRG_pix[0];
+        float y = DRG_pix[1];
+
+        allImgPts[i_tot + i][0] = interpDRG(x, y);
+        allImgPts[i_tot + i][1] = DRG_pix[0];
+        allImgPts[i_tot + i][2] = DRG_pix[1];
+        
+        /* Debugg statements to check data is correctly copied
+        //The incorrect cast from int -> float is root cause
+        if(i%15==0)
+        {
+        printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
+        }
+        //
+        //
+        if(i%30==0)
+        {
+        cout <<"Is DRG_pix fractional?" << endl;        
+        printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
+        }
+         */
+      }
+      else {
+        //write -1 to designate and invalid point
+        allImgPts[i_tot + i][0] = -1;
+        allImgPts[i_tot + i][1] = -1;
+        allImgPts[i_tot + i][2] = -1;
+         
+        trackPts[k][i].valid = 0; 
+      }
+  
+    }
+    i_tot += trackPts[k].size();  
+  }
+
+  /* debugg statement: is data correctly copied?
+     printf("GetAllPtsFromImg: print some pnts...\n");
+     for(int i = 0; i< allImgPts.size(); i++)
+     {
+     if(i%150==0)
+     {
+     printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
+     }
+     }
+   */
+
+  return allImgPts;
+}
 #endif
