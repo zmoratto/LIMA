@@ -564,13 +564,13 @@ int main( int argc, char *argv[] ) {
   if( update_model_params){
  
     int maxNumIter = 25;
-    int maxNumStarts = 40;
+    int maxNumStarts = 70;
     vector<Vector<float, 6> >init_d_array;
     init_d_array.resize(maxNumStarts);
     for (int i = 0; i < maxNumStarts; i++){
       init_d_array[i][0] = 1.0;
       init_d_array[i][1] = 0.0;
-      init_d_array[i][2] = (i-maxNumStarts/2)*25;
+      init_d_array[i][2] = (i-maxNumStarts/2)*15;
       init_d_array[i][3] = 0.0;
       init_d_array[i][4] = 1.0;
       init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;
@@ -604,10 +604,11 @@ int main( int argc, char *argv[] ) {
     }    
 
     //write results to image outside matching
-    string outFilename = "../results/results.tif";
+    string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
+    string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
     printf("bestResult = %d\n", bestResult);
     ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
-                             DRGFilename, outFilename);
+                             trackIndices, DRGFilename, outFilename);
     cout << "UpdateMatchingParams finshed." << endl;
   }
   /*

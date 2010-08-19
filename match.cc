@@ -96,7 +96,7 @@ float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
 
 template <class ViewT>
 vector<Vector3>
-GetAllPtsFromImage( vector<vector<LOLAShot > > trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
+GetAllPtsFromImage( vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
 {
  
   //typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
@@ -145,6 +145,8 @@ GetAllPtsFromImage( vector<vector<LOLAShot > > trackPts,  ImageViewBase<ViewT> c
 
       if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
 
+	trackPts[k][i].valid = 1; 
+      
         float lon = centerPt.coords[0];
         float lat = centerPt.coords[1];
         float rad = centerPt.coords[2];
@@ -185,12 +187,16 @@ GetAllPtsFromImage( vector<vector<LOLAShot > > trackPts,  ImageViewBase<ViewT> c
         printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
         }
          */
-      }else {
+      }
+      else {
         //write -1 to designate and invalid point
         allImgPts[i_tot + i][0] = -1;
         allImgPts[i_tot + i][1] = -1;
         allImgPts[i_tot + i][2] = -1;
+         
+        trackPts[k][i].valid = 0; 
       }
+
     }
     i_tot += trackPts[k].size();  
   }
@@ -209,7 +215,37 @@ GetAllPtsFromImage( vector<vector<LOLAShot > > trackPts,  ImageViewBase<ViewT> c
   return allImgPts;
 }
 
+/*
+bool deriv_cached(string & input_name, string & cached_table){
+  bool identified = false;
+  string line;
+  fstream myfile(cached_table.c_str());
+  // does the name exist
+  if(myfile.is_open()){
+    while(! myfile.eof()){
+      getline(myfile,line);
+      cout << line << endl;
+      if(line == input_name){
+        identified = true;
+        cout << "Fount it!" << endl; 
+      }
+    }
+  }
+  myfile.close();
+  
+  //if not add the name to the cached file
+  if(!identified){
+    // if we didn't find the file append the file to the document of saves
+    ofstream file_change;
+    file_change.open(cached_table.c_str(),ios::out | ios:: app);
+    file_change << input_name << "\n";
+    file_change.close();
+  }
+  
 
+  return identified;
+}
+*/
 bool deriv_cached(string & input_name, string & cached_table){
   bool identified = false;
   string line;
@@ -291,10 +327,10 @@ void print_rhs( Matrix<float,6,6> rhs)
 
 
 
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename,  
-                     ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
-                     vector<Vector<float, 6> >d2_array, vector<Vector<float, 6> >&final_d_array, 
-                     vector<float> &error_array )
+void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+			  ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
+			  vector<Vector<float, 6> >d2_array, vector<Vector<float, 6> >&final_d_array, 
+			  vector<float> &error_array )
 {
  
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
@@ -313,7 +349,8 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
   cout << "UMP calling: GetAllPtsFromImage..." << endl;
   vector<Vector3> imgPts;
 
-  imgPts = GetAllPtsFromImage(trackPts,  interpDRG, DRGGeo);
+  imgPts = GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
+
 
   //compute the synthetic image values
   cout << "UMP: ComputeTrackReflectance..." << endl;
@@ -457,9 +494,9 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
  
     // std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   
-    std::string temp_name_sNow = sufix_from_filename(DRGFilename);
-    std::string save_name_file = "../results" + prefix_less3_from_filename(temp_name_sNow) + "lima_results"  +".txt";  
-    std::string d_final_filename = "../results" + prefix_less3_from_filename(temp_name_sNow) + "d_final" + ".txt";  
+    std::string filenameNoPath = sufix_from_filename(DRGFilename);
+    std::string save_name_file = "../results" + prefix_less3_from_filename(filenameNoPath) + "lima_results"  +".txt";  
+    std::string d_final_filename = "../results" + prefix_less3_from_filename(filenameNoPath) + "d_final" + ".txt";  
 
     FILE* sFile;
     sFile = fopen(save_name_file.c_str(),"w"); 
@@ -518,11 +555,11 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename
 
 		  //initialize constants
 		  float I_x_sqr, I_x_I_y, I_y_sqr; 
-		  float I_e_val = imgPts[i][0]-synthImg[i];
+		  //float I_e_val = imgPts[i][0]-synthImg[i];
 		  //above line is incorrect - must access pixel (jA,iA):
 		  //I_e_val = DRG_img_view_resourse(jA,iA) - synthImg[i];
           
-		  I_e_val = interpDRG(jA,iA) - synthImg[i];
+		  float I_e_val = interpDRG(jA,iA) - synthImg[i];
 		  g_error += abs(I_e_val);
 		  float I_y_val, I_x_val;
 		  

@@ -48,9 +48,9 @@ using namespace std;
 #include "coregister.h"
 
 
-
+//displays the original tracks(red) and transformed tracks(cyan) over the image
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
-                              string DRGFilename, string outFilename)
+                              vector<int> trackIndices, string DRGFilename, string outFilename)
 {
   DiskImageView<PixelRGB<uint8> >   DRG(DRGFilename);
   GeoReference DRGGeo;
@@ -64,7 +64,8 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
   int maxY = 0;
   int point_size = 7;
 
-  for (int i = 0; i < trackPts.size(); i++){//for each track
+  //for (int i = 0; i < trackPts.size(); i++){//for each track
+ for (int i = 0; i < trackIndices.size(); i++){//for each selected track 
     for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
       for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
  
@@ -132,52 +133,110 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
    for (int i = 0; i < trackPts.size(); i++){//for each track
     for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
       for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
- 
-        
-	  pointCloud pt = trackPts[i][j].LOLAPt[k]; 
-	  float lon = pt.coords[0];
-	  float lat = pt.coords[1];
-	  float rad = pt.coords[2];
+       
+	if (trackPts[i][j].valid == 1){
+	    pointCloud pt = trackPts[i][j].LOLAPt[k]; 
+	    float lon = pt.coords[0];
+	    float lat = pt.coords[1];
+	    float rad = pt.coords[2];
 	
-	  Vector2 DEM_lonlat(lon, lat);
-	  Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-	  int x = (int)DRG_pix[0];
-	  int y = (int)DRG_pix[1];
+	    Vector2 DEM_lonlat(lon, lat);
+	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+	  
+	    int x = (int)DRG_pix[0];
+	    int y = (int)DRG_pix[1];
           
     
-          //if ( (x-minX > 0) && (x-minX < DRG_crop.cols()) && (y-minY > 0) && (y-minY < DRG_crop.rows())){
-          //    DRG_crop(x-minX, y-minY) =  PixelRGB<uint8>(255, 0, 0);
-          //}
-          fill(crop(DRG_crop, int32(x) - point_size-minX, 
+       
+	    fill(crop(DRG_crop, int32(x) - point_size-minX, 
                               int32(y) - point_size-minY, 
                               point_size, point_size), PixelRGB<uint8>(255, 0, 0));
 
-          //compute the transformed pts
-          int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
-          int yd = (int)floor(d[3]*x + d[4]*y + d[5]);
+	    //compute the transformed pts
+	    int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
+	    int yd = (int)floor(d[3]*x + d[4]*y + d[5]);
 
-        
-	  //if ( (xd-minX > 0) && (xd-minX < DRG_crop.cols()) && (yd-minY > 0) && (yd-minY < DRG_crop.rows())){
-          //   DRG_crop(xd-minX, yd-minY) =  PixelRGB<uint8>(0, 255, 255);
-	  //}	
-          fill(crop(DRG_crop, int32(xd) - point_size-minX, 
-                              int32(yd) - point_size-minY, 
-                              point_size, point_size), PixelRGB<uint8>(0, 255, 255));  
-       
+	    fill(crop(DRG_crop, int32(xd) - point_size-minX, 
+		      int32(yd) - point_size-minY, 
+		      point_size, point_size), PixelRGB<uint8>(0, 255, 255));  
+	}
         
 	}
       }
     }
 
   //write output image
- printf("ready to write\n");
+
   write_georeferenced_image(outFilename,
-                            //crop(DRG, int32(minX), int32(minY), maxX-minX, maxY-minY),
                             DRG_crop,
                             DRGGeo, TerminalProgressCallback("Core","Processing:"));
 }
 
+
+
+//displays the LOLA tracks in an image format on a blck background
+//quick space efficient way to visualize Lidar data without storing the real image but a black background. 
+void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices)
+{
+  int l, m, n;  
+  ImageView<PixelGray<float> > DEMImage(numHorPts, numVerPts);
+  GeoReference DEMgeo;
+
+  Vector4 coords = FindMinMaxLat(trackPts);
+
+  printf("minLat=%f, maxLat=%f, minLon=%f maxLon=%f\n", coords(0), coords(1), coords(2), coords(3));
+
+  float minLat = coords(0); 
+  float maxLat = coords(1); 
+  float minLon = coords(2); 
+  float maxLon = coords(3);
+
+  float lonDelta = (maxLon-minLon)/numHorPts;
+  float latDelta = (maxLat-minLat)/numVerPts;
+
+  //printf("lonDelta = %f, latDelta = %f\n", lonDelta, latDelta);
+  //init the DEM
+  for (l = 0; l < numHorPts; l++){
+    for (m = 0; m < numVerPts; m++){
+      DEMImage(l, m) = 0.0;
+    }
+  }
+  //fill the DEM
+
+  printf("numTracks = %d\n", trackIndices.size());
+  for (int k = 0; k < trackIndices.size();k++){
+    int trackIndex = trackIndices[k];
+    printf("trackIndex = %d\n", trackIndex);
+    for (n = 0; n < trackPts[trackIndex].size(); n++){ 
+      for (int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
+
+        float lon_index = (trackPts[trackIndex][n].LOLAPt[s].coords[0] - minLon)/lonDelta;
+        float lat_index = (trackPts[trackIndex][n].LOLAPt[s].coords[1] - minLat)/latDelta;
+        l = (int)floor(lon_index);
+        m = (int)floor(lat_index);
+
+        if ((m < numVerPts) && (l<numHorPts)){ 
+          DEMImage(l, m) = trackPts[trackIndex][n].LOLAPt[s].coords[2]; 
+        }
+        else{
+          printf("Error\n");
+          printf("l = %d, m = %d, numHorPts = %d, numVerPts = %d\n", l, m, numHorPts, numVerPts);
+        }
+      }
+    }
+  }
+  write_georeferenced_image(DEMFilename, 
+      DEMImage,
+      DEMgeo, TerminalProgressCallback("{Core}","Processing:"));
+
+}
+
+
+
+//FUNCTIONS BELOW THIS LINE WILL BE REMOVED SOON
+//============================================================================================================
+
+//this function will be grand fathered soon
 //displays one track over the image
 void ShowTrackPtsOnImage(vector<LOLAShot> trackPts, string DRGFilename, string outFilename)
 { 
@@ -220,5 +279,3 @@ void ShowTrackPtsOnImage(vector<LOLAShot> trackPts, string DRGFilename, string o
                             DRGGeo, TerminalProgressCallback("Core","Processing:"));
   
 }
-
-

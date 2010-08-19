@@ -276,61 +276,6 @@ Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
 
 }
 
-//displays the LOLA tracks in an image
-void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices)
-{
-  int l, m, n;  
-  ImageView<PixelGray<float> > DEMImage(numHorPts, numVerPts);
-  GeoReference DEMgeo;
-
-  Vector4 coords = FindMinMaxLat(trackPts);
-
-  printf("minLat=%f, maxLat=%f, minLon=%f maxLon=%f\n", coords(0), coords(1), coords(2), coords(3));
-
-  float minLat = coords(0); 
-  float maxLat = coords(1); 
-  float minLon = coords(2); 
-  float maxLon = coords(3);
-
-  float lonDelta = (maxLon-minLon)/numHorPts;
-  float latDelta = (maxLat-minLat)/numVerPts;
-
-  //printf("lonDelta = %f, latDelta = %f\n", lonDelta, latDelta);
-  //init the DEM
-  for (l = 0; l < numHorPts; l++){
-    for (m = 0; m < numVerPts; m++){
-      DEMImage(l, m) = 0.0;
-    }
-  }
-  //fill the DEM
-
-  printf("numTracks = %d\n", trackIndices.size());
-  for (int k = 0; k < trackIndices.size();k++){
-    int trackIndex = trackIndices[k];
-    printf("trackIndex = %d\n", trackIndex);
-    for (n = 0; n < trackPts[trackIndex].size(); n++){ 
-      for (int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
-
-        float lon_index = (trackPts[trackIndex][n].LOLAPt[s].coords[0] - minLon)/lonDelta;
-        float lat_index = (trackPts[trackIndex][n].LOLAPt[s].coords[1] - minLat)/latDelta;
-        l = (int)floor(lon_index);
-        m = (int)floor(lat_index);
-
-        if ((m < numVerPts) && (l<numHorPts)){ 
-          DEMImage(l, m) = trackPts[trackIndex][n].LOLAPt[s].coords[2]; 
-        }
-        else{
-          printf("Error\n");
-          printf("l = %d, m = %d, numHorPts = %d, numVerPts = %d\n", l, m, numHorPts, numVerPts);
-        }
-      }
-    }
-  }
-  write_georeferenced_image(DEMFilename, 
-      DEMImage,
-      DEMgeo, TerminalProgressCallback("{Core}","Processing:"));
-
-}
 
 
 

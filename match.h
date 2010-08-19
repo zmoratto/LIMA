@@ -51,7 +51,7 @@ vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance);
 
 
  
-void UpdateMatchingParams(vector<vector<LOLAShot> > trackPts, string DRGFilename, 
+void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename, 
                      ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
                      vector<Vector<float, 6> > init_d_array,  vector<Vector<float, 6> >&final_d_array, 
                      vector<float> &error_array);

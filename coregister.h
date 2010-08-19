@@ -70,6 +70,7 @@ pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
 
 struct LOLAShot
 {
+  int valid;
   vector<pointCloud> LOLAPt;
 };
 

@@ -43,6 +43,6 @@ using namespace vw::photometry;
 using namespace std;
 #include <math.h>
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
-                              string DRGFilename, string outFilename);
-
+                              vector<int> trackIndices, string DRGFilename, string outFilename);
+void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices);
 #endif /* DISPLAY_H */
