@@ -49,7 +49,7 @@ using namespace std;
 #include "display.h"
 
 
-
+#if 0
 void WhenBuildImgPts(vector<LOLAShot> trackPts){
   //this function is to understand which pts GetTrackPtsFromImage will extract
 
@@ -98,6 +98,7 @@ void WhenBuildImgPts(vector<LOLAShot> trackPts){
   }
   printf("number valid refl pts = %d \n\n",numb_refl_valid);
 }
+#endif
 
 
 vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
@@ -186,6 +187,7 @@ int main( int argc, char *argv[] ) {
   DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
   DEMFilename = string("../results/dem.tiff"); 
 
+  string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
 
   // Need this! Commented out for debugging! 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
@@ -355,6 +357,21 @@ int main( int argc, char *argv[] ) {
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParams, globalParams);
 
+    printf("before saveimgpoints\n");
+    string imgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
+    SaveImagePoints(trackPts, 3, imgPtsFilename);
+  
+    string reflectanceFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";  
+    SaveReflectance(trackPts, reflectanceFilename);
+
+    string altitudeFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "alt.txt";
+    SaveAltitudePoints(trackPts, 3, altitudeFilename);
+
+    //TO DO: save DEMs
+
+    //TO DO: save syntImg
+   
+   
     cout << "Calling UpdateMatchingParams ..."<< endl;
     //return matching error and transform
     UpdateMatchingParams(trackPts, DRGFilename, 
@@ -376,7 +393,6 @@ int main( int argc, char *argv[] ) {
     }    
 
     //write results to image outside matching
-    string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
     string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
     printf("bestResult = %d\n", bestResult);
     ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 

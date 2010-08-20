@@ -212,9 +212,18 @@ pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename)
 {
 
-  FILE *fp;
-  fp = fopen(filename.c_str(), "w");
+    FILE *fp;
+   
+
     for (int k = 0; k < allTracks.size(); k++ ){
+    
+      
+      string prefixTrackFilename =  prefix_from_filename(filename);  
+      char* trackFilename = new char[500];
+      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+      fp = fopen(trackFilename, "w");
+     
+      
       for (int i = 0; i < allTracks[k].size(); i++){
         if (allTracks[k][i].valid == 1){
 	  fprintf(fp, "%f ", allTracks[k][i].reflectance);
@@ -223,23 +232,32 @@ void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename)
            fprintf(fp, "-1 ");
         }
       }
-      fprintf(fp, "\n");
+      
+      fclose(fp);
+      delete trackFilename;
     }
-  fclose(fp);
+  
 }
 
 //saves the image points corresponding to a detectNum
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
 {
 
-  FILE *fp;
-  fp = fopen(filename.c_str(), "w");
+    FILE *fp;
+     
     for (int k = 0; k < allTracks.size(); k++ ){
-      for (int i = 0; i < allTracks[k].size(); i++){
+      
+      string prefixTrackFilename = prefix_from_filename(filename); 
+      char* trackFilename = new char[500];
+      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+      fp = fopen(trackFilename, "w");
+      
+      for (int i = 0; i < allTracks[k].size()-1; i++){
         
+      
         int found = 0;
-	for (int j = 0; j < allTracks[i][k].LOLAPt.size(); j++){
-	  if (allTracks[i][k].LOLAPt[j].s == detectNum){
+	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
 	     found = 1;
 	     fprintf(fp, "%f ", allTracks[k][i].imgPt[j].val);
 	  }
@@ -249,8 +267,46 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
         }
 
       }
-      fprintf(fp, "\n");
+
+      printf("test3\n");
+      fclose(fp);
+      delete trackFilename;
     }
-  fclose(fp);
+ 
+}
+
+//saves the image points corresponding to a detectNum
+void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
+{
+
+    FILE *fp;
+     
+    for (int k = 0; k < allTracks.size(); k++ ){
+      
+      string prefixTrackFilename = prefix_from_filename(filename); 
+      char* trackFilename = new char[500];
+      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+      fp = fopen(trackFilename, "w");
+      
+      for (int i = 0; i < allTracks[k].size()-1; i++){
+       
+        int found = 0;
+	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
+	     found = 1;
+	     fprintf(fp, "%f ", allTracks[k][i].LOLAPt[j].coords[2]);
+	  }
+	}
+        if (found == 0){
+           fprintf(fp, "-1");
+        }
+
+      }
+
+      printf("test3\n");
+      fclose(fp);
+      delete trackFilename;
+    }
+ 
 }
 
