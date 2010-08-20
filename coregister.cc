@@ -48,75 +48,7 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 
-/*
-float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
-{
-  float nominator =0.0;
-  int numValidPts = 0;
-  float scaleFactor = 1;
 
-  for(int m = 0; m < reflectance.size(); m ++){
-    if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
-      nominator += allImgPts[m]/reflectance[m];
-      numValidPts += 1;
-    }
-  }
-
-  if (numValidPts != 0){ 
-    scaleFactor = nominator/numValidPts;
-  }
-
-  return scaleFactor;
-}
-*/
-
-
-vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
-{
-  vector<float> pts;
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-
-      float rad = trackPts[i].LOLAPt[k].coords[2];
-      int id = trackPts[i].LOLAPt[k].s;
-
-      if (id == ID){
-        pts.push_back(rad);
-      }
-
-    }
-  }
-
-  return pts;
-}
-
-pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
-{
-  pointCloud pt;
-  pt.s = -1;//invalid pointCloud
-  for(int i = 0;i < LOLAPts.size(); i++){
-    if (LOLAPts[i].s == index){
-      return LOLAPts[i];
-    }
-  }
-
-  return pt;
-}
-Vector3 ComputeNormal(vector<pointCloud> LOLAPts)
-{
-  Vector3 normal;
-  Matrix<float,5,3> A;
-  for(int i = 0;i < LOLAPts.size(); i++){
-    //transform into x,y,z coordinates
-    GeoReference DEMGeo;
-    Vector3 xyz = DEMGeo.datum().geodetic_to_cartesian(LOLAPts[i].coords);
-
-    A(i,0) = xyz[0];
-    A(i,1) = xyz[1];
-    A(i,2) = xyz[2];
-  }
-  return normal;
-}
 
 void WhenBuildImgPts(vector<LOLAShot> trackPts){
   //this function is to understand which pts GetTrackPtsFromImage will extract
@@ -168,44 +100,6 @@ void WhenBuildImgPts(vector<LOLAShot> trackPts){
 }
 
 
-vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID)
-{
-  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-
-  vector<float> imgPts;
-  //imgPts.resize(orbitPts.size());
-
-  ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-
-      float lon = trackPts[i].LOLAPt[k].coords[0];
-      float lat = trackPts[i].LOLAPt[k].coords[1];
-      float rad = trackPts[i].LOLAPt[k].coords[2];
-      int id = trackPts[i].LOLAPt[k].s;
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DRG_pix[0];
-      int y = (int)DRG_pix[1];
-
-      PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
-      if (id == ID){
-        imgPts.push_back((float)DRGVal);
-      }
-
-    }
-  }
-
-  return imgPts;
-}
-
 vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
 { 
   DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
@@ -247,93 +141,6 @@ vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename
     }
   }
   return allImgPts;
-}
-
-vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
-{ 
-  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-
-  vector<Vector3> allImgPts;
-
-  allImgPts.resize(trackPts.size());  
-  vector<pointCloud> ptHere;
-
-  ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  for(int i = 0; i < trackPts.size(); i++){
-    ptHere = trackPts[i].LOLAPt;
-    pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
-    pointCloud topPt     = GetPointFromIndex( ptHere, 2);
-    pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
-
-    if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-
-      float lon = centerPt.coords[0];
-      float lat = centerPt.coords[1];
-      float rad = centerPt.coords[2];
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DRG_pix[0];
-      int y = (int)DRG_pix[1];
-
-      PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
-
-      //insert data
-      allImgPts[i][0] = (float) DRGVal;
-      allImgPts[i][1] = x;
-      allImgPts[i][2] = y;
-    }else {
-      //write -1 to designate and invalid point
-      allImgPts[i][0] = -1;
-      allImgPts[i][1] = -1;
-      allImgPts[i][2] = -1;
-    }
-  }
-
-  return allImgPts;
-}
-
-
-vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
-{
-  DiskImageView<PixelGray<float> >   DEM(DEMFilename);
-  GeoReference DEMGeo;
-  read_georeference(DEMGeo, DEMFilename);
-
-  vector<float> demPts;
-
-  ImageViewRef<PixelGray<float>  >  interpDEM = interpolate(edge_extend(DEM.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  for (int i = 0; i < trackPts.size(); i++){
-    for(int j = 0; j < trackPts[i].LOLAPt.size(); j++){
-      float lon = trackPts[i].LOLAPt[j].coords[0];
-      float lat = trackPts[i].LOLAPt[j].coords[1];
-      float rad = trackPts[i].LOLAPt[j].coords[2];
-      int id = trackPts[i].LOLAPt[j].s;
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DEM_pix[0];
-      int y = (int)DEM_pix[1];
-
-      PixelGray<float>  DEMVal = interpDEM(x, y);
-
-      if (id == ID){
-        demPts.push_back((float)DEMVal);
-      }             
-    }
-  }
-
-  return demPts;
 }
 
 int main( int argc, char *argv[] ) {
@@ -429,7 +236,7 @@ int main( int argc, char *argv[] ) {
       printf("k = %d, reflectance.size() = %d\n", k, reflectance.size());
       //normalizer = normalizer_for_this_track(img_vals,refl_array);
       */
-      
+      /*
       vector<float> imgPts;
       imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
       std::string imgPtsFilename;
@@ -437,7 +244,7 @@ int main( int argc, char *argv[] ) {
       sprintf (imgPtsFilename_char, "../results/img_orbit_%d.txt", k);
       imgPtsFilename = std::string(imgPtsFilename_char);
       SaveVectorToFile(imgPts, imgPtsFilename);
-
+      */
       // We have two choices output: output image at every pt or every valid refl
       // allImagPts.size() = trackPts.size(), at points where the track is invalid we havea -1
       vector<float> allImgPts;
@@ -501,7 +308,7 @@ int main( int argc, char *argv[] ) {
       delete[] outDEMFilename_char;
       delete[] demPtsFilename_char;
       delete[] allImgPtsFilename_char;
-      delete[] imgPtsFilename_char;
+      //delete[] imgPtsFilename_char;
       //delete[] reflectanceFilename_char;
       delete[] filename_char;
 

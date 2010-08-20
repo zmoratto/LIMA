@@ -112,6 +112,60 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
  
 }
 
+vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
+{
+  vector<float> pts;
+  for (int i = 0; i < trackPts.size(); i++){
+    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
+
+      float rad = trackPts[i].LOLAPt[k].coords[2];
+      int id = trackPts[i].LOLAPt[k].s;
+
+      if (id == ID){
+        pts.push_back(rad);
+      }
+
+    }
+  }
+
+  return pts;
+}
+
+vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
+{
+  DiskImageView<PixelGray<float> >   DEM(DEMFilename);
+  GeoReference DEMGeo;
+  read_georeference(DEMGeo, DEMFilename);
+
+  vector<float> demPts;
+
+  ImageViewRef<PixelGray<float>  >  interpDEM = interpolate(edge_extend(DEM.impl(),
+        ConstantEdgeExtension()),
+      BilinearInterpolation());
+
+  for (int i = 0; i < trackPts.size(); i++){
+    for(int j = 0; j < trackPts[i].LOLAPt.size(); j++){
+      float lon = trackPts[i].LOLAPt[j].coords[0];
+      float lat = trackPts[i].LOLAPt[j].coords[1];
+      float rad = trackPts[i].LOLAPt[j].coords[2];
+      int id = trackPts[i].LOLAPt[j].s;
+
+      Vector2 DEM_lonlat(lon, lat);
+      Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
+
+      int x = (int)DEM_pix[0];
+      int y = (int)DEM_pix[1];
+
+      PixelGray<float>  DEMVal = interpDEM(x, y);
+
+      if (id == ID){
+        demPts.push_back((float)DEMVal);
+      }             
+    }
+  }
+
+  return demPts;
+}
 
 vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts)
 {
@@ -140,6 +194,19 @@ vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&tr
  } //k
 
   return synthImg;
+}
+
+pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
+{
+  pointCloud pt;
+  pt.s = -1;//invalid pointCloud
+  for(int i = 0;i < LOLAPts.size(); i++){
+    if (LOLAPts[i].s == index){
+      return LOLAPts[i];
+    }
+  }
+
+  return pt;
 }
 
 void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename)
