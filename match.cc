@@ -48,119 +48,6 @@ using namespace std;
 #include "coregister.h"
 #include "tracks.h"
 
-
-
-
-float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
-{
-  float error = 0.0;
-  for (int i = 0; i < reflectancePts.size(); i++){
-    if (reflectancePts[i]!=-1){
-      error = error + fabs(reflectancePts[i]-imgPts[i]);
-    }
-  }
-  return error;
-}
-
-template <class ViewT>
-vector<Vector3> 
-GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
-{
- 
-  vector<Vector3> allImgPts;
-
-  int num_allImgPts = 0;
-  for(int k = 0; k<trackPts.size();k++){
-    num_allImgPts += trackPts[k].size();
-  }
-  allImgPts.resize(num_allImgPts);  
-  
-  vector<pointCloud> LOLAPts;
-
- 
-  ImageViewRef<float> interpDRG;
-  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-
-    //cout << "NOT masked" <<endl;
-  } else {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-    //cout << "MASKED" <<endl;
-  }
-
-  
-  int index = 0;
-
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-   
-      LOLAPts = trackPts[k][i].LOLAPt;
-      trackPts[k][i].imgPt.resize(LOLAPts.size());
-
-      for (int j = 0; j < LOLAPts.size(); j++){
-          
-	    float lon = LOLAPts[j].coords[0];
-	    float lat = LOLAPts[j].coords[1];
-	    float rad = LOLAPts[j].coords[2];
-     
-	    Vector2 DEM_lonlat(lon, lat);
-	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-	  
-	    float x = DRG_pix[0];
-	    float y = DRG_pix[1];
-
-	    trackPts[k][i].imgPt[j].val = interpDRG(x, y);
-	    trackPts[k][i].imgPt[j].x = DRG_pix[0];
-	    trackPts[k][i].imgPt[j].y = DRG_pix[1];
-	
-      }
-
-      trackPts[k][i].valid = 0; 
-
-      allImgPts[index][0] = -1;
-      allImgPts[index][1] = -1;
-      allImgPts[index][2] = -1;
-
-      //check for valid shot
-      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
-      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
-      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
-
-      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAPts.size() <=5)){//valid LOLA shot
-          
-          trackPts[k][i].valid = 1;
-           
-          for (int j = 0; j < LOLAPts.size(); j++){
-          
-	    if (LOLAPts[j].s == 3){//center point of a valid shot
-	     
-	       allImgPts[index][0] = trackPts[k][i].imgPt[j].val;
-	       allImgPts[index][1] = trackPts[k][i].imgPt[j].x ;
-	       allImgPts[index][2] = trackPts[k][i].imgPt[j].y;
-	     
-	    }   
-	  }
-	 
-      }
-      
- 
-      //write the image points
-     
-      index++;
-
-    }//i  
-  }//k
-
-  
-
-  return allImgPts;
-}
-
-
 bool deriv_cached(string & input_name, string & cached_table){
   bool identified = false;
   string line;
@@ -226,9 +113,41 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
   //get the true image points
   cout << "UMP calling: GetAllPtsFromImage..." << endl;
+  
+
+  GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
+
   vector<Vector3> imgPts;
 
-  imgPts = GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
+  int num_allImgPts = 0;
+  for(int k = 0; k<trackPts.size();k++){
+    num_allImgPts += trackPts[k].size();
+  }
+  imgPts.resize(num_allImgPts);  
+
+  int index= 0;
+  for(int k = 0; k < trackPts.size();k++){
+    for(int i = 0; i < trackPts[k].size(); i++){ 
+      if (trackPts[k][i].valid != 1){
+	imgPts[index][0] = -1;
+	imgPts[index][1] = -1;
+	imgPts[index][2] = -1;
+      }
+      else{
+        for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
+  
+	    if (trackPts[k][i].LOLAPt[j].s == 3){//center point of a valid shot
+	     
+	       imgPts[index][0] = trackPts[k][i].imgPt[j].val;
+	       imgPts[index][1] = trackPts[k][i].imgPt[j].x ;
+	       imgPts[index][2] = trackPts[k][i].imgPt[j].y;
+	     
+	    }   
+	 }
+      }
+      index++;
+    }
+  }
 
   //compute the synthetic image values
   cout << "UMP: ComputeTrackReflectance..." << endl;
@@ -238,9 +157,6 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
   float scaleFactor;
   scaleFactor = ComputeScaleFactor(trackPts);
   
-  //scaleFactor = ComputeScaleFactor(imgPts, reflectance);
-  //printf("oldScaleFactor = %f\n", scaleFactor);
-
   cout << "UMP: ComputeSynthImgPts..." << endl;
   vector<float> synthImg = ComputeSyntImgPts(scaleFactor, trackPts);
   
@@ -582,271 +498,3 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
  */
 
 
-//UNUSED FUNCTIONS BELOW
-//========================================================================================================================================================================
-/*
-vector<int> pixel_center_LOLA_pnts( vector<Vector3> imgPts, Vector<float,6> d)
-{
-  vector<int> center_ij;
-  center_ij.resize(2);
-  float i_c = 0.0;
-  float j_c = 0.0;
-  int num_S = imgPts.size();
-  //get average pixel location after current transform
-  for(int i = 0; i < num_S; i++)
-  {
-    i_c += d[0]*imgPts[i][1] + d[1]*imgPts[i][2] + d[2];  
-    j_c += d[3]*imgPts[i][1] + d[4]*imgPts[i][2] + d[5];
-  }
-
-  center_ij[0] = (int) floor( i_c / (float) num_S);
-  center_ij[1] = (int) floor( j_c / (float) num_S);
-
-  return center_ij;
-
-}
-*/
-#if 0
-vector<Vector3>  GetAllPtsFromImage(vector<vector<LOLAShot > > trackPts,string DRGFilename)
-{ 
-  //vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
-  
-
-  //DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-
-  vector<Vector3> allImgPts;
-
-  int num_allImgPts = 0;
-  for(int k = 0; k<trackPts.size();k++)
-  {
-    num_allImgPts += trackPts[k].size();
-  }
-
-  allImgPts.resize(num_allImgPts);  
-  vector<pointCloud> ptHere;
-
-  //ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-  //      ConstantEdgeExtension()),
-  //    BilinearInterpolation());
-
-  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  int i_tot = 0;
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-      ptHere = trackPts[k][i].LOLAPt;
-      pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
-      pointCloud topPt     = GetPointFromIndex( ptHere, 2);
-      pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
-
-      if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-
-        float lon = centerPt.coords[0];
-        float lat = centerPt.coords[1];
-        float rad = centerPt.coords[2];
-
-        Vector2 DEM_lonlat(lon, lat);
-        Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-        int x = (int)DRG_pix[0];
-        int y = (int)DRG_pix[1];
-
-        //PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
-        PixelGray<uint8> DRGVal = interpDRG(x, y);
-        //Pixel<PixelGray<uint8> > DRGVal = interpDRG(x,y);
-
-        //insert data
-        allImgPts[i_tot + i][0] = (float) DRGVal;
-        allImgPts[i_tot + i][1] = DRG_pix[0];
-        allImgPts[i_tot + i][2] = DRG_pix[1];
-
-        /* Debugg statements to check data is correctly copied
-        //The incorrect cast from int -> float is root cause
-        if(i%15==0)
-        {
-        printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
-        }
-        //
-        //
-        if(i%30==0)
-        {
-        cout <<"Is DRG_pix fractional?" << endl;        
-        printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
-        }
-         */
-      }else {
-        //write -1 to designate and invalid point
-        allImgPts[i_tot + i][0] = -1;
-        allImgPts[i_tot + i][1] = -1;
-        allImgPts[i_tot + i][2] = -1;
-      }
-    }
-    i_tot += trackPts[k].size();  
-  }
-
-  /* debugg statement: is data correctly copied?
-     printf("GetAllPtsFromImg: print some pnts...\n");
-     for(int i = 0; i< allImgPts.size(); i++)
-     {
-     if(i%150==0)
-     {
-     printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
-     }
-     }
-   */
-
-  return allImgPts;
-}
-
-#endif
-
-#if 0
-template <class ViewT>
-vector<Vector3>
-GetAllPtsFromImageOld( vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
-{
- 
-  //typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
-
-  vector<Vector3> allImgPts;
-
-  int num_allImgPts = 0;
-  for(int k = 0; k<trackPts.size();k++)
-  {
-    num_allImgPts += trackPts[k].size();
-  }
-
-  allImgPts.resize(num_allImgPts);  
-  vector<pointCloud> LOLAShot;
-
- 
-  ImageViewRef<float> interpDRG;
-  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-
-    cout << "NOT masked" <<endl;
-  } else {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-     cout << "MASKED" <<endl;
-  }
-
-  int i_tot = 0;
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-   
-      LOLAShot = trackPts[k][i].LOLAPt;
- 
-      pointCloud centerPt  = GetPointFromIndex( LOLAShot, 3);
-      pointCloud topPt     = GetPointFromIndex( LOLAShot, 2);
-      pointCloud leftPt    = GetPointFromIndex( LOLAShot, 1);
-
-      if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAShot.size() <= 5)){
-
-	trackPts[k][i].valid = 1; 
-         
-        float lon = centerPt.coords[0];
-        float lat = centerPt.coords[1];
-        float rad = centerPt.coords[2];
-     
-        Vector2 DEM_lonlat(lon, lat);
-        Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-        
-        float x = DRG_pix[0];
-        float y = DRG_pix[1];
-
-        allImgPts[i_tot + i][0] = interpDRG(x, y);
-        allImgPts[i_tot + i][1] = DRG_pix[0];
-        allImgPts[i_tot + i][2] = DRG_pix[1];
-        
-        /* Debugg statements to check data is correctly copied
-        //The incorrect cast from int -> float is root cause
-        if(i%15==0)
-        {
-        printf("LOLA # %d @(lon = %f , lat = %f) = pixel(%d,%d)\nwith incorrect cast at pixel(%f,%f)\n",i,lon,lat,x,y,x,y);
-        }
-        //
-        //
-        if(i%30==0)
-        {
-        cout <<"Is DRG_pix fractional?" << endl;        
-        printf("i = %d, DRG_pix = [%f,%f], pixel = (%d,%d)\n",i,DRG_pix[0],DRG_pix[1],x,y);
-        }
-         */
-      }
-      else {
-        //write -1 to designate and invalid point
-        allImgPts[i_tot + i][0] = -1;
-        allImgPts[i_tot + i][1] = -1;
-        allImgPts[i_tot + i][2] = -1;
-         
-        trackPts[k][i].valid = 0; 
-      }
-  
-    }
-    i_tot += trackPts[k].size();  
-  }
-
-  /* debugg statement: is data correctly copied?
-     printf("GetAllPtsFromImg: print some pnts...\n");
-     for(int i = 0; i< allImgPts.size(); i++)
-     {
-     if(i%150==0)
-     {
-     printf("allImgPts[%d][ %f, %f, %f]\n", i, allImgPts[i][0],  allImgPts[i][1], allImgPts[i][2]);
-     }
-     }
-   */
-
-  return allImgPts;
-}
-#endif
-
-#if 0
-//this function will be grand fathered.
-float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance)
-{
-  float nominator =0.0;
-  int numValidPts = 0;
-  float scaleFactor = 1;
-
-  for(int m = 0; m < reflectance.size(); m ++){
-    if ((reflectance[m]!= -1) && (reflectance[m] !=0.0)){
-      nominator += allImgPts[m][0]/reflectance[m];
-      numValidPts += 1;
-    }
-  }
-
-  if (numValidPts != 0){ 
-    scaleFactor = nominator/numValidPts;
-  }
-
-  return scaleFactor;
-}
-#endif
-
-#if 0
-vector<float> ComputeSyntImgPts(float scaleFactor, vector<float> reflectance)
-{
-  vector<float>synthImg;
-  synthImg.resize(reflectance.size());
-  for(int m = 0; m < reflectance.size(); m ++){
-    if (reflectance[m] == -1){
-      synthImg[m] = -1;
-    }
-    else{
-      synthImg[m] = reflectance[m]*scaleFactor;
-    }
-  }
-
-  return synthImg;
-}
-#endif

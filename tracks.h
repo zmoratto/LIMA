@@ -96,5 +96,68 @@ vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&tr
 void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 
+template <class ViewT>
+void 
+GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
+{
+
+  vector<pointCloud> LOLAPts;
+
+ 
+  ImageViewRef<float> interpDRG;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+
+    //cout << "NOT masked" <<endl;
+  } else {
+    interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+
+  for(int k = 0; k < trackPts.size();k++){
+    for(int i = 0; i < trackPts[k].size(); i++){
+   
+      LOLAPts = trackPts[k][i].LOLAPt;
+      trackPts[k][i].imgPt.resize(LOLAPts.size());
+
+      for (int j = 0; j < LOLAPts.size(); j++){
+          
+	    float lon = LOLAPts[j].coords[0];
+	    float lat = LOLAPts[j].coords[1];
+	    float rad = LOLAPts[j].coords[2];
+     
+	    Vector2 DEM_lonlat(lon, lat);
+	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+	  
+	    float x = DRG_pix[0];
+	    float y = DRG_pix[1];
+
+	    trackPts[k][i].imgPt[j].val = interpDRG(x, y);
+	    trackPts[k][i].imgPt[j].x = DRG_pix[0];
+	    trackPts[k][i].imgPt[j].y = DRG_pix[1];
+	
+      }
+
+      trackPts[k][i].valid = 0; 
+
+      //check for valid shot
+      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
+      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
+      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
+
+      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAPts.size() <=5)){//valid LOLA shot
+          
+          trackPts[k][i].valid = 1;
+	
+      }
+     
+    }//i  
+  }//k
+
+}
 
 #endif /* TRACKS_H */

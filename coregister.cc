@@ -90,8 +90,6 @@ vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
   return pts;
 }
 
-
-
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 {
   pointCloud pt;
@@ -119,47 +117,7 @@ Vector3 ComputeNormal(vector<pointCloud> LOLAPts)
   }
   return normal;
 }
-/*
-float ComputeReflectance(vector<pointCloud> LOLAPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-  pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-  pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
 
-  if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-    Datum moon;
-    moon.set_well_known_datum("D_MOON");
-
-    centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
-    topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
-    leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
-    //printf("c = %f, t = %f, l = %f\n", centerPt.coords[2],topPt.coords[2],leftPt.coords[2]);
-
-    Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
-    Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
-    Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
-    //printf("xyz = %f %f %f\n", xyz(0), xyz(1), xyz(2));
-    Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-    //printf("normal = %f %f %f\n", normal(0), normal(1), normal(2));
-    float reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-
-    return reflectance;
-  }
-  else{
-    return -1;
-  }
-}
-vector<float> ComputeTrackReflectance(vector<LOLAShot> trackPts, ModelParams modelParams, GlobalParams globalParams)
-{
-  vector<float> reflectance;
-  reflectance.resize(trackPts.size());
-  for (int m = 0; m < trackPts.size();m++){
-    reflectance[m] = ComputeReflectance(trackPts[m].LOLAPt, modelParams, globalParams);
-    //printf("ref = %f\n", reflectance[m]);
-  }
-  return reflectance;
-}
-*/
 void WhenBuildImgPts(vector<LOLAShot> trackPts){
   //this function is to understand which pts GetTrackPtsFromImage will extract
 
@@ -570,7 +528,7 @@ int main( int argc, char *argv[] ) {
     error_array.resize(maxNumStarts);
     final_d_array.resize(maxNumStarts);
   
- 
+
     cout << "Calling UpdateMatchingParams ..."<< endl;
 
     //return matching error and transform
