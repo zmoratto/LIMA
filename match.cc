@@ -46,66 +46,9 @@ using namespace std;
 #include <math.h>
 #include "io.h"
 #include "coregister.h"
-
-//computes the scale factor for all tracks at once
-float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
-{
-  float nominator = 0.0;
-  int numValidPts = 0;
-  float scaleFactor = 1;
-
-   for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0)){//valid track and non-zero reflectance
-
-        //update the nominator for the center point
-	for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-	  if (trackPts[k][i].LOLAPt[j].s == 3){ 
-            printf("img = %f, refl = %f\n", trackPts[k][i].imgPt[j].val, trackPts[k][i].reflectance);
-	    nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
-	  }
-	}
-        //update the denominator
-        numValidPts++;
-      }
-    }
-   }
-
-  if (numValidPts != 0){ 
-    scaleFactor = nominator/numValidPts;
-  }
-  return scaleFactor;
-}
+#include "tracks.h"
 
 
-vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts)
-{
-  
- vector<float>synthImg;
- float thisSynthImg;
- int index = 0;
- int num_allImgPts = 0;
- for(int k = 0; k<trackPts.size();k++){
-    num_allImgPts += trackPts[k].size();
-  }
-  synthImg.resize(num_allImgPts);  
-
- for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-
-      if (trackPts[k][i].valid == 1){//valid track        
-          synthImg[index] = scaleFactor*trackPts[k][i].reflectance; 
-      }
-      else{
-	synthImg[index] = -1;
-      }
-
-      index++;
-    } //i
- } //k
-
-  return synthImg;
-}
 
 
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts)
@@ -248,31 +191,6 @@ bool deriv_cached(string & input_name, string & cached_table){
   return identified;
 }
 
-
-
-void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams)
-{
-
-  vector<float> single_track_ref;
-  int num_reflc = 0;
-
-  for (int k = 0; k < allTracks.size(); k++ ){
-       num_reflc += allTracks[k].size(); 
-  }
-
-  for ( int k = 0; k < allTracks.size(); k++){    
-  
-    single_track_ref = ComputeTrackReflectance( allTracks[k], modelParams, globalParams);
-          
-    // read into vector
-    for (int i = 0; i < single_track_ref.size(); i++){
-         allTracks[k][i].reflectance = single_track_ref[i];
-    }
-
-  }
-}
-
-
 void print_rhs( Matrix<float,6,6> rhs)
 {
   printf("Printing out RHS:\n");
@@ -311,7 +229,6 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
   vector<Vector3> imgPts;
 
   imgPts = GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-
 
   //compute the synthetic image values
   cout << "UMP: ComputeTrackReflectance..." << endl;
@@ -519,10 +436,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
 		  //initialize constants
 		  float I_x_sqr, I_x_I_y, I_y_sqr; 
-		  //float I_e_val = imgPts[i][0]-synthImg[i];
-		  //above line is incorrect - must access pixel (jA,iA):
-		  //I_e_val = DRG_img_view_resourse(jA,iA) - synthImg[i];
-          
+         
 		  float I_e_val = interpDRG(jA,iA) - synthImg[i];
 		  g_error += abs(I_e_val);
 		  float I_y_val, I_x_val;

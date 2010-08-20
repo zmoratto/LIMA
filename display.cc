@@ -46,6 +46,7 @@ using namespace std;
 #include <math.h>
 #include "io.h"
 #include "coregister.h"
+#include "tracks.h"
 
 
 //displays the original tracks(red) and transformed tracks(cyan) over the image

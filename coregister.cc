@@ -42,10 +42,12 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
+#include "tracks.h"
 #include "io.h"
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
+
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 {
@@ -117,7 +119,7 @@ Vector3 ComputeNormal(vector<pointCloud> LOLAPts)
   }
   return normal;
 }
-
+/*
 float ComputeReflectance(vector<pointCloud> LOLAPts, ModelParams modelParams, GlobalParams globalParams)
 {
   pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
@@ -157,7 +159,7 @@ vector<float> ComputeTrackReflectance(vector<LOLAShot> trackPts, ModelParams mod
   }
   return reflectance;
 }
-
+*/
 void WhenBuildImgPts(vector<LOLAShot> trackPts){
   //this function is to understand which pts GetTrackPtsFromImage will extract
 
@@ -376,24 +378,6 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
   return demPts;
 }
 
-
-
-float normalizer_for_this_track(vector<float> img_vals,vector<float> refl_array){
-  float n_here = 0;
-
-  for(int i = 0; i < refl_array.size(); i++){
-    if(refl_array[i]!= -1){
-      printf("If statement in: norm... works");
-      n_here += img_vals[i];
-
-    }
-  }
-
-  return n_here;
-}
-
-
-
 int main( int argc, char *argv[] ) {
 
 
@@ -476,7 +460,8 @@ int main( int argc, char *argv[] ) {
       filename = std::string(filename_char);
       vector<float> pts = GetTrackPtsByID(trackPts[k], 3);
       SaveVectorToFile(pts, filename);
-
+      
+      /*
       vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
       std::string reflectanceFilename;
       char* reflectanceFilename_char = new char[500];
@@ -485,7 +470,8 @@ int main( int argc, char *argv[] ) {
       SaveVectorToFile(reflectance, reflectanceFilename);
       printf("k = %d, reflectance.size() = %d\n", k, reflectance.size());
       //normalizer = normalizer_for_this_track(img_vals,refl_array);
-
+      */
+      
       vector<float> imgPts;
       imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
       std::string imgPtsFilename;
@@ -505,7 +491,7 @@ int main( int argc, char *argv[] ) {
       SaveVectorToFile(allImgPts, allImgPtsFilename);
 
       cout << "Starting normalization calc." << endl;
-
+      /*
       //account for normalization here
       for(int m = 0; m < reflectance.size(); m ++){
         if(reflectance[m]!= -1){
@@ -514,7 +500,7 @@ int main( int argc, char *argv[] ) {
           num_valid += 1.0;
         }
       }
-
+      */
       float scaleFactor;
       /*
       //determine the scalling factor and save the synthetic image points- START
@@ -558,7 +544,7 @@ int main( int argc, char *argv[] ) {
       delete[] demPtsFilename_char;
       delete[] allImgPtsFilename_char;
       delete[] imgPtsFilename_char;
-      delete[] reflectanceFilename_char;
+      //delete[] reflectanceFilename_char;
       delete[] filename_char;
 
     }

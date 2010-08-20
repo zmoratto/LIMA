@@ -4,8 +4,8 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef COREGISTER_H
-#define COREGISTER_H
+#ifndef TRACKS_H
+#define TRACKS_H
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -42,7 +42,7 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-/*
+
 struct ShotTime
 {
   int year;
@@ -85,9 +85,16 @@ struct LOLAShot
   float synthImage;
 };
 
-vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);
-vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
-vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename);
-*/
+//vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);
+//vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
+//vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename);
+//computes the scale factor for all tracks at once
+float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams);
+vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts);
+void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename);
+void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 
-#endif /* COREGISTER_H */
+
+#endif /* TRACKS_H */

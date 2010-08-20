@@ -47,6 +47,7 @@ using namespace std;
 //#include <highgui.h>
 #include "match.h"
 #include "coregister.h"
+#include "tracks.h"
 
 void SaveVectorToFile(vector<float> v, string filename);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);

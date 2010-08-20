@@ -45,6 +45,7 @@ using namespace std;
 //#include <highgui.h>
 #include "match.h"
 #include "coregister.h"
+#include "tracks.h"
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 {
