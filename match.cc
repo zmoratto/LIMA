@@ -110,13 +110,6 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
   cout <<"Done interpolating the subsampled image"<<endl;
   
-
-  //get the true image points
-  cout << "UMP calling: GetAllPtsFromImage..." << endl;
-  
-
-  GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-
   vector<Vector3> imgPts;
 
   int num_allImgPts = 0;
@@ -150,8 +143,8 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
   }
 
   //compute the synthetic image values
-  cout << "UMP: ComputeTrackReflectance..." << endl;
-  ComputeAllReflectance(trackPts, modelParams, globalParams);
+  //cout << "UMP: ComputeTrackReflectance..." << endl;
+  //ComputeAllReflectance(trackPts, modelParams, globalParams);
 
   cout << "UMP: ComputeScaleFactor..." << endl;
   float scaleFactor;

@@ -48,7 +48,7 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 
-
+/*
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 {
   float nominator =0.0;
@@ -68,7 +68,7 @@ float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance)
 
   return scaleFactor;
 }
-
+*/
 
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
@@ -528,9 +528,27 @@ int main( int argc, char *argv[] ) {
     error_array.resize(maxNumStarts);
     final_d_array.resize(maxNumStarts);
   
+    
+    DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
+    GeoReference DRGGeo;
+    read_georeference(DRGGeo, DRGFilename);
+  
+
+    ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+                                                                         ConstantEdgeExtension()),
+  							    BilinearInterpolation());
+
+    cout <<"Done interpolating the subsampled image"<<endl;
+  
+
+    //get the true image points
+    cout << "GetAllPtsFromImage..." << endl; 
+    GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
+   
+    cout << "ComputeTrackReflectance..." << endl;
+    ComputeAllReflectance(trackPts, modelParams, globalParams);
 
     cout << "Calling UpdateMatchingParams ..."<< endl;
-
     //return matching error and transform
     UpdateMatchingParams(trackPts, DRGFilename, 
                          modelParams, globalParams,maxNumIter,  
