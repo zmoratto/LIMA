@@ -94,9 +94,11 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts);
-void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename);
+
+void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
+void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);

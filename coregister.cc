@@ -101,48 +101,6 @@ void WhenBuildImgPts(vector<LOLAShot> trackPts){
 #endif
 
 
-vector<float> AllTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename)
-{ 
-  DiskImageView<PixelMask<PixelGray<uint8> > >  DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-
-  vector<float> allImgPts;
-  allImgPts.resize(trackPts.size());  
-  vector<pointCloud> ptHere;
-
-  ImageViewRef<PixelMask<PixelGray<uint8> > >  interpDRG = interpolate(edge_extend(DRG.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  for(int i = 0; i < trackPts.size(); i++){
-    ptHere = trackPts[i].LOLAPt;
-    pointCloud centerPt  = GetPointFromIndex( ptHere, 3);
-    pointCloud topPt     = GetPointFromIndex( ptHere, 2);
-    pointCloud leftPt    = GetPointFromIndex( ptHere, 1);
-
-    if((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1)){
-
-      float lon = centerPt.coords[0];
-      float lat = centerPt.coords[1];
-      float rad = centerPt.coords[2];
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DRG_pix[0];
-      int y = (int)DRG_pix[1];
-
-      PixelMask<PixelGray<uint8> > DRGVal = interpDRG(x, y);
-      //insert data
-      allImgPts[i] = (float) DRGVal;
-    }else {
-      //write -1 to designate and invalid point
-      allImgPts[i] = -1;
-    }
-  }
-  return allImgPts;
-}
 
 int main( int argc, char *argv[] ) {
 
@@ -173,204 +131,81 @@ int main( int argc, char *argv[] ) {
   string inputCSVFilename; 
   string inputDEMFilename;
   string DRGFilename;  
-  string DEMFilename; 
-
-  bool aligned_set_up_tracks = false;
-  bool update_model_params = true;
 
 
-  aligned_set_up_tracks = false;
   inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
   
   //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
   DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
-  DEMFilename = string("../results/dem.tiff"); 
+
 
   string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
 
-  // Need this! Commented out for debugging! 
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-  /*printf("numTracks = %d\n", trackPts.size());
-    for(int i = 0; i < trackPts.size(); i++){
-    printf("numShots[%d] = %d\n", i, trackPts[i].size());
-    }
-   */
+  string imgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";    
+  string reflectancePtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
+  string syntImgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "synth.txt";  
+  string altitudePtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "alt.txt";
+  string demPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "dem.txt";
+  string lolaTracksFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
+  string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
 
-  int numVerPts = 6000;
-  int numHorPts = 6000;
+  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
+  int analyseFlag = 1; 
+  int maxNumIter = 10;
+  int maxNumStarts = 160;
+  vector<Vector<float, 6> >init_d_array;
+  init_d_array.resize(maxNumStarts);
+  for (int i = 0; i < maxNumStarts; i++){
+    init_d_array[i][0] = 1.0;
+    init_d_array[i][1] = 0.0;
+    init_d_array[i][2] = (i-maxNumStarts/2)*5;
+    init_d_array[i][3] = 0.0;
+    init_d_array[i][4] = 1.0;
+    init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;
+  }    
+
   vector<int> trackIndices;
   trackIndices.resize(trackPts.size());
   for (int i = 0; i < trackPts.size(); i++){
     trackIndices[i] = i;
   }
-  // see need this above
-  //write all tracks to image
-  // Need this! Commented out for debugging! 
-  //MakeGrid(trackPts, numVerPts, numHorPts, DEMFilename, trackIndices);
 
-  //debugg GetTrackPtsFromImage by calling a little test function that looks very similar and records/prints out some important statistics.
-  //WhenBuildImgPts(trackPts[1]);
-  float normalizer_top = 0.0;
-  float num_valid = 0.0;
-
-  if( aligned_set_up_tracks ){
-    for (int k = 1; k < trackPts.size(); k++){
-
-    //string outFilename = "demo.tiff";
-    //if (k == 1){
-    //ShowTrackPtsOnImage(trackPts[k], DRGFilename, outFilename);
-    //}
-      std::string filename;
-      char* filename_char = new char[500];
-      sprintf (filename_char, "../results/dem_orbit_%d.txt", k);
-      filename = std::string(filename_char);
-      vector<float> pts = GetTrackPtsByID(trackPts[k], 3);
-      SaveVectorToFile(pts, filename);
-      
-      /*
-      vector<float> reflectance = ComputeTrackReflectance(trackPts[k], modelParams, globalParams);
-      std::string reflectanceFilename;
-      char* reflectanceFilename_char = new char[500];
-      sprintf (reflectanceFilename_char, "../results/refl_orbit_%d.txt", k);
-      reflectanceFilename = std::string(reflectanceFilename_char);
-      SaveVectorToFile(reflectance, reflectanceFilename);
-      printf("k = %d, reflectance.size() = %d\n", k, reflectance.size());
-      //normalizer = normalizer_for_this_track(img_vals,refl_array);
-      */
-      /*
-      vector<float> imgPts;
-      imgPts = GetTrackPtsFromImage(trackPts[k], DRGFilename, 3);    
-      std::string imgPtsFilename;
-      char* imgPtsFilename_char = new char[500];
-      sprintf (imgPtsFilename_char, "../results/img_orbit_%d.txt", k);
-      imgPtsFilename = std::string(imgPtsFilename_char);
-      SaveVectorToFile(imgPts, imgPtsFilename);
-      */
-      // We have two choices output: output image at every pt or every valid refl
-      // allImagPts.size() = trackPts.size(), at points where the track is invalid we havea -1
-      vector<float> allImgPts;
-      allImgPts = AllTrackPtsFromImage(trackPts[k],DRGFilename);
-      std::string allImgPtsFilename;
-      char* allImgPtsFilename_char = new char[500]; 
-      sprintf(allImgPtsFilename_char, "../results/all_img_track_orbit_%d.txt",k);
-      allImgPtsFilename = std::string(allImgPtsFilename_char);
-      SaveVectorToFile(allImgPts, allImgPtsFilename);
-
-      cout << "Starting normalization calc." << endl;
-      /*
-      //account for normalization here
-      for(int m = 0; m < reflectance.size(); m ++){
-        if(reflectance[m]!= -1){
-          normalizer_top += allImgPts[m];
-          //normalizer_top += allImgPts[m]/reflectance[m];
-          num_valid += 1.0;
-        }
-      }
-      */
-      float scaleFactor;
-      /*
-      //determine the scalling factor and save the synthetic image points- START
-      
-      scaleFactor = ComputeScaleFactor(allImgPts, reflectance);
-      vector<float> synthImg = ComputeSyntImgPts(scaleFactor, reflectance);
-      float matchingErr = ComputeMatchingError(synthImg, allImgPts);
-      printf("matchingError  %f\n", matchingErr);
-      
-      std::string synthImgPtsFilename;
-      char* synthImgPtsFilename_char = new char[500];
-      sprintf (synthImgPtsFilename_char, "../results/synthImg_track_%d.txt", k);
-      synthImgPtsFilename = std::string(synthImgPtsFilename_char);
-      SaveVectorToFile(synthImg, synthImgPtsFilename);
-      //determine the scalling factor - END
-      */
-      printf("\n\nInfo: k = %d, normalizer_top = %f, num_valid = %f, scaleFactor = %f\n",
-          k, normalizer_top, num_valid, scaleFactor);
-      //reflectance.clear();
-      //
-      vector<float> demPts;
-      demPts = GetTrackPtsFromDEM(trackPts[k], inputDEMFilename, 3);
-      std::string demPtsFilename;
-      char* demPtsFilename_char = new char[500];
-      sprintf (demPtsFilename_char, "../results/sdem_orbit_%d.txt", k);
-      demPtsFilename = std::string(demPtsFilename_char);
-      SaveVectorToFile(demPts, demPtsFilename);
-
-      //write individual tracks to image
-      string outDEMFilename;
-      char* outDEMFilename_char = new char[500];
-      sprintf (outDEMFilename_char, "../results/dem_%d.tiff", k);
-      outDEMFilename = std::string(outDEMFilename_char);
-      printf("demfilename = %s\n", outDEMFilename.c_str());
-      vector<int> trackIndices;
-      trackIndices.resize(1);
-      trackIndices[0] = k;
-      MakeGrid(trackPts, numVerPts, numHorPts, outDEMFilename, trackIndices);
-
-      delete[] outDEMFilename_char;
-      delete[] demPtsFilename_char;
-      delete[] allImgPtsFilename_char;
-      //delete[] imgPtsFilename_char;
-      //delete[] reflectanceFilename_char;
-      delete[] filename_char;
-
-    }
-  }
-
-  if( update_model_params){
- 
-    int maxNumIter = 10;
-    int maxNumStarts = 160;
-    vector<Vector<float, 6> >init_d_array;
-    init_d_array.resize(maxNumStarts);
-    for (int i = 0; i < maxNumStarts; i++){
-      init_d_array[i][0] = 1.0;
-      init_d_array[i][1] = 0.0;
-      init_d_array[i][2] = (i-maxNumStarts/2)*5;
-      init_d_array[i][3] = 0.0;
-      init_d_array[i][4] = 1.0;
-      init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;
-    }    
-
-    vector<Vector<float, 6> > final_d_array;
-    vector<float> error_array;
-    error_array.resize(maxNumStarts);
-    final_d_array.resize(maxNumStarts);
+  vector<Vector<float, 6> > final_d_array;
+  vector<float> error_array;
+  error_array.resize(maxNumStarts);
+  final_d_array.resize(maxNumStarts);
   
-    
-    DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
-    GeoReference DRGGeo;
-    read_georeference(DRGGeo, DRGFilename);
+  
+  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, DRGFilename);
   
 
-    ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-                                                                         ConstantEdgeExtension()),
+  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+									ConstantEdgeExtension()),
   							    BilinearInterpolation());
-
-    cout <<"Done interpolating the subsampled image"<<endl;
-  
-
-    //get the true image points
-    cout << "GetAllPtsFromImage..." << endl; 
-    GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
+    
+  //get the true image points
+  cout << "GetAllPtsFromImage..." << endl; 
+  GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
    
-    cout << "ComputeTrackReflectance..." << endl;
-    ComputeAllReflectance(trackPts, modelParams, globalParams);
-
-    printf("before saveimgpoints\n");
-    string imgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
-    SaveImagePoints(trackPts, 3, imgPtsFilename);
+  cout << "ComputeTrackReflectance..." << endl;
+  ComputeAllReflectance(trackPts, modelParams, globalParams);
+  float scaleFactor = ComputeScaleFactor(trackPts);
   
-    string reflectanceFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";  
-    SaveReflectance(trackPts, reflectanceFilename);
+  if (analyseFlag == 1){
+       
+       SaveImagePoints(trackPts, 3, imgPtsFilename);
+       SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
+       SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
+       SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
+       SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
 
-    string altitudeFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "alt.txt";
-    SaveAltitudePoints(trackPts, 3, altitudeFilename);
-
-    //TO DO: save DEMs
-
-    //TO DO: save syntImg
-   
+       int numVerPts = 6000;
+       int numHorPts = 6000;
+       MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
+    }
    
     cout << "Calling UpdateMatchingParams ..."<< endl;
     //return matching error and transform
@@ -393,52 +228,13 @@ int main( int argc, char *argv[] ) {
     }    
 
     //write results to image outside matching
-    string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
+  
     printf("bestResult = %d\n", bestResult);
     ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
                              trackIndices, DRGFilename, outFilename);
     cout << "UpdateMatchingParams finshed." << endl;
-  }
-  /*
-  //save the, # valid, normalizer, & the division
-  std::string matchingParamsFilename;
-  char* matchingParamsFilename_char = new char[500];
-  sprintf( matchingParamsFilename_char, "../results/matching_params");
-  matchingParamsFilename = std::string(matchingParamsFilename);
 
-  // the following is very silly
-  vector<float> read_out;
-  for(int i=0; i< d.size(); i++ )
-  {
-  read_out.push_back(d[i]);
-  }
-  SaveVectorToFile(read_out,matchingParamsFilename);
-   */
-
-  /*
-     vector<float> norm_consts;
-     norm_consts.push_back( normalizer_top);
-     norm_consts.push_back(  num_valid);
-     norm_consts.push_back( normalizer_top/num_valid);
-     std::string normConstsFilename;
-     char* normConstsFilename_char = new char[500];
-  //sprintf (normConstsFilename_char, "../results/save_normalizer_constants.txt");
-  normConstsFilename = std::string(normConstsFilename_char);
-  SaveVectorToFile(norm_consts, normConstsFilename);
-
-  delete normConstsFilename_char;
-   */
-
-  //validation...?
-  // 'basin of attraction'...
-  // how sensitive is the solution to the initialization
-  // i.e. if we shift the initial position (- 10, + 5) pixels does this affect the final solution.  Can we move +/- 2000 pixels and still get the same solution?  I.e. is the problem convex.
-
-  // working to accomplish this by changing the update params interface
-
-
-
-  return 0;
+    return 0;
 }
 
 

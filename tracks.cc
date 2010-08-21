@@ -209,7 +209,7 @@ pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
   return pt;
 }
 
-void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename)
+void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename)
 {
 
     FILE *fp;
@@ -226,7 +226,7 @@ void SaveReflectance(vector< vector<LOLAShot> >  &allTracks, string filename)
       
       for (int i = 0; i < allTracks[k].size(); i++){
         if (allTracks[k][i].valid == 1){
-	  fprintf(fp, "%f ", allTracks[k][i].reflectance);
+	  fprintf(fp, "%f ", scaleFactor*allTracks[k][i].reflectance);
 	}
         else{
            fprintf(fp, "-1 ");
@@ -268,7 +268,6 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 
       }
 
-      printf("test3\n");
       fclose(fp);
       delete trackFilename;
     }
@@ -288,7 +287,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
       sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
       fp = fopen(trackFilename, "w");
       
-      for (int i = 0; i < allTracks[k].size()-1; i++){
+      for (int i = 0; i < allTracks[k].size(); i++){
        
         int found = 0;
 	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
@@ -303,10 +302,20 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 
       }
 
-      printf("test3\n");
       fclose(fp);
       delete trackFilename;
     }
  
 }
 
+void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, string filename)
+
+{    
+  for (int k = 0; k < trackPts.size(); k++){
+      vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
+      string prefixTrackFilename =  prefix_from_filename(filename);  
+      char* trackFilename = new char[500];
+      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+      SaveVectorToFile(demPts, string(trackFilename));     
+    }
+}

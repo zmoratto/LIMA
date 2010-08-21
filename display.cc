@@ -175,13 +175,21 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 
 
 
-//displays the LOLA tracks in an image format on a blck background
+//displays the LOLA tracks in an image format on a black background
 //quick space efficient way to visualize Lidar data without storing the real image but a black background. 
 void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices)
 {
   int l, m, n;  
   ImageView<PixelGray<float> > DEMImage(numHorPts, numVerPts);
   GeoReference DEMgeo;
+
+  
+  if (trackIndices.size() == 1){
+      //string outDEMFilename;
+      //char* outDEMFilename_char = new char[500];
+      //sprintf (outDEMFilename_char, "../results/dem_%d.tiff", k);
+      //outDEMFilename = std::string(outDEMFilename_char);
+  }
 
   Vector4 coords = FindMinMaxLat(trackPts);
 
