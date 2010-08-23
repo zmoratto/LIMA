@@ -47,6 +47,25 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 
+vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
+{
+  vector<float> pts;
+  for (int i = 0; i < trackPts.size(); i++){
+    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
+
+      float rad = trackPts[i].LOLAPt[k].coords[2];
+      int id = trackPts[i].LOLAPt[k].s;
+
+      if (id == ID){
+        pts.push_back(rad);
+      }
+
+    }
+  }
+
+  return pts;
+}
+
 //computes the scale factor for all tracks at once
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 {
@@ -61,7 +80,6 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
         //update the nominator for the center point
 	for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
 	  if (trackPts[k][i].LOLAPt[j].s == 3){ 
-            printf("img = %f, refl = %f\n", trackPts[k][i].imgPt[j].val, trackPts[k][i].reflectance);
 	    nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
 	  }
 	}
@@ -112,24 +130,19 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
  
 }
 
-vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
+pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 {
-  vector<float> pts;
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-
-      float rad = trackPts[i].LOLAPt[k].coords[2];
-      int id = trackPts[i].LOLAPt[k].s;
-
-      if (id == ID){
-        pts.push_back(rad);
-      }
-
+  pointCloud pt;
+  pt.s = -1;//invalid pointCloud
+  for(int i = 0;i < LOLAPts.size(); i++){
+    if (LOLAPts[i].s == index){
+      return LOLAPts[i];
     }
   }
 
-  return pts;
+  return pt;
 }
+
 
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
 {
@@ -138,13 +151,17 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
   read_georeference(DEMGeo, DEMFilename);
 
   vector<float> demPts;
+  demPts.resize(trackPts.size());
 
   ImageViewRef<PixelGray<float>  >  interpDEM = interpolate(edge_extend(DEM.impl(),
         ConstantEdgeExtension()),
       BilinearInterpolation());
 
+  int index = 0;
   for (int i = 0; i < trackPts.size(); i++){
+    demPts[index] = -1;
     for(int j = 0; j < trackPts[i].LOLAPt.size(); j++){
+
       float lon = trackPts[i].LOLAPt[j].coords[0];
       float lat = trackPts[i].LOLAPt[j].coords[1];
       float rad = trackPts[i].LOLAPt[j].coords[2];
@@ -158,56 +175,29 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
 
       PixelGray<float>  DEMVal = interpDEM(x, y);
 
-      if (id == ID){
-        demPts.push_back((float)DEMVal);
+      if ((id == ID) && (trackPts[i].valid)){
+        //demPts.push_back((float)DEMVal);
+        demPts[index] = (float)DEMVal; 
       }             
     }
+    index++;
   }
 
   return demPts;
 }
 
-vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts)
-{
-  
- vector<float>synthImg;
- float thisSynthImg;
- int index = 0;
- int num_allImgPts = 0;
- for(int k = 0; k<trackPts.size();k++){
-    num_allImgPts += trackPts[k].size();
-  }
-  synthImg.resize(num_allImgPts);  
+void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, string filename)
 
- for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-
-      if (trackPts[k][i].valid == 1){//valid track        
-          synthImg[index] = scaleFactor*trackPts[k][i].reflectance; 
-      }
-      else{
-	synthImg[index] = -1;
-      }
-
-      index++;
-    } //i
- } //k
-
-  return synthImg;
-}
-
-pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
-{
-  pointCloud pt;
-  pt.s = -1;//invalid pointCloud
-  for(int i = 0;i < LOLAPts.size(); i++){
-    if (LOLAPts[i].s == index){
-      return LOLAPts[i];
+{    
+  for (int k = 0; k < trackPts.size(); k++){
+      vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
+      string prefixTrackFilename =  prefix_from_filename(filename);  
+      char* trackFilename = new char[500];
+      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+      SaveVectorToFile(demPts, string(trackFilename));     
     }
-  }
-
-  return pt;
 }
+
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename)
 {
@@ -226,10 +216,10 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFa
       
       for (int i = 0; i < allTracks[k].size(); i++){
         if (allTracks[k][i].valid == 1){
-	  fprintf(fp, "%f ", scaleFactor*allTracks[k][i].reflectance);
+	  fprintf(fp, "%f\n", scaleFactor*allTracks[k][i].reflectance);
 	}
         else{
-           fprintf(fp, "-1 ");
+           fprintf(fp, "-1\n");
         }
       }
       
@@ -259,11 +249,11 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
 	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
 	     found = 1;
-	     fprintf(fp, "%f ", allTracks[k][i].imgPt[j].val);
+	     fprintf(fp, "%f\n", allTracks[k][i].imgPt[j].val);
 	  }
 	}
         if (found == 0){
-           fprintf(fp, "-1");
+           fprintf(fp, "-1\n");
         }
 
       }
@@ -293,11 +283,11 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
 	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
 	     found = 1;
-	     fprintf(fp, "%f ", allTracks[k][i].LOLAPt[j].coords[2]);
+	     fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].coords[2]);
 	  }
 	}
         if (found == 0){
-           fprintf(fp, "-1");
+           fprintf(fp, "-1\n");
         }
 
       }
@@ -308,14 +298,4 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
  
 }
 
-void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, string filename)
 
-{    
-  for (int k = 0; k < trackPts.size(); k++){
-      vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
-      string prefixTrackFilename =  prefix_from_filename(filename);  
-      char* trackFilename = new char[500];
-      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-      SaveVectorToFile(demPts, string(trackFilename));     
-    }
-}

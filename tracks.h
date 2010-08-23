@@ -79,21 +79,19 @@ pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
 struct LOLAShot
 {
   int valid;
-  vector<pointCloud> LOLAPt;
-  vector<imgPoint> imgPt;
+  int centerPtIndex;
   float reflectance;
   float synthImage;
+  vector<pointCloud> LOLAPt;
+  vector<imgPoint> imgPt;
 };
 
-//vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);
-//vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
-//vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename);
+
 //computes the scale factor for all tracks at once
-float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
-vector<float> ComputeSyntImgPts(float scaleFactor, vector<vector<LOLAShot > >&trackPts);
+
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);

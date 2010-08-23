@@ -49,56 +49,6 @@ using namespace std;
 #include "display.h"
 
 
-#if 0
-void WhenBuildImgPts(vector<LOLAShot> trackPts){
-  //this function is to understand which pts GetTrackPtsFromImage will extract
-
-  /* First set of tests:
-     1. what is the length of trackPts[0] // [0] is the index being fed in
-     2. what is the # accepted based on the id == 3 condition
-     3. what is the # accepted on the valid refl. condition?
-   */
-
-  //1. # of track points
-  //printf("\n\n# trackPts = %d\n",trackPts.size());
-
-  //2. # accepted on id==3
-  int number_pass = 0;
-  int ID = 3;
-  for(int i = 0; i < trackPts.size(); i++){
-    for(int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-
-      int id = trackPts[i].LOLAPt[k].s; 
-      if (id == ID){
-        //  imgPts.push_back((float)DRGVal);
-        number_pass += 1;
-      }
-
-    }
-  }
-  printf("number img pts = %d\n",number_pass);
-
-  //3. # valid refl.
-  int numb_refl_valid = 0;
-  vector<pointCloud> ptHere;
-  pointCloud centerPt;
-  pointCloud topPt;
-  pointCloud leftPt;
-
-  for(int i = 1; i < trackPts.size(); i++){
-    ptHere = trackPts[i].LOLAPt;
-    centerPt = GetPointFromIndex(ptHere, 3);
-    topPt = GetPointFromIndex(ptHere, 2);
-    leftPt = GetPointFromIndex(ptHere, 1);
-
-    if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1))
-    {
-      numb_refl_valid += 1;
-    }
-  }
-  printf("number valid refl pts = %d \n\n",numb_refl_valid);
-}
-#endif
 
 
 
@@ -151,7 +101,7 @@ int main( int argc, char *argv[] ) {
   string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-  int analyseFlag = 1; 
+  int analyseFlag = 0;//1; 
   int maxNumIter = 10;
   int maxNumStarts = 160;
   vector<Vector<float, 6> >init_d_array;
