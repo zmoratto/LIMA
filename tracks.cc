@@ -73,21 +73,21 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   int numValidPts = 0;
   float scaleFactor = 1;
 
-   for(int k = 0; k < trackPts.size();k++){
+  for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
       if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0)){//valid track and non-zero reflectance
 
         //update the nominator for the center point
-	for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-	  if (trackPts[k][i].LOLAPt[j].s == 3){ 
-	    nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
-	  }
-	}
+        for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
+          if (trackPts[k][i].LOLAPt[j].s == 3){ 
+            nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
+          }
+        }
         //update the denominator
         numValidPts++;
       }
     }
-   }
+  }
 
   if (numValidPts != 0){ 
     scaleFactor = nominator/numValidPts;
@@ -102,32 +102,32 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
 
   for (int k = 0; k < allTracks.size(); k++ ){
     for (int i = 0; i < allTracks[k].size(); i++){
-        LOLAPts = allTracks[k][i].LOLAPt;
-        pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-	pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-	pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
+      LOLAPts = allTracks[k][i].LOLAPt;
+      pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
+      pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
+      pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
 
-	if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (allTracks[k][i].valid == 1)){
-	  Datum moon;
-	  moon.set_well_known_datum("D_MOON");
+      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (allTracks[k][i].valid == 1)){
+        Datum moon;
+        moon.set_well_known_datum("D_MOON");
 
-	  centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
-	  topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
-	  leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
- 
-	  Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
-	  Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
-	  Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
-	  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
+        centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
+        topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
+        leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
 
-          allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-	}
-	else{
-	 allTracks[k][i].reflectance = -1;
-	}
+        Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
+        Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
+        Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
+        Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
+
+        allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
+      }
+      else{
+        allTracks[k][i].reflectance = -1;
+      }
     }//i
   }//k
- 
+
 }
 
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
@@ -190,112 +190,112 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, str
 
 {    
   for (int k = 0; k < trackPts.size(); k++){
-      vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
-      string prefixTrackFilename =  prefix_from_filename(filename);  
-      char* trackFilename = new char[500];
-      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-      SaveVectorToFile(demPts, string(trackFilename));     
-    }
+    vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
+    string prefixTrackFilename =  prefix_from_filename(filename);  
+    char* trackFilename = new char[500];
+    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+    SaveVectorToFile(demPts, string(trackFilename));     
+  }
 }
 
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename)
 {
 
-    FILE *fp;
-   
+  FILE *fp;
 
-    for (int k = 0; k < allTracks.size(); k++ ){
-    
-      
-      string prefixTrackFilename =  prefix_from_filename(filename);  
-      char* trackFilename = new char[500];
-      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-      fp = fopen(trackFilename, "w");
-     
-      
-      for (int i = 0; i < allTracks[k].size(); i++){
-        if (allTracks[k][i].valid == 1){
-	  fprintf(fp, "%f\n", scaleFactor*allTracks[k][i].reflectance);
-	}
-        else{
-           fprintf(fp, "-1\n");
-        }
+
+  for (int k = 0; k < allTracks.size(); k++ ){
+
+
+    string prefixTrackFilename =  prefix_from_filename(filename);  
+    char* trackFilename = new char[500];
+    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+    fp = fopen(trackFilename, "w");
+
+
+    for (int i = 0; i < allTracks[k].size(); i++){
+      if (allTracks[k][i].valid == 1){
+        fprintf(fp, "%f\n", scaleFactor*allTracks[k][i].reflectance);
       }
-      
-      fclose(fp);
-      delete trackFilename;
+      else{
+        fprintf(fp, "-1\n");
+      }
     }
-  
+
+    fclose(fp);
+    delete trackFilename;
+  }
+
 }
 
 //saves the image points corresponding to a detectNum
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
 {
 
-    FILE *fp;
-     
-    for (int k = 0; k < allTracks.size(); k++ ){
-      
-      string prefixTrackFilename = prefix_from_filename(filename); 
-      char* trackFilename = new char[500];
-      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-      fp = fopen(trackFilename, "w");
-      
-      for (int i = 0; i < allTracks[k].size()-1; i++){
-        
-      
-        int found = 0;
-	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
-	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
-	     found = 1;
-	     fprintf(fp, "%f\n", allTracks[k][i].imgPt[j].val);
-	  }
-	}
-        if (found == 0){
-           fprintf(fp, "-1\n");
-        }
+  FILE *fp;
 
+  for (int k = 0; k < allTracks.size(); k++ ){
+
+    string prefixTrackFilename = prefix_from_filename(filename); 
+    char* trackFilename = new char[500];
+    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+    fp = fopen(trackFilename, "w");
+
+    for (int i = 0; i < allTracks[k].size()-1; i++){
+
+
+      int found = 0;
+      for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+        if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
+          found = 1;
+          fprintf(fp, "%f\n", allTracks[k][i].imgPt[j].val);
+        }
+      }
+      if (found == 0){
+        fprintf(fp, "-1\n");
       }
 
-      fclose(fp);
-      delete trackFilename;
     }
- 
+
+    fclose(fp);
+    delete trackFilename;
+  }
+
 }
 
 //saves the image points corresponding to a detectNum
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
 {
 
-    FILE *fp;
-     
-    for (int k = 0; k < allTracks.size(); k++ ){
-      
-      string prefixTrackFilename = prefix_from_filename(filename); 
-      char* trackFilename = new char[500];
-      sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-      fp = fopen(trackFilename, "w");
-      
-      for (int i = 0; i < allTracks[k].size(); i++){
-       
-        int found = 0;
-	for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
-	  if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
-	     found = 1;
-	     fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].coords[2]);
-	  }
-	}
-        if (found == 0){
-           fprintf(fp, "-1\n");
-        }
+  FILE *fp;
 
+  for (int k = 0; k < allTracks.size(); k++ ){
+
+    string prefixTrackFilename = prefix_from_filename(filename); 
+    char* trackFilename = new char[500];
+    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+    fp = fopen(trackFilename, "w");
+
+    for (int i = 0; i < allTracks[k].size(); i++){
+
+      int found = 0;
+      for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+        if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
+          found = 1;
+          fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].coords[2]);
+        }
+      }
+      if (found == 0){
+        fprintf(fp, "-1\n");
       }
 
-      fclose(fp);
-      delete trackFilename;
     }
- 
+
+    fclose(fp);
+    delete trackFilename;
+  }
+
 }
 
 

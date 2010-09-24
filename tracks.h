@@ -47,7 +47,7 @@ struct ShotTime
 {
   int year;
   int month;
-  int day;
+  int dap;
   int hour; //24hr format
   int min;
   float sec;
@@ -63,6 +63,7 @@ struct pointCloud
   float sec;
   int s; //detector id
   Vector3 coords;
+  
 };
 
 struct imgPoint
@@ -82,6 +83,13 @@ struct LOLAShot
   int centerPtIndex;
   float reflectance;
   float synthImage;
+
+  //following are for weight computation
+  int calc_acp;              //added dtj 2010_09_07, is the filter valid here?
+  float filter_response;      //added dtj 2010_09_07, name speaks for itself
+  float weight_lsq;           //added dtj 2010_09_07, weighted for LSQ
+  float weight_prd;           //added dtj 2010_09_21, create pyramid weight for LSQ
+
   vector<pointCloud> LOLAPt;
   vector<imgPoint> imgPt;
 };

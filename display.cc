@@ -195,7 +195,7 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
 
   printf("minLat=%f, maxLat=%f, minLon=%f maxLon=%f\n", coords(0), coords(1), coords(2), coords(3));
 
-  float minLat = coords(0); 
+  float minLat = coords(0); //this causes seg-fault
   float maxLat = coords(1); 
   float minLon = coords(2); 
   float maxLon = coords(3);

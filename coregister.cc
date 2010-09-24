@@ -47,13 +47,15 @@ using namespace std;
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
-
+//#include "weights.h"
 
 
 
 
 int main( int argc, char *argv[] ) {
 
+  //int N = 10;
+  //simple_function_test(N);
 
   GlobalParams globalParams;
   //globalParams.reflectanceType = NO_REFL;
@@ -83,11 +85,12 @@ int main( int argc, char *argv[] ) {
   string DRGFilename;  
 
 
-  inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+  //inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
+  inputCSVFilename = string("../data/Apollo15-LOLA/1E8E_21N28N/RDR_1E8E_21N28NPointPerRow_csv_table.csv");  
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-  
-  //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
+
+  DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  //DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
 
 
   string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
@@ -125,66 +128,78 @@ int main( int argc, char *argv[] ) {
   vector<float> error_array;
   error_array.resize(maxNumStarts);
   final_d_array.resize(maxNumStarts);
-  
-  
+
+
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
   GeoReference DRGGeo;
   read_georeference(DRGGeo, DRGFilename);
-  
+
 
   ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-									ConstantEdgeExtension()),
-  							    BilinearInterpolation());
-    
+        ConstantEdgeExtension()),
+      BilinearInterpolation());
+
   //get the true image points
   cout << "GetAllPtsFromImage..." << endl; 
   GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-   
+
   cout << "ComputeTrackReflectance..." << endl;
   ComputeAllReflectance(trackPts, modelParams, globalParams);
   float scaleFactor = ComputeScaleFactor(trackPts);
-  
+
   if (analyseFlag == 1){
-       
-       SaveImagePoints(trackPts, 3, imgPtsFilename);
-       SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
-       SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-       SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
-       SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
 
-       int numVerPts = 6000;
-       int numHorPts = 6000;
-       MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
-    }
-   
-    cout << "Calling UpdateMatchingParams ..."<< endl;
-    //return matching error and transform
-    UpdateMatchingParams(trackPts, DRGFilename, 
-                         modelParams, globalParams,maxNumIter,  
-                         init_d_array, final_d_array, error_array);
+    SaveImagePoints(trackPts, 3, imgPtsFilename);
+    SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
+    SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
+    SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
+    SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
 
-    int bestResult = 0;
-    float smallestError = error_array[0];
-    for (int index = 0; index < init_d_array.size(); index++){
-        printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	      index, error_array[index], 
-              final_d_array[index](0), final_d_array[index](1), 
-              final_d_array[index](2), final_d_array[index](3),
-	      final_d_array[index](4), final_d_array[index](5));
-        if  (error_array[index] < smallestError){
-	     smallestError = error_array[index]; 
-             bestResult = index;
-        }      
-    }    
+    int numVerPts = 6000;
+    int numHorPts = 6000;
+    MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
+  }
 
-    //write results to image outside matching
-  
-    printf("bestResult = %d\n", bestResult);
-    ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
-                             trackIndices, DRGFilename, outFilename);
-    cout << "UpdateMatchingParams finshed." << endl;
+  int edge = 10;
+  float take_p = 0.10;
+  int num_valid = 0;
+  float take_thresh = 0.0;
+  string s_weight_name = "../results/weights_corregister_prd.txt ";
+  cout << "Calling weight_track_pts... "<< endl;
+  weight_track_pts( trackPts, edge, take_p, num_valid, take_thresh, s_weight_name );
 
-    return 0;
+  printf("Weight calc: edge = %d, take_p = %f, num_valid = %d, take_thresh = %d\n\n", edge, take_p, num_valid, take_thresh);
+
+
+  //return matching error and transform
+  cout << "Calling UpdateMatchingParams ..."<< endl;
+  UpdateMatchingParams(trackPts, DRGFilename, 
+      modelParams, globalParams,maxNumIter,  
+      init_d_array, final_d_array, error_array);
+
+  int bestResult = 0;
+  float smallestError = error_array[0];
+  for (int index = 0; index < init_d_array.size(); index++){
+    printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+        index, error_array[index], 
+        final_d_array[index](0), final_d_array[index](1), 
+        final_d_array[index](2), final_d_array[index](3),
+        final_d_array[index](4), final_d_array[index](5));
+    if  (error_array[index] < smallestError){
+      smallestError = error_array[index]; 
+      bestResult = index;
+    }      
+  }    
+
+  //write results to image outside matching
+
+  printf("bestResult = %d\n", bestResult);
+  ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
+      trackIndices, DRGFilename, outFilename);
+
+  cout << "UpdateMatchingParams finshed." << endl;
+
+  return 0;
 }
 
 
