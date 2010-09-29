@@ -166,7 +166,7 @@ int main( int argc, char *argv[] ) {
   float take_thresh = 0.0;
   string s_weight_name = "../results/weights_corregister_prd.txt ";
   cout << "Calling weight_track_pts... "<< endl;
-  weight_track_pts( trackPts, edge, take_p, num_valid, take_thresh, s_weight_name );
+  ComputeWeights( trackPts, edge, take_p, num_valid, take_thresh, s_weight_name );
 
   printf("Weight calc: edge = %d, take_p = %f, num_valid = %d, take_thresh = %d\n\n", edge, take_p, num_valid, take_thresh);
 

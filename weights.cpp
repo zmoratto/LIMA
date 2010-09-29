@@ -1,28 +1,17 @@
 #include "weights.h"
 
-//0. sub-function
-int simple_function_test(int N){
-  printf("\n\n\nLink to function in weights.cpp N = %d\n\n\n",N);
-  return 0;
-}
-
-int correct_invalid_linear(vector<vector< LOLAShot> > & track_pts){
-  //this function loops through each set of track points seperatly, 
-  //if we see the following pattern of points (valid, in-valid, valid)
-  //the non-valid point will have it's reflectance set to the average of the two valid points
-  //
-  //above non-valid was defined as reflectance = -1 
-
-  //loop over tracks
-  //loop over points
-  //for(int k = 0; k < track_pts.size(); k++){
+//this function loops through each set of track points seperatly, 
+//if we see the following pattern of points (valid, in-valid, valid)
+//the non-valid point will have it's reflectance set to the average of the two valid points
+//
+//above non-valid was defined as reflectance = -1 
+int InterpolateInvalidPoint(vector<vector< LOLAShot> > & track_pts){
 
   for(int iTrk = 0;iTrk < track_pts.size() ; iTrk ++ ){ //index track
 
     //debugg inner loop - correct invalid points
     for(int iPt = 1; iPt < track_pts[iTrk].size()-1;iPt ++ ){
-      //cout statements to debugg thesee function indices!
-      //cout << "yo yo yo!" << endl;
+    
       //printf("reflectance at %d = %f\n",iPt,track_pts[iTrk][iPt].reflectance);
       if(track_pts[iTrk][iPt].reflectance < 0){
         if((track_pts[iTrk][iPt-1].reflectance > 0 ) && (track_pts[iTrk][iPt+1].reflectance > 0)){
@@ -31,22 +20,18 @@ int correct_invalid_linear(vector<vector< LOLAShot> > & track_pts){
       }
     }
   }
-  //}
-  /*
-     for(int i = 0; i < track_pts[iTrk].size(); i++ ){ 
-     printf("Smoothed reflectance at %d = %0.1f\n",i,track_pts[iTrk][i].reflectance);
-     }
-     printf("\n\nDone\n\n");
-   */
 
-  printf("\n\ncorrect_invalid_linear = done\n\n");
+  //printf("\n\ncorrect_invalid_linear = done\n\n");
   return 0;
 }
 
-//1.
-int check_acceptable_computes(vector< vector<LOLAShot > > & track_pts,int edge, int & num_valid){
-  //function loops through points setting the LOLAShot integer field .calc_acp to "1" if the point is valid & there are sufficent valid points on either side of that point to compute a gradient.  
-  //other wise .calc_acp is set to 0 if either the point is invalid or there are insufficient valid points bordering that point to compute a gradient
+
+//function loops through points setting the LOLAShot integer field .calc_acp to "1" 
+//if the point is valid & there are sufficent valid points on either side of that point compute a gradient.  
+//otherwise .calc_acp is set to 0 if either the point is invalid or there are insufficient 
+//valid points bordering that point to compute a gradient
+int FindValidPoints(vector< vector<LOLAShot > > & track_pts,int edge, int & num_valid){
+
 
   int t_inv = -1;  //trailing invalid
   int l_inv = -1; //leading invalid
@@ -104,9 +89,8 @@ int check_acceptable_computes(vector< vector<LOLAShot > > & track_pts,int edge, 
 }
 
 //2.int filter
-int grad_filter(vector< vector<LOLAShot > > & track_pts, int edge){
-  //calculates the gradient of reflectance using a filter of shape: [ -1x--edge-- 0  +1x--edge--]
-  
+//calculates the gradient of reflectance using a filter of shape: [ -1x--edge-- 0  +1x--edge--]
+int ComputeGradient(vector< vector<LOLAShot > > & track_pts, int edge){
   
   cout << "Starting grad filter application\n" << endl;
   //build filter
@@ -151,8 +135,8 @@ int grad_filter(vector< vector<LOLAShot > > & track_pts, int edge){
 
 // we'll start with [0,1] based on top 5% 
 // then allow room for growth
-//3.int make_weights_not_war
-int make_weights_not_war( vector<vector< LOLAShot > > & track_pts, int edge, float take_p, int& num_valid, float& take_thresh){
+//3.int make_weights
+int ComputeSalientFeatures( vector<vector< LOLAShot > > & track_pts, int edge, float take_p, int& num_valid, float& take_thresh){
   // builds a list of the abs(gradient response), 
   // finds the response value that corresponds with the top "take_p" %
   // assignes LOLAShot.weight_lsq = 1 if the response of that point is in the top take_p of all points
@@ -238,9 +222,8 @@ int make_weights_not_war( vector<vector< LOLAShot > > & track_pts, int edge, flo
   return 0;
 }
 
-int pyramid_weights( vector< vector< LOLAShot > > & track_pts, const int &edge, const int & width){
- //assign a weight (shapped like a pyramid) to all points around one of the interest point selected by make_weights_not_war
-
+//assign linear weights (shapped like a pyramid) to all points around one of the interest point selected by make_weights
+int MakeLinearWeights( vector< vector< LOLAShot > > & track_pts, const int &edge, const int & width){
 
   float w_f = width;
   float e_f = edge;
@@ -266,26 +249,28 @@ int pyramid_weights( vector< vector< LOLAShot > > & track_pts, const int &edge, 
       }
     }
   }
-  printf("Done with pyramid weights\n");
+  printf("Done computing the linear weights\n");
   return 0;
 }
 
-
-int write_refl_and_weights( vector< vector< LOLAShot> > & track_pts, string & f_name){
-  //write out all weight specific variables to a txt file specified by "f_name".  
-  //writen out is: reflectance, calc_acp, filter_response, weight_lsq, weight_prd
+//write out all weight specific variables to a txt file specified by "f_name".  
+//writen out is: reflectance, calc_acp, filter_response, weight_lsq, weight_prd
+int SaveWeights( vector< vector< LOLAShot> > & track_pts, string & f_name){
   
-  cout << "Begining the end - write out commensing " << endl;
+ cout << "Begining the end - write out commensing " << endl;
  FILE* sFile;
- sFile = fopen(f_name.c_str(), "w");  // hope that works!
+ sFile = fopen(f_name.c_str(), "w");
  fprintf(sFile, "Write weights:\n");
- for(int iTrk = 0; iTrk < track_pts.size(); iTrk++ ){
-  for(int ip = 0; ip < track_pts[iTrk].size(); ip++ ){
-    fprintf( sFile, "iTrk=  %d ip= %d reflectance= %f calc_acp= %d filter_response= %f weight= %f weight_prd= %f \n", iTrk, ip, track_pts[iTrk][ip].reflectance, track_pts[iTrk][ip].calc_acp, track_pts[iTrk][ip].filter_response, track_pts[iTrk][ip].weight_lsq, track_pts[iTrk][ip].weight_prd );
-  }
+ for (int iTrk = 0; iTrk < track_pts.size(); iTrk++ ){
+   for (int ip = 0; ip < track_pts[iTrk].size(); ip++ ){
+     fprintf( sFile, "iTrk=  %d ip= %d reflectance= %f calc_acp= %d filter_response= %f weight= %f weight_prd= %f \n", 
+                     iTrk, ip, track_pts[iTrk][ip].reflectance, track_pts[iTrk][ip].calc_acp, 
+                     track_pts[iTrk][ip].filter_response, track_pts[iTrk][ip].weight_lsq, track_pts[iTrk][ip].weight_prd );
+   }
  }
+
  fclose(sFile);
-  cout << "Write out completed"<< endl;
+ cout << "Write out completed"<< endl;
 }
 
 /*

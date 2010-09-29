@@ -50,7 +50,7 @@ using namespace std;
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
  
-void weight_track_pts( vector< vector<LOLAShot> > & track_pts, int & edge, float & take_p, int & num_valid, float & take_thresh,string f_name);
+void ComputeWeights( vector< vector<LOLAShot> > & track_pts, int & edge, float & take_p, int & num_valid, float & take_thresh,string f_name);
 
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename, 
                      ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
