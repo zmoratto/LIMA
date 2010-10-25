@@ -92,16 +92,6 @@ void print_rhs( Matrix<float,6,6> rhs)
   printf("[ %f %f %f] [ %f %f %f]\n\n", rhs(5,0), rhs(5,1), rhs(5,2), rhs(5,3), rhs(5,4), rhs(5,5) );
 }
 
-//
-void ComputeWeights( vector< vector<LOLAShot> > & track_pts, int & edge, float & take_p, int&  num_valid, float & take_thresh,string f_name ){
-  //write small calls of
-  InterpolateInvalidPoint( track_pts);
-  FindValidPoints( track_pts, edge,  num_valid);
-  ComputeGradient( track_pts, edge);
-  ComputeSalientFeatures( track_pts, edge, take_p, num_valid, take_thresh);
-  SaveWeights( track_pts, f_name);
-}
-
 
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
     ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 

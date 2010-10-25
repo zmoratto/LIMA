@@ -47,7 +47,7 @@ using namespace std;
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
-//#include "weights.h"
+#include "weights.h"
 
 
 
@@ -168,7 +168,7 @@ int main( int argc, char *argv[] ) {
   cout << "Calling weight_track_pts... "<< endl;
   ComputeWeights( trackPts, edge, take_p, num_valid, take_thresh, s_weight_name );
 
-  printf("Weight calc: edge = %d, take_p = %f, num_valid = %d, take_thresh = %d\n\n", edge, take_p, num_valid, take_thresh);
+  printf("Weight calc: edge = %d, take_p = %f, num_valid = %d, take_thresh = %f\n\n", edge, take_p, num_valid, take_thresh);
 
 
   //return matching error and transform

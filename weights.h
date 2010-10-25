@@ -14,11 +14,11 @@
 using namespace std;
 
 //function prototypes
-
+void ComputeWeights( vector< vector<LOLAShot> > & track_pts, int & edge, float & take_p, int & num_valid, float & take_thresh,string f_name);
 int InterpolateInvalidPoint(vector<vector< LOLAShot> > & track_pts);
 int FindValidPoints(vector< vector<LOLAShot > > & track_pts,int edge, int & num_valid);
 int ComputeGradient(vector< vector<LOLAShot > > & track_pts, int edge);
-int ComputeSalientFeatures( vector<vector< LOLAShot > > & track_pts, int edge, float take_p, int& num_valid, float& take_thresh);
+int ComputeSalientFeatures( vector<vector< LOLAShot > > & track_pts, float take_p, int& num_valid, float& take_thresh);
 int SaveWeights( vector< vector< LOLAShot> > & track_pts, string & f_name);
 
 #endif 

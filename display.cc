@@ -212,7 +212,7 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
   }
   //fill the DEM
 
-  printf("numTracks = %d\n", trackIndices.size());
+  printf("numTracks = %d\n", (int)(trackIndices.size()));
   for (int k = 0; k < trackIndices.size();k++){
     int trackIndex = trackIndices[k];
     printf("trackIndex = %d\n", trackIndex);
