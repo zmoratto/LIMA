@@ -160,15 +160,15 @@ int main( int argc, char *argv[] ) {
     MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
   }
 
-  int edge = 10;
-  float take_p = 0.10;
-  int num_valid = 0;
-  float take_thresh = 0.0;
+  int halfWindow = 10;
+  float topPercent = 0.10;
+  //int num_valid = 0;
+
   string s_weight_name = "../results/weights_corregister_prd.txt ";
   cout << "Calling weight_track_pts... "<< endl;
-  ComputeWeights( trackPts, edge, take_p, num_valid, take_thresh, s_weight_name );
+  ComputeWeights( trackPts, halfWindow, topPercent/*, num_valid*/, s_weight_name );
 
-  printf("Weight calc: edge = %d, take_p = %f, num_valid = %d, take_thresh = %f\n\n", edge, take_p, num_valid, take_thresh);
+  //printf("Weight calc: halfWindow = %d, topPercent = %f, num_valid = %d\n\n", halfWindow, topPercent, num_valid);
 
 
   //return matching error and transform
