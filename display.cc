@@ -147,8 +147,7 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    int x = (int)DRG_pix[0];
 	    int y = (int)DRG_pix[1];
           
-    
-       
+
 	    fill(crop(DRG_crop, int32(x) - point_size-minX, 
                               int32(y) - point_size-minY, 
                               point_size, point_size), PixelRGB<uint8>(255, 0, 0));

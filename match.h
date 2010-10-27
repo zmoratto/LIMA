@@ -52,9 +52,10 @@ float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
  
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename, 
                      ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
-                     vector<Vector<float, 6> > init_d_array,  vector<Vector<float, 6> >&final_d_array, 
-                     vector<float> &error_array);
+                     vector<Vector<float, 6> > initTransfArray,  vector<Vector<float, 6> >&finalTransfArray, 
+                     vector<float> &errorArray);
 
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);
+void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string matchResultsFilename);
 
 #endif//MATCH_H

@@ -85,7 +85,7 @@ struct LOLAShot
   float synthImage;
 
   //following are for weight computation
-  int calc_acp;              //added dtj 2010_09_07, is the filter valid here?
+  int calc_acp;               //added dtj 2010_09_07, is the filter valid here?
   float filter_response;      //added dtj 2010_09_07, name speaks for itself
   float weight_lsq;           //added dtj 2010_09_07, weighted for LSQ
   float weight_prd;           //added dtj 2010_09_21, create pyramid weight for LSQ

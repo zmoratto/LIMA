@@ -103,20 +103,21 @@ int main( int argc, char *argv[] ) {
   string lolaTracksFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
   string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
   string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
+  string matchResultsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
   int analyseFlag = 0;//1; 
-  int maxNumIter = 10;
+  int maxNumIter = 2;//10;
   int maxNumStarts = 160;
-  vector<Vector<float, 6> >init_d_array;
-  init_d_array.resize(maxNumStarts);
+  vector<Vector<float, 6> >initTransfArray;
+  initTransfArray.resize(maxNumStarts);
   for (int i = 0; i < maxNumStarts; i++){
-    init_d_array[i][0] = 1.0;
-    init_d_array[i][1] = 0.0;
-    init_d_array[i][2] = (i-maxNumStarts/2)*5;
-    init_d_array[i][3] = 0.0;
-    init_d_array[i][4] = 1.0;
-    init_d_array[i][5] = 0.0;//(i-maxNumStarts/2)*25;
+    initTransfArray[i][0] = 1.0;
+    initTransfArray[i][1] = 0.0;
+    initTransfArray[i][2] = (i-maxNumStarts/2)*5;
+    initTransfArray[i][3] = 0.0;
+    initTransfArray[i][4] = 1.0;
+    initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
   }    
 
   vector<int> trackIndices;
@@ -125,10 +126,10 @@ int main( int argc, char *argv[] ) {
     trackIndices[i] = i;
   }
 
-  vector<Vector<float, 6> > final_d_array;
-  vector<float> error_array;
-  error_array.resize(maxNumStarts);
-  final_d_array.resize(maxNumStarts);
+  vector<Vector<float, 6> > finalTransfArray;
+  vector<float> errorArray;
+  errorArray.resize(maxNumStarts);
+  finalTransfArray.resize(maxNumStarts);
 
 
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
@@ -163,38 +164,41 @@ int main( int argc, char *argv[] ) {
 
   int halfWindow = 10;
   float topPercent = 0.10;
- 
-  cout << "Calling weight_track_pts... "<< endl;
-  ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
-
+  //cout << "Computing the LOLA features and weights ... ";
+  //ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
+  //cout<<"done."<<endl;
 
   //return matching error and transform
-  cout << "Calling UpdateMatchingParams ..."<< endl;
+  cout << "UpdateMatchingParams ..."<< endl;
   UpdateMatchingParams(trackPts, DRGFilename, 
 		       modelParams, globalParams,maxNumIter,  
-		       init_d_array, final_d_array, error_array);
+		       initTransfArray, finalTransfArray, errorArray);
 
   int bestResult = 0;
-  float smallestError = error_array[0];
-  for (int index = 0; index < init_d_array.size(); index++){
+  float smallestError = errorArray[0];
+  for (int index = 0; index < initTransfArray.size(); index++){
     printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	   index, error_array[index], 
-	   final_d_array[index](0), final_d_array[index](1), 
-	   final_d_array[index](2), final_d_array[index](3),
-	   final_d_array[index](4), final_d_array[index](5));
-    if  (error_array[index] < smallestError){
-      smallestError = error_array[index]; 
+	   index, errorArray[index], 
+	   finalTransfArray[index](0), finalTransfArray[index](1), 
+	   finalTransfArray[index](2), finalTransfArray[index](3),
+	   finalTransfArray[index](4), finalTransfArray[index](5));
+    if  (errorArray[index] < smallestError){
+      smallestError = errorArray[index]; 
       bestResult = index;
     }      
   }    
+  cout<<"bestResult= "<<bestResult<<endl;
 
+  /*
   //write results to image outside matching
+  ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
+                           trackIndices, DRGFilename, outFilename);
+  */
 
-  printf("bestResult = %d\n", bestResult);
-  ShowFinalTrackPtsOnImage(trackPts, final_d_array[bestResult], 
-      trackIndices, DRGFilename, outFilename);
+  //write finalTransfArray and errorArray to file
+  SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
 
-  cout << "UpdateMatchingParams finshed." << endl;
+  cout << "UpdateMatchingParams done." << endl;
 
   return 0;
 }
