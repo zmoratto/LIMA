@@ -89,8 +89,8 @@ int main( int argc, char *argv[] ) {
   inputCSVFilename = string("../data/Apollo15-LOLA/1E8E_21N28N/RDR_1E8E_21N28NPointPerRow_csv_table.csv");  
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
 
-  DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  //DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
+  //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
 
 
   string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
@@ -102,6 +102,7 @@ int main( int argc, char *argv[] ) {
   string demPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "dem.txt";
   string lolaTracksFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
   string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
+  string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
   int analyseFlag = 0;//1; 
@@ -162,29 +163,25 @@ int main( int argc, char *argv[] ) {
 
   int halfWindow = 10;
   float topPercent = 0.10;
-  //int num_valid = 0;
-
-  string s_weight_name = "../results/weights_corregister_prd.txt ";
+ 
   cout << "Calling weight_track_pts... "<< endl;
-  ComputeWeights( trackPts, halfWindow, topPercent/*, num_valid*/, s_weight_name );
-
-  //printf("Weight calc: halfWindow = %d, topPercent = %f, num_valid = %d\n\n", halfWindow, topPercent, num_valid);
+  ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
 
 
   //return matching error and transform
   cout << "Calling UpdateMatchingParams ..."<< endl;
   UpdateMatchingParams(trackPts, DRGFilename, 
-      modelParams, globalParams,maxNumIter,  
-      init_d_array, final_d_array, error_array);
+		       modelParams, globalParams,maxNumIter,  
+		       init_d_array, final_d_array, error_array);
 
   int bestResult = 0;
   float smallestError = error_array[0];
   for (int index = 0; index < init_d_array.size(); index++){
     printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-        index, error_array[index], 
-        final_d_array[index](0), final_d_array[index](1), 
-        final_d_array[index](2), final_d_array[index](3),
-        final_d_array[index](4), final_d_array[index](5));
+	   index, error_array[index], 
+	   final_d_array[index](0), final_d_array[index](1), 
+	   final_d_array[index](2), final_d_array[index](3),
+	   final_d_array[index](4), final_d_array[index](5));
     if  (error_array[index] < smallestError){
       smallestError = error_array[index]; 
       bestResult = index;

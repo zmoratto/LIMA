@@ -19,15 +19,9 @@ int FindValidPoints(vector<LOLAShot > & trackPts,int halfWindow, int &numValid);
 int ComputeGradient(vector<LOLAShot >& trackPts, int halfWindow);
 int ComputeSalientFeatures( vector< LOLAShot >& track_pts, float topPercent, int num_valid);
 int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow);
+int SaveWeights(vector< LOLAShot>& trackPts, string filename);
 
 void ComputeWeights( vector< vector<LOLAShot> > & track_pts, int halfWindow, float topPercent,  string filename);
 
-
-int InterpolateInvalidPoint(vector<vector< LOLAShot> > & track_pts);
-int FindValidPoints(vector< vector<LOLAShot > > & track_pts,int edge, int & num_valid);
-int ComputeGradient(vector< vector<LOLAShot > > & track_pts, int edge);
-int ComputeSalientFeatures( vector<vector< LOLAShot > > & track_pts, float take_p, int& num_valid, float& take_thresh);
-int MakeLinearWeights( vector< vector< LOLAShot > > & trackPts, const int &halfWindow, const int & windowSize);
-int SaveWeights( vector< vector< LOLAShot> > & track_pts, string & f_name);
 
 #endif 
