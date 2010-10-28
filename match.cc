@@ -185,10 +185,8 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
   DiskImageView<float> y_deriv( yDerivFilename );
   cout<<"done."<<endl;
   
-  int ii, jj;
-  vector<int> center_ij;
-  float x_base, y_base;
-  float xx,yy;
+
+  //float xx,yy;
   int row_max, col_max;
 
   row_max = x_deriv.rows();
@@ -248,18 +246,26 @@ chunk = CHUNKSIZE;
   }
 
   //for (int index = 0; index < initTransfArray.size(); index++){
-  for (int index = 112; index < 117; index +=3){
+  for (int index = 112; index < 117; index++){
    
     cout << "index = "<< index << endl;
   
+    //TO DO: all the variables below will have to be indexed by the index variable for OpenMP-START
+    int ti,si,li;//indices for tracks, shots and lola points respectively
+    int iA, jA;
+    int ii, jj;
+    int iter;
+    float I_x_sqr, I_x_I_y, I_y_sqr; 
+    float I_y_val, I_x_val;
+    float I_e_val ;
     Matrix<float,6,6> rhs;
     Vector<float,6> lhs;
-  
-    int iA = 0;
-    int jA = 0;
-    
-    int iter = 0;
- 
+    //all the variables above will have to be indexed by the index variable for OpenMP-END
+
+    iA = 0;
+    jA = 0;
+    iter = 0;
+
     while( iter <= numMaxIter){ //gradient descent => optimal transform
 
       //reset rhs & lhs
@@ -273,84 +279,73 @@ chunk = CHUNKSIZE;
       //reset the error;
       errorArray[index] = 0.0;
 
-      for (int ti = 0; ti < trackPts.size(); ti++){
+      for (ti = 0; ti < trackPts.size(); ti++){
 
-        for (int si = 0; si < trackPts[ti].size(); si++){
+        for (si = 0; si < trackPts[ti].size(); si++){
 
           if ((trackPts[ti][si].valid ==1) && (trackPts[ti][si].reflectance !=0)){
            
             //weight = trackPts[k][i].weight_prd;
         
-            // lola pixel coordinates
-            for (int j = 0; j < trackPts[ti][si].LOLAPt.size(); j++){
-              if (trackPts[ti][si].LOLAPt[j].s == 3){//center point of a valid shot
-                x_base = trackPts[ti][si].imgPt[j].x;
-                y_base = trackPts[ti][si].imgPt[j].y;
-              }   
-            }
-     
-            iA = (int) floor(finalTransfArray[index][0]*x_base + finalTransfArray[index][1]*y_base + finalTransfArray[index][2]);
-            jA = (int) floor(finalTransfArray[index][3]*x_base + finalTransfArray[index][4]*y_base + finalTransfArray[index][5]);
-        
-            // calculate ii & jj relative to the image center
-            //ii = iA - i_C;
-            //jj = jA - j_C;
+            for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
-            // check (ii,jj) are inside the image!
-            if( ( iA >= 0) && ( iA < row_max) && ( jA >= 0) && ( jA < col_max)){
-     
-              //initialize constants
-              float I_x_sqr, I_x_I_y, I_y_sqr; 
-              float I_y_val, I_x_val;
-              float I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
-     
-              // calculate ii & jj relative to the image center
-              ii = iA - i_C;
-              jj = jA - j_C;
+              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+    
+		iA = (int) floor(finalTransfArray[index][0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[index][1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[index][2]);
+		jA = (int) floor(finalTransfArray[index][3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[index][4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[index][5]);
+                
+                // check (iA,jA) are inside the image!
+		if ( ( iA >= 0) && ( iA < row_max) && ( jA >= 0) && ( jA < col_max)){
+        	  
+                  // calculate ii & jj relative to the image center
+		  ii = iA - i_C;
+		  jj = jA - j_C;
 
-              errorArray[index] += abs(I_e_val);
+		  I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
+		  errorArray[index] += abs(I_e_val);
 
-              //calculate numerical dirivatives (ii,jj).
-              I_x_val = x_deriv(jA,iA); 
-              I_y_val = y_deriv(jA,iA); 
+		  //calculate numerical dirivatives (ii,jj).
+		  I_x_val = x_deriv(jA,iA); 
+		  I_y_val = y_deriv(jA,iA); 
 
-              I_x_I_y = I_x_val*I_y_val;        
-              I_x_sqr = I_x_val*I_x_val;
-              I_y_sqr = I_y_val*I_y_val;
+		  I_x_I_y = I_x_val*I_y_val;        
+		  I_x_sqr = I_x_val*I_x_val;
+		  I_y_sqr = I_y_val*I_y_val;
 
-              // Left hand side
-              lhs(0) += ii * I_x_val * I_e_val;
-              lhs(1) += jj * I_x_val * I_e_val;
-              lhs(2) +=      I_x_val * I_e_val;
-              lhs(3) += ii * I_y_val * I_e_val;
-              lhs(4) += jj * I_y_val * I_e_val;
-              lhs(5) +=      I_y_val * I_e_val;
+		  // Left hand side
+		  lhs(0) += ii * I_x_val * I_e_val;
+		  lhs(1) += jj * I_x_val * I_e_val;
+		  lhs(2) +=      I_x_val * I_e_val;
+		  lhs(3) += ii * I_y_val * I_e_val;
+		  lhs(4) += jj * I_y_val * I_e_val;
+		  lhs(5) +=      I_y_val * I_e_val;
 
-              // Right Hand Side UL
-              rhs(0,0) += ii*ii * I_x_sqr;
-              rhs(0,1) += ii*jj * I_x_sqr;
-              rhs(0,2) += ii    * I_x_sqr;
-              rhs(1,1) += jj*jj * I_x_sqr;
-              rhs(1,2) += jj    * I_x_sqr;
-              rhs(2,2) +=         I_x_sqr;
+		  // Right Hand Side UL
+		  rhs(0,0) += ii*ii * I_x_sqr;
+		  rhs(0,1) += ii*jj * I_x_sqr;
+		  rhs(0,2) += ii    * I_x_sqr;
+		  rhs(1,1) += jj*jj * I_x_sqr;
+		  rhs(1,2) += jj    * I_x_sqr;
+		  rhs(2,2) +=         I_x_sqr;
 
-              // Right Hand Side UR
-              rhs(0,3) += ii*ii * I_x_I_y;
-              rhs(0,4) += ii*jj * I_x_I_y;
-              rhs(0,5) += ii    * I_x_I_y;
-              rhs(1,4) += jj*jj * I_x_I_y;
-              rhs(1,5) += jj    * I_x_I_y;
-              rhs(2,5) +=         I_x_I_y;
+		  // Right Hand Side UR
+		  rhs(0,3) += ii*ii * I_x_I_y;
+		  rhs(0,4) += ii*jj * I_x_I_y;
+		  rhs(0,5) += ii    * I_x_I_y;
+		  rhs(1,4) += jj*jj * I_x_I_y;
+		  rhs(1,5) += jj    * I_x_I_y;
+		  rhs(2,5) +=         I_x_I_y;
 
-              // Right Hand Side LR
-              rhs(3,3) += ii*ii * I_y_sqr;
-              rhs(3,4) += ii*jj * I_y_sqr;
-              rhs(3,5) += ii    * I_y_sqr;
-              rhs(4,4) += jj*jj * I_y_sqr;
-              rhs(4,5) += jj    * I_y_sqr;
-              rhs(5,5) +=         I_y_sqr;
+		  // Right Hand Side LR
+		  rhs(3,3) += ii*ii * I_y_sqr;
+		  rhs(3,4) += ii*jj * I_y_sqr;
+		  rhs(3,5) += ii    * I_y_sqr;
+		  rhs(4,4) += jj*jj * I_y_sqr;
+		  rhs(4,5) += jj    * I_y_sqr;
+		  rhs(5,5) +=         I_y_sqr;
 
-             
+		}
+	      }           
             }// end of if statement: inside image
           }// end of if statement: valid reflectance  
         }// end of for loop over i
