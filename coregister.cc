@@ -170,9 +170,9 @@ int main( int argc, char *argv[] ) {
 
   //return matching error and transform
   cout << "UpdateMatchingParams ..."<< endl;
-  UpdateMatchingParams(trackPts, DRGFilename, 
-		       modelParams, globalParams,maxNumIter,  
-		       initTransfArray, finalTransfArray, errorArray);
+  UpdateMatchingParamsMP(trackPts, DRGFilename, 
+		         modelParams, globalParams,maxNumIter,  
+		         initTransfArray, finalTransfArray, errorArray);
 
   int bestResult = 0;
   float smallestError = errorArray[0];
