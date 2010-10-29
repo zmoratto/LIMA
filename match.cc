@@ -368,11 +368,13 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
 
 //this is the MP-multi processor version of the above function
-void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			    ModelParams modelParams,  int numMaxIter, 
-			    vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-			     vector<float> &errorArray )
+void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+				 ModelParams modelParams, CoregistrationParams coregistrationParams,  
+				 vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+				 vector<float> &errorArray )
 {
+
+  int numMaxIter = coregistrationParams.maxNumIter;
 
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
   GeoReference DRGGeo;
@@ -653,41 +655,38 @@ void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilen
 
 
 //this is the MP-multi processor version of the above function
-void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			    ModelParams modelParams,  int numMaxIter, 
-			    vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-			     vector<float> &errorArray )
+void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DEMFilename,  
+				  ModelParams modelParams,  CoregistrationParams coregistrationParams, 
+				  vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+				  vector<float> &errorArray )
 {
 
-  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
+  int numMaxIter = coregistrationParams.maxNumIter;
+
+  DiskImageView<PixelGray<float> >   DEM(DEMFilename);
+  GeoReference DEMGeo;
+  read_georeference(DEMGeo, DEMFilename);
 
   cout <<"Interpolating the image ...";
-  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+  ImageViewRef<PixelGray<float> >   interpDEM = interpolate(edge_extend(DEM.impl(),
         ConstantEdgeExtension()),
       BilinearInterpolation());
   cout<<"done."<<endl;
 
-
-  cout << "Computing the scale factor...";
-  float scaleFactor;
-  scaleFactor = ComputeScaleFactor(trackPts);
-  cout<<"done."<<endl;
 
   cout << "Computing/Reading the derivative image..."; 
   //to be used in the RELEASE!- DO NOT remove it!
   //DiskCacheImageView<float> x_deriv = derivative_filter(DRG,1,0);
   //DiskCacheImageView<float> y_deriv = derivative_filter(DRG,0,1);
 
-  std::string temp = sufix_from_filename(DRGFilename);
+  std::string temp = sufix_from_filename(DEMFilename);
 
   std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
   std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
 
   if ( !boost::filesystem::exists( xDerivFilename ) ) {
     cout << "Computing the x_derivative ..." << endl;
-    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DRG),1,0);
+    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DEM),1,0);
     DiskImageResourceGDAL rsrc( xDerivFilename,
         temp.format(), Vector2i(512,512) );
     cout << "Writing the x_derivative" << endl;
@@ -703,7 +702,7 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DR
   if ( !boost::filesystem::exists( yDerivFilename ) ) {
      cout << "Computing the y_derivative ..." << endl;
 
-    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DRG),0,1);
+    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DEM),0,1);
     DiskImageResourceGDAL rsrc( yDerivFilename,
         temp.format(), Vector2i(512,512) );
     cout << "Writing the y_derivative" << endl;
@@ -832,8 +831,9 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DR
                   // calculate ii & jj relative to the image center
 		  ii[index] = iA[index] - i_C;
 		  jj[index] = jA[index] - j_C;
-
-		  I_e_val[index] = interpDRG(jA[index],iA[index]) - scaleFactor*trackPts[ti[index]][si[index]].reflectance;
+                 
+		  I_e_val[index] = interpDEM(jA[index],iA[index]) - trackPts[ti[index]][si[index]].LOLAPt[li[index]].coords[2];
+               
 		  errorArray[index] += abs(I_e_val[index]);
 
 		  //calculate numerical dirivatives (ii,jj).

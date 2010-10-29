@@ -165,16 +165,16 @@ int main( int argc, char *argv[] ) {
   if (settings.matchingMode == LIMA){
     //return matching error and transform
     cout << "UpdateMatchingParams ..."<< endl;
-    UpdateMatchingParamsMP(trackPts, inputDRGFilename, 
-			   modelParams, settings.maxNumIter,  
-			   initTransfArray, finalTransfArray, errorArray);
+    UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
+				modelParams, settings,  
+				initTransfArray, finalTransfArray, errorArray);
   }
 
   if (settings.matchingMode == LIDEM){
     //return matching error and transform
     cout << "UpdateMatchingParams ..."<< endl;
-    UpdateMatchingParamsLIDEM_MP(trackPts, inputDRGFilename, 
-			         modelParams, settings.maxNumIter,  
+    UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
+			         modelParams, settings,  
 			         initTransfArray, finalTransfArray, errorArray);
   }
 

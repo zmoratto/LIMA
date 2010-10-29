@@ -55,13 +55,13 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
                      vector<Vector<float, 6> > initTransfArray,  vector<Vector<float, 6> >&finalTransfArray, 
                      vector<float> &errorArray);
 
-void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			    ModelParams modelParams,  int numMaxIter, 
-			    vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-			    vector<float> &errorArray );
+void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+				 ModelParams modelParams, CoregistrationParams coregistrationParams,
+				 vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+				 vector<float> &errorArray );
 
 void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			          ModelParams modelParams,  int numMaxIter, 
+			          ModelParams modelParams, CoregistrationParams coregistrationParams,
 			          vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 				  vector<float> &errorArray );
 
