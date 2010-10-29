@@ -42,6 +42,7 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
+#include "coregister.h"
 
 struct ShotTime
 {
@@ -97,7 +98,7 @@ struct LOLAShot
 
 //computes the scale factor for all tracks at once
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
-void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams);
+void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
 

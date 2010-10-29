@@ -43,12 +43,12 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
 #include "match.h"
 #include "coregister.h"
 #include "tracks.h"
 
+int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings);
+void PrintGlobalParams(struct CoregistrationParams *settings);
 void SaveVectorToFile(vector<float> v, string filename);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);

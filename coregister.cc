@@ -50,20 +50,12 @@ using namespace std;
 #include "weights.h"
 
 
-
-
 int main( int argc, char *argv[] ) {
 
- 
-
-  GlobalParams globalParams;
-  //globalParams.reflectanceType = NO_REFL;
-  globalParams.reflectanceType = LUNAR_LAMBERT;
-  //globalParams.reflectanceType = LAMBERT;
-  globalParams.slopeType = 1;
-  globalParams.shadowThresh = 40;
-  globalParams.albedoInitType = 1;
-  globalParams.exposureInitType = 1;
+  struct CoregistrationParams settings;
+  string configFilename="coregister_settings.txt";
+  ReadConfigFile((char*)configFilename.c_str(), &settings);
+  PrintGlobalParams(&settings);
 
   ModelParams modelParams;
   modelParams.exposureTime = 1.0;
@@ -81,18 +73,18 @@ int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
   string inputDEMFilename;
-  string DRGFilename;  
+  string inputDRGFilename;  
 
 
   //inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
   inputCSVFilename = string("../data/Apollo15-LOLA/1E8E_21N28N/RDR_1E8E_21N28NPointPerRow_csv_table.csv");  
   inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
 
-  //DRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  DRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
+  //inputDRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
+  inputDRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
 
 
-  string DRGFilenameNoPath = sufix_from_filename(DRGFilename);
+  string DRGFilenameNoPath = sufix_from_filename(inputDRGFilename);
 
   string imgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";    
   string reflectancePtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
@@ -105,15 +97,13 @@ int main( int argc, char *argv[] ) {
   string matchResultsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-  int analyseFlag = 0;//1; 
-  int maxNumIter = 2;//10;
-  int maxNumStarts = 160;
+
   vector<Vector<float, 6> >initTransfArray;
-  initTransfArray.resize(maxNumStarts);
-  for (int i = 0; i < maxNumStarts; i++){
+  initTransfArray.resize(settings.maxNumStarts);
+  for (int i = 0; i < settings.maxNumStarts; i++){
     initTransfArray[i][0] = 1.0;
     initTransfArray[i][1] = 0.0;
-    initTransfArray[i][2] = (i-maxNumStarts/2)*5;
+    initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
     initTransfArray[i][3] = 0.0;
     initTransfArray[i][4] = 1.0;
     initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
@@ -127,28 +117,28 @@ int main( int argc, char *argv[] ) {
 
   vector<Vector<float, 6> > finalTransfArray;
   vector<float> errorArray;
-  errorArray.resize(maxNumStarts);
-  finalTransfArray.resize(maxNumStarts);
+  errorArray.resize(settings.maxNumStarts);
+  finalTransfArray.resize(settings.maxNumStarts);
 
 
-  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
+  DiskImageView<PixelGray<uint8> >   DRG(inputDRGFilename);
   GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
+  read_georeference(DRGGeo, inputDRGFilename);
 
 
   ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
+									ConstantEdgeExtension()),
+							    BilinearInterpolation());
 
   //get the true image points
   cout << "GetAllPtsFromImage..." << endl; 
   GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
 
   cout << "ComputeTrackReflectance..." << endl;
-  ComputeAllReflectance(trackPts, modelParams, globalParams);
+  ComputeAllReflectance(trackPts, modelParams, settings/*globalParams*/);
   float scaleFactor = ComputeScaleFactor(trackPts);
 
-  if (analyseFlag == 1){
+  if (settings.analyseFlag == 1){
 
     SaveImagePoints(trackPts, 3, imgPtsFilename);
     SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
@@ -161,17 +151,32 @@ int main( int argc, char *argv[] ) {
     MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
   }
 
-  int halfWindow = 10;
-  float topPercent = 0.10;
-  //cout << "Computing the LOLA features and weights ... ";
-  //ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
-  //cout<<"done."<<endl;
+ 
+  if (settings.useLOLAFeatures){
 
-  //return matching error and transform
-  cout << "UpdateMatchingParams ..."<< endl;
-  UpdateMatchingParamsMP(trackPts, DRGFilename, 
-		         modelParams, globalParams,maxNumIter,  
-		         initTransfArray, finalTransfArray, errorArray);
+    cout << "Computing the LOLA features and weights ... ";
+    int halfWindow = 10;
+    float topPercent = 0.10;
+    ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
+    cout<<"done."<<endl;
+
+  }
+
+  if (settings.matchingMode == LIMA){
+    //return matching error and transform
+    cout << "UpdateMatchingParams ..."<< endl;
+    UpdateMatchingParamsMP(trackPts, inputDRGFilename, 
+			   modelParams, settings.maxNumIter,  
+			   initTransfArray, finalTransfArray, errorArray);
+  }
+
+  if (settings.matchingMode == LIDEM){
+    //return matching error and transform
+    cout << "UpdateMatchingParams ..."<< endl;
+    UpdateMatchingParamsLIDEM_MP(trackPts, inputDRGFilename, 
+			         modelParams, settings.maxNumIter,  
+			         initTransfArray, finalTransfArray, errorArray);
+  }
 
   int bestResult = 0;
   float smallestError = errorArray[0];
@@ -188,15 +193,15 @@ int main( int argc, char *argv[] ) {
   }    
   cout<<"bestResult= "<<bestResult<<endl;
 
-  
-  //write results to image outside matching
-  ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
-                           trackIndices, DRGFilename, outFilename);
-  
 
   //write finalTransfArray and errorArray to file
   SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
 
+  if (settings.displayResults){
+    //write results to image outside matching
+    ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
+                             trackIndices, inputDRGFilename, outFilename);
+  }
   cout << "UpdateMatchingParams done." << endl;
 
   return 0;

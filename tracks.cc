@@ -95,10 +95,19 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   return scaleFactor;
 }
 
-void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, GlobalParams globalParams)
+void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
 {
 
   vector<pointCloud> LOLAPts;
+
+
+  GlobalParams globalParams;
+  globalParams.reflectanceType = coregistrationParams.reflectanceType;
+  globalParams.slopeType = 1;
+  globalParams.shadowThresh = 40;
+  globalParams.albedoInitType = 1;
+  globalParams.exposureInitType = 1;
+
 
   for (int k = 0; k < allTracks.size(); k++ ){
     for (int i = 0; i < allTracks[k].size(); i++){

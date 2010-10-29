@@ -45,52 +45,17 @@ using namespace std;
 #define LIMA 1
 #define LIDEM 2
 
-/*
-struct ShotTime
-{
-  int year;
-  int month;
-  int day;
-  int hour; //24hr format
-  int min;
-  float sec;
-};
-
-struct pointCloud
-{
-  int year;
-  int month;
-  int day;
-  int hour; //24hr format
-  int min;
-  float sec;
-  int s; //detector id
-  Vector3 coords;
-};
-
-struct imgPoint
-{
-  double x;
-  double y;
-  double val;
+typedef struct CoregistrationParams{
+  int matchingMode; //LIMA, LIDEM
+  int reflectanceType;//NO, LAMBERT, LUNAR-LAMBERT
+  int analyseFlag; 
+  int useLOLAFeatures;
+  int maxNumIter;
+  int maxNumStarts;
+  int displayResults;
 };
 
 
-// prototype for GetPointFromIndex
-pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
 
-struct LOLAShot
-{
-  int valid;
-  vector<pointCloud> LOLAPt;
-  vector<imgPoint> imgPt;
-  float reflectance;
-  float synthImage;
-};
-
-vector<float> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename, int ID);
-vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
-vector<Vector3> GetTrackPtsFromImage(vector<LOLAShot> trackPts, string DRGFilename);
-*/
 
 #endif /* COREGISTER_H */

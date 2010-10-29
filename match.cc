@@ -124,7 +124,7 @@ void printLHS_Error( Vector<float,6> lhs, float error, int index, int iter)
 
 
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			  ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
+			  ModelParams modelParams,  int numMaxIter, 
 			  vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 			  vector<float> &errorArray )
 {
@@ -369,7 +369,292 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
 //this is the MP-multi processor version of the above function
 void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			    ModelParams modelParams, GlobalParams globalParams, int numMaxIter, 
+			    ModelParams modelParams,  int numMaxIter, 
+			    vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+			     vector<float> &errorArray )
+{
+
+  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, DRGFilename);
+
+  cout <<"Interpolating the image ...";
+  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+        ConstantEdgeExtension()),
+      BilinearInterpolation());
+  cout<<"done."<<endl;
+
+
+  cout << "Computing the scale factor...";
+  float scaleFactor;
+  scaleFactor = ComputeScaleFactor(trackPts);
+  cout<<"done."<<endl;
+
+  cout << "Computing/Reading the derivative image..."; 
+  //to be used in the RELEASE!- DO NOT remove it!
+  //DiskCacheImageView<float> x_deriv = derivative_filter(DRG,1,0);
+  //DiskCacheImageView<float> y_deriv = derivative_filter(DRG,0,1);
+
+  std::string temp = sufix_from_filename(DRGFilename);
+
+  std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
+  std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
+
+  if ( !boost::filesystem::exists( xDerivFilename ) ) {
+    cout << "Computing the x_derivative ..." << endl;
+    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DRG),1,0);
+    DiskImageResourceGDAL rsrc( xDerivFilename,
+        temp.format(), Vector2i(512,512) );
+    cout << "Writing the x_derivative" << endl;
+    block_write_image(rsrc, temp,
+        TerminalProgressCallback("asp", "Derivative:") );
+    cin.get();
+    cout<<"done."<<endl;
+  }
+  cout << "Reading in the x_deriv from "<<xDerivFilename<<" ..." << endl;
+
+  DiskImageView<float> x_deriv( xDerivFilename );
+
+  if ( !boost::filesystem::exists( yDerivFilename ) ) {
+     cout << "Computing the y_derivative ..." << endl;
+
+    ImageViewRef<float> temp = derivative_filter(pixel_cast<float>(DRG),0,1);
+    DiskImageResourceGDAL rsrc( yDerivFilename,
+        temp.format(), Vector2i(512,512) );
+    cout << "Writing the y_derivative" << endl;
+    block_write_image(rsrc, temp,
+        TerminalProgressCallback("asp", "Derivative:") );
+  }
+ 
+  cout << "Reading in the y_deriv from "<<yDerivFilename<<" ... "<< endl;
+  DiskImageView<float> y_deriv( yDerivFilename );
+  cout<<"done."<<endl;
+  
+
+  int row_max, col_max;
+
+  row_max = x_deriv.rows();
+  col_max = x_deriv.cols();
+   
+  cout << "image size: rows: " << row_max << ", cols:"<< col_max << endl;
+  int i_C = row_max/2;
+  int j_C = col_max/2;
+
+
+  //copy initTransfArray into finalTransfArray.
+  for (int index = 0; index < initTransfArray.size(); index++){
+    for (int i = 0; i < 6; i++){
+      finalTransfArray[index][i]=initTransfArray[index][i];
+    }
+  }
+
+   vector<int> ti;
+   vector<int> si;
+   vector<int> li;
+   vector<int> iter;
+   vector<int> ii;
+   vector<int> jj;
+   vector<int> iA;
+   vector<int> jA;
+   vector<float> I_e_val;
+   vector<float> I_x_val;
+   vector<float> I_y_val;
+   vector<float> I_x_sqr;
+   vector<float> I_x_I_y;
+   vector<float> I_y_sqr;
+   vector<Matrix<float, 6, 6> > rhs;
+   vector<Vector<float,6> > lhs; 
+
+   ti.resize(initTransfArray.size());
+   si.resize(initTransfArray.size());
+   li.resize(initTransfArray.size());
+   iter.resize(initTransfArray.size());
+   ii.resize(initTransfArray.size());
+   jj.resize(initTransfArray.size());
+   iA.resize(initTransfArray.size());
+   jA.resize(initTransfArray.size());
+   I_e_val.resize(initTransfArray.size());
+   I_x_val.resize(initTransfArray.size());
+   I_y_val.resize(initTransfArray.size());
+   I_x_sqr.resize(initTransfArray.size());
+   I_x_I_y.resize(initTransfArray.size());
+   I_y_sqr.resize(initTransfArray.size());
+   rhs.resize(initTransfArray.size());
+   lhs.resize(initTransfArray.size());
+
+
+   int nthreads, tid, chunk; 
+   chunk = CHUNKSIZE;
+   for (int index = 0; index< initTransfArray.size(); index++){
+        iA[index] = 0;
+        jA[index] = 0;
+        iter[index] = 0;
+   }
+
+#pragma omp parallel shared(ti,si, li, iter, ii, jj, iA, jA, I_e_val, I_x_val, I_y_val, I_x_sqr, I_x_I_y, I_y_sqr, rhs, lhs, nthreads,chunk) private(index,tid)
+{
+  
+  tid = omp_get_thread_num();
+  if (tid == 0) {
+    nthreads = omp_get_num_threads();
+    printf("Number of threads = %d\n", nthreads);
+  }
+  printf("Thread %d starting...\n",tid);
+
+
+#pragma omp for schedule(dynamic,chunk)
+
+  //for (int index = 0; index < initTransfArray.size(); index++){
+  //for (int index = 112; index < 117; index++){
+
+  for (int index = 125; index < 128; index++){
+ 
+    cout << "index = "<< index << endl;
+
+    while( iter[index] <= numMaxIter){ //gradient descent => optimal transform
+
+      //reset rhs & lhs
+      for(int i_RHS = 0; i_RHS < 6; i_RHS++){
+        for(int j_RHS = 0; j_RHS < 6; j_RHS++){
+          rhs[index](i_RHS,j_RHS) = 0.0;
+        }
+        lhs[index](i_RHS) = 0.0;
+      }
+ 
+      //reset the error;
+      errorArray[index] = 0.0;
+
+      for (ti[index] = 0; ti[index] < trackPts.size(); ti[index]++){
+
+        for (si[index] = 0; si[index] < trackPts[ti[index]].size(); si[index]++){
+
+          if ((trackPts[ti[index]][si[index]].valid ==1) && (trackPts[ti[index]][si[index]].reflectance !=0)){
+           
+            //weight = trackPts[k][i].weight_prd;
+        
+            for (li[index] = 0; li[index] < trackPts[ti[index]][si[index]].LOLAPt.size(); li[index]++){//for each point of a LOLA shot
+
+              if (trackPts[ti[index]][si[index]].LOLAPt[li[index]].s == 3){//center point of a valid shot
+    
+		iA[index] = (int) floor(finalTransfArray[index][0]*trackPts[ti[index]][si[index]].imgPt[li[index]].x 
+                          + finalTransfArray[index][1]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][2]);
+		jA[index] = (int) floor(finalTransfArray[index][3]*trackPts[ti[index]][si[index]].imgPt[li[index]].x 
+                          + finalTransfArray[index][4]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][5]);
+                
+                // check (iA,jA) are inside the image!
+		if ( ( iA[index] >= 0) && ( iA[index] < row_max) && ( jA[index] >= 0) && ( jA[index] < col_max)){
+        	  
+                  // calculate ii & jj relative to the image center
+		  ii[index] = iA[index] - i_C;
+		  jj[index] = jA[index] - j_C;
+
+		  I_e_val[index] = interpDRG(jA[index],iA[index]) - scaleFactor*trackPts[ti[index]][si[index]].reflectance;
+		  errorArray[index] += abs(I_e_val[index]);
+
+		  //calculate numerical dirivatives (ii,jj).
+		  I_x_val[index] = x_deriv(jA[index],iA[index]); 
+		  I_y_val[index] = y_deriv(jA[index],iA[index]); 
+
+		  I_x_I_y[index] = I_x_val[index]*I_y_val[index];        
+		  I_x_sqr[index] = I_x_val[index]*I_x_val[index];
+		  I_y_sqr[index] = I_y_val[index]*I_y_val[index];
+
+		  // Left hand side
+		  lhs[index](0) += ii[index] * I_x_val[index] * I_e_val[index];
+		  lhs[index](1) += jj[index] * I_x_val[index] * I_e_val[index];
+		  lhs[index](2) +=                              I_x_val[index] * I_e_val[index];
+		  lhs[index](3) += ii[index] * I_y_val[index] * I_e_val[index];
+		  lhs[index](4) += jj[index] * I_y_val[index] * I_e_val[index];
+		  lhs[index](5) +=                              I_y_val[index] * I_e_val[index];
+
+		  // Right Hand Side UL
+		  rhs[index](0,0) += ii[index]*ii[index] * I_x_sqr[index];
+		  rhs[index](0,1) += ii[index]*jj[index] * I_x_sqr[index];
+		  rhs[index](0,2) += ii[index]           * I_x_sqr[index];
+		  rhs[index](1,1) += jj[index]*jj[index] * I_x_sqr[index];
+		  rhs[index](1,2) += jj[index]           * I_x_sqr[index];
+		  rhs[index](2,2) +=                       I_x_sqr[index];
+
+		  // Right Hand Side UR
+		  rhs[index](0,3) += ii[index]*ii[index] * I_x_I_y[index];
+		  rhs[index](0,4) += ii[index]*jj[index] * I_x_I_y[index];
+		  rhs[index](0,5) += ii[index]           * I_x_I_y[index];
+		  rhs[index](1,4) += jj[index]*jj[index] * I_x_I_y[index];
+		  rhs[index](1,5) += jj[index]           * I_x_I_y[index];
+		  rhs[index](2,5) +=                       I_x_I_y[index];
+
+		  // Right Hand Side LR
+		  rhs[index](3,3) += ii[index]*ii[index] * I_y_sqr[index];
+		  rhs[index](3,4) += ii[index]*jj[index] * I_y_sqr[index];
+		  rhs[index](3,5) += ii[index]           * I_y_sqr[index];
+		  rhs[index](4,4) += jj[index]*jj[index] * I_y_sqr[index];
+		  rhs[index](4,5) += jj[index]           * I_y_sqr[index];
+		  rhs[index](5,5) +=                       I_y_sqr[index];
+
+		}
+	      }           
+            }// end of if statement: inside image
+          }// end of if statement: valid reflectance  
+        }// end of for loop over i
+      }//end of loop over k
+
+      // Fill in symmetric entries
+      rhs[index](1,0) = rhs[index](0,1);
+      rhs[index](2,0) = rhs[index](0,2);
+      rhs[index](2,1) = rhs[index](1,2);
+      rhs[index](1,3) = rhs[index](0,4);
+      rhs[index](2,3) = rhs[index](0,5);
+      rhs[index](2,4) = rhs[index](1,5);
+      rhs[index](3,0) = rhs[index](0,3);
+      rhs[index](3,1) = rhs[index](1,3);
+      rhs[index](3,2) = rhs[index](2,3);
+      rhs[index](4,0) = rhs[index](0,4);
+      rhs[index](4,1) = rhs[index](1,4);
+      rhs[index](4,2) = rhs[index](2,4);
+      rhs[index](4,3) = rhs[index](3,4);
+      rhs[index](5,0) = rhs[index](0,5);
+      rhs[index](5,1) = rhs[index](1,5);
+      rhs[index](5,2) = rhs[index](2,5);
+      rhs[index](5,3) = rhs[index](3,5);
+      rhs[index](5,4) = rhs[index](4,5);
+
+   
+      printRHS(rhs[index], index, iter[index]);
+     
+      try {
+        solve_symmetric_nocopy(rhs[index],lhs[index]);
+      } catch (ArgumentErr &/*e*/) {
+        //             std::cout << "Error @ " << x << " " << y << "\n";
+        //             std::cout << "Exception caught: " << e.what() << "\n";
+        //             std::cout << "PRERHS: " << pre_rhs << "\n";
+        //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+        //             std::cout << "RHS: " << rhs << "\n";
+        //             std::cout << "LHS: " << lhs << "\n\n";
+        //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+        //             exit(0);
+      }
+
+
+      printLHS_Error(lhs[index], errorArray[index], index, iter[index]);
+
+      finalTransfArray[index] += lhs[index];
+  
+      iter[index] ++;
+ 
+    }
+   
+  }//index loop ends here
+
+ }//openMP
+
+
+} 
+
+
+
+//this is the MP-multi processor version of the above function
+void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+			    ModelParams modelParams,  int numMaxIter, 
 			    vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 			     vector<float> &errorArray )
 {
