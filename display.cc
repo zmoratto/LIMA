@@ -115,9 +115,7 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	}
       }
     }
-
-   //printf("minX = %d, minY = %d, maxX = %d,  maxY = %d\n", minX, minY, maxX, maxY);
-    
+   
    //extend the bounding box
    maxX = maxX + 4*point_size;
    minX = minX - 4*point_size;
@@ -129,13 +127,20 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
    if (minY < 0) minY = 0; 
    if (maxX > DRG.cols()-1) maxX = DRG.cols()-1;   
    if (maxY > DRG.rows()-1) maxY = DRG.rows()-1; 
+  
+   printf("minX = %d, minY = %d, maxX = %d,  maxY = %d\n", minX, minY, maxX, maxY);
 
    ImageView<PixelRGB<uint8> > DRG_crop = crop(DRG, int32(minX), int32(minY), maxX-minX+1, maxY-minY+1);
+
+   //#if 0
    for (int i = 0; i < trackPts.size(); i++){//for each track
     for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
       for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
        
 	if (trackPts[i][j].valid == 1){
+	    
+            int xl, yt, w, h;
+
 	    pointCloud pt = trackPts[i][j].LOLAPt[k]; 
 	    float lon = pt.coords[0];
 	    float lat = pt.coords[1];
@@ -147,24 +152,46 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    int x = (int)DRG_pix[0];
 	    int y = (int)DRG_pix[1];
           
-
+            //make sure we are not running outside the image boundaries.
+            xl = int32(x) - point_size-minX;
+            yt = int32(y) - point_size-minY;
+            w = point_size;
+            h = point_size;
+            /* 
 	    fill(crop(DRG_crop, int32(x) - point_size-minX, 
-                              int32(y) - point_size-minY, 
-                              point_size, point_size), PixelRGB<uint8>(255, 0, 0));
+                                int32(y) - point_size-minY, 
+                                point_size, point_size), PixelRGB<uint8>(255, 0, 0));
+	    */
+            if ((xl>0) && (yt>0) && (xl<DRG.cols()-point_size) && (yt<DRG.rows()-point_size)){
+                fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(255, 0, 0));
+	    }
 
 	    //compute the transformed pts
 	    int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
 	    int yd = (int)floor(d[3]*x + d[4]*y + d[5]);
 
-	    fill(crop(DRG_crop, int32(xd) - point_size-minX, 
+            //make sure we are not running outside the image boundaries.
+	    xl = int32(xd) - point_size-minX;
+            yt = int32(yd) - point_size-minY;
+            w = point_size;
+            h = point_size;
+
+            /*
+            fill(crop(DRG_crop, int32(xd) - point_size-minX, 
 		      int32(yd) - point_size-minY, 
 		      point_size, point_size), PixelRGB<uint8>(0, 255, 255));  
-	}
+	    */
+
+            if ((xl>0) && (yt>0) && (xl<DRG.cols()-point_size) && (yt<DRG.rows()-point_size)){
+	      fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 255, 255));
+	    }
+
+	   }
         
 	}
       }
     }
-
+   //#endif
   //write output image
 
   write_georeferenced_image(outFilename,

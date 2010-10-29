@@ -42,6 +42,9 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
+#define LIMA 1
+#define LIDEM 2
+
 /*
 struct ShotTime
 {

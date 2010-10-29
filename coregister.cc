@@ -54,8 +54,7 @@ using namespace std;
 
 int main( int argc, char *argv[] ) {
 
-  //int N = 10;
-  //simple_function_test(N);
+ 
 
   GlobalParams globalParams;
   //globalParams.reflectanceType = NO_REFL;
@@ -189,11 +188,11 @@ int main( int argc, char *argv[] ) {
   }    
   cout<<"bestResult= "<<bestResult<<endl;
 
-  /*
+  
   //write results to image outside matching
   ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
                            trackIndices, DRGFilename, outFilename);
-  */
+  
 
   //write finalTransfArray and errorArray to file
   SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);

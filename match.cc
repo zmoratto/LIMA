@@ -52,7 +52,7 @@ using namespace std;
 
 
 #define CHUNKSIZE   1
-//#define N       100
+
 
 void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string matchResultsFilename)
 {
@@ -431,7 +431,6 @@ void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilen
   cout<<"done."<<endl;
   
 
-  //float xx,yy;
   int row_max, col_max;
 
   row_max = x_deriv.rows();
@@ -441,44 +440,6 @@ void UpdateMatchingParamsMP(vector<vector<LOLAShot> > &trackPts, string DRGFilen
   int i_C = row_max/2;
   int j_C = col_max/2;
 
-  //working with the entire CVS file significant errors where seen at index 126 - set index to this by hand to debugg this test case
- /*
-  1. we see huge problems from the get go - massive lhs numbers, where does these come from in comparison
-  2. need to explore & instrument the code further
-  3. we have some stable/unstable pairs to explore (106 stable, 109 not) & ( 112 stable, 115 not)
- 
-  A couple of thoughts - we rezero lhs & rhs every iteration this should not be the problem.  Could the problem simple be a scaling issue where the size of the error terms on the right & left hand side - caused by the great number of points - causes numerical stability issues for solving the matrix?
-*/
-
-#if 0
-int nthreads, tid, i, chunk;
-float a[N], b[N], c[N];
-
-/* Some initializations */
-for (i=0; i < N; i++)
-  a[i] = b[i] = i * 1.0;
-chunk = CHUNKSIZE;
-
-#pragma omp parallel shared(a,b,c,nthreads,chunk) private(i,tid)
-  {
-  tid = omp_get_thread_num();
-  if (tid == 0)
-    {
-    nthreads = omp_get_num_threads();
-    printf("Number of threads = %d\n", nthreads);
-    }
-  printf("Thread %d starting...\n",tid);
-
-  #pragma omp for schedule(dynamic,chunk)
-  for (i=0; i<N; i++)
-    {
-    c[i] = a[i] + b[i];
-    printf("Thread %d: c[%d]= %f\n",tid,i,c[i]);
-    }
-
-  }  /* end of parallel section */
-#endif
-
 
   //copy initTransfArray into finalTransfArray.
   for (int index = 0; index < initTransfArray.size(); index++){
@@ -486,8 +447,6 @@ chunk = CHUNKSIZE;
       finalTransfArray[index][i]=initTransfArray[index][i];
     }
   }
-
-
 
    vector<int> ti;
    vector<int> si;

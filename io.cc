@@ -41,11 +41,73 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
 #include "match.h"
 #include "coregister.h"
 #include "tracks.h"
+
+
+typedef struct GlobalParams{
+  int matchingMode; //LIMA, LIDEM
+  int reflectanceType;//NO, LAMBERT, LUNAR-LAMBERT
+  int analyseFlag; 
+  int maxNumIter;
+  int maxNumStarts;
+};
+
+int ReadConfigFile(char *config_filename, struct GlobalParams *settings)
+{
+  int MAX_LENGTH = 5000;
+  char line[MAX_LENGTH];
+  ifstream configFile(config_filename);
+
+  if (configFile.is_open()){
+    printf("CONFIG FILE FOUND\n");
+    
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "MATCHING_MODE %d\n", &(settings->matchingMode));
+
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "REFLECTANCE_TYPE %d\n", &(settings->reflectanceType));
+   
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "ANALYSE_FLAG %d\n", &(settings->analyseFlag));
+
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "MAX_NUM_ITER %d\n", &(settings->maxNumIter));
+
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "MAX_NUM_STARTS %d\n", &(settings->maxNumStarts)); 
+
+    //configFile.getline(line, MAX_LENGTH);
+    
+    configFile.close();
+
+    return(1);
+  }
+  else{
+    printf("configFile NOT FOUND\n");
+
+    settings->matchingMode = LIMA;//LIDEM
+    settings->reflectanceType = LUNAR_LAMBERT;// NO_REFL;//LAMBERT;
+    settings->analyseFlag = 0;
+    settings->maxNumIter = 3;
+    settings->maxNumStarts = 160; 
+
+    return(0);
+  }
+}
+
+void PrintGlobalParams(struct GlobalParams *settings)
+{
+
+  printf("MATCHING_MODE %d\n", settings->matchingMode);
+  printf("REFLECTANCE_TYPE %d\n", settings->reflectanceType);
+  printf("ANALYSE_FLAG %d\n", settings->analyseFlag);
+  printf("MAX_NUM_ITER  %d\n", settings->maxNumIter);
+  printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
+ 
+}
+
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 {
