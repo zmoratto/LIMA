@@ -49,10 +49,12 @@ using namespace std;
 
 int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings);
 void PrintGlobalParams(struct CoregistrationParams *settings);
+int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
+void PrintModelParams(struct ModelParams *params);
+
 void SaveVectorToFile(vector<float> v, string filename);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
-
 
 #endif//IO_H
 

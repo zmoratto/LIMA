@@ -91,20 +91,11 @@ int main( int argc, char *argv[] ) {
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
 
-  //these values will be read from files
+ 
   ModelParams modelParams;
-  modelParams.exposureTime = 1.0;
-  modelParams.rescalingParams[0] = 1;
-  modelParams.rescalingParams[1] = 0;
-
-  modelParams.sunPosition[0] = 1000*72987509.682619;//*sunPositions[i][0];
-  modelParams.sunPosition[1] = 1000*133319340.07726;//*sunPositions[i][1];
-  modelParams.sunPosition[2] = 1000*555820.93952321;//*sunPositions[i][2];
-
-  modelParams.spacecraftPosition[0] = 1000*1668.1656423675;
-  modelParams.spacecraftPosition[1] = 1000*127.53606522819;
-  modelParams.spacecraftPosition[2] = 1000*774.17340580747;
-
+  string modelParamsFilename="light_viewer_pos.txt";
+  ReadModelParamsFile(modelParamsFilename, &modelParams);
+  PrintModelParams(&modelParams);
   
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results");

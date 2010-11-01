@@ -111,6 +111,51 @@ void PrintGlobalParams(struct CoregistrationParams *settings)
   printf("DISPLAY_RESULTS %d\n", settings->displayResults);
 }
 
+int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
+{
+
+ int MAX_LENGTH = 5000;
+ char line[MAX_LENGTH];
+ ifstream modelParamsFile((char*)modelParamsFilename.c_str());
+
+  if (modelParamsFile.is_open()){
+    printf("MODEL PARAMS FILE FOUND\n");
+    
+    modelParamsFile.getline(line, MAX_LENGTH);
+
+    modelParamsFile.getline(line, MAX_LENGTH);
+    sscanf(line, "LIGHT_POS %lf %lf %lf\n", &(params->sunPosition[0]), &(params->sunPosition[1]), &(params->sunPosition[2])  );
+
+    modelParamsFile.getline(line, MAX_LENGTH);
+    sscanf(line, "VIEWER_POS %lf %lf %lf\n", &(params->spacecraftPosition[0]), &(params->spacecraftPosition[1]), &(params->spacecraftPosition[2]));
+
+    params->exposureTime = 1.0;
+    params->rescalingParams[0] = 1;
+    params->rescalingParams[1] = 0;
+
+    params->sunPosition[0] = 1000*(params->sunPosition[0]);
+    params->sunPosition[1] = 1000*(params->sunPosition[1]);
+    params->sunPosition[2] = 1000*(params->sunPosition[2]);
+
+    params->spacecraftPosition[0] = 1000*(params->spacecraftPosition[0]);
+    params->spacecraftPosition[1] = 1000*(params->spacecraftPosition[1]);
+    params->spacecraftPosition[2] = 1000*(params->spacecraftPosition[2]);
+    return (0);
+  }
+
+  return(1);
+}
+
+void PrintModelParams(struct ModelParams *params)
+{
+  cout<<"LIGHT_POS[0]"<<params->sunPosition[0]<<endl;
+  cout<<"LIGHT_POS[1]"<<params->sunPosition[1]<<endl;
+  cout<<"LIGHT_POS[2]"<<params->sunPosition[2]<<endl;
+
+  cout<<"VIEWER_POS[0]"<<params->spacecraftPosition[0]<<endl;
+  cout<<"VIEWER_POS[1]"<<params->spacecraftPosition[1]<<endl;
+  cout<<"VIEWER_POS[2]"<<params->spacecraftPosition[2]<<endl;
+}
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 {
