@@ -74,6 +74,13 @@ struct imgPoint
   double val;
 };
 
+struct DEMPoint
+{
+  double x;
+  double y;
+  double val;
+};
+
 
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
@@ -93,6 +100,7 @@ struct LOLAShot
 
   vector<pointCloud> LOLAPt;
   vector<imgPoint> imgPt;
+  vector<DEMPoint> DEMPt; 
 };
 
 

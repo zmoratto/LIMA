@@ -52,11 +52,46 @@ using namespace std;
 
 int main( int argc, char *argv[] ) {
 
+
+  string inputCSVFilename; 
+  string inputDEMFilename;
+  string inputDRGFilename;  
+
+  if (argc == 5){ 
+
+     if (strcmp(argv[1], "-i") == 0){
+         inputDRGFilename = string(argv[2]);
+     }
+     else{
+         if (strcmp(argv[1], "-d") == 0){
+             inputDEMFilename = string(argv[2]);
+         }
+         else{
+	    cout<<"Usage: coregister -i DRGFilename -d DEMFilename -l CSVFilename"<<endl;
+	    return -1;
+         }
+     }
+
+     if (strcmp(argv[3], "-l") == 0){
+        inputCSVFilename = string(argv[4]);
+     }
+     else{
+          cout<<"Usage: coregister -i DRGFilename -d DEMFilename -l CSVFilename"<<endl;
+          return -1;
+     }
+ 
+  }
+  else{
+    cout<<"Usage: coregister -i DRGFilename -d DEMFilename -l CSVFilename"<<endl;
+    return -1;
+  }
+
   struct CoregistrationParams settings;
   string configFilename="coregister_settings.txt";
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
 
+  //these values will be read from files
   ModelParams modelParams;
   modelParams.exposureTime = 1.0;
   modelParams.rescalingParams[0] = 1;
@@ -70,19 +105,9 @@ int main( int argc, char *argv[] ) {
   modelParams.spacecraftPosition[1] = 1000*127.53606522819;
   modelParams.spacecraftPosition[2] = 1000*774.17340580747;
 
-
-  string inputCSVFilename; 
-  string inputDEMFilename;
-  string inputDRGFilename;  
-
-
-  //inputCSVFilename = string("../data/Apollo15-LOLA/RDR_2E4E_25N27NPointPerRow_csv_table.csv"); 
-  inputCSVFilename = string("../data/Apollo15-LOLA/1E8E_21N28N/RDR_1E8E_21N28NPointPerRow_csv_table.csv");  
-  inputDEMFilename = string("../data/Apollo15-DEM/1134_1135-DEM.tif");
-
-  //inputDRGFilename = string("../data/Apollo15-DRG/1134_1135-DRG.tif");  
-  inputDRGFilename = string("../data/Apollo15-DRG/AS15-M-1134_map.tif");  
-
+  
+  //create the results directory and prepare the output filenames - START
+  system("mkdir ../results");
 
   string DRGFilenameNoPath = sufix_from_filename(inputDRGFilename);
 
@@ -95,6 +120,8 @@ int main( int argc, char *argv[] ) {
   string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
   string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
   string matchResultsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
+
+  //create the results directory and prepare the output filenames - END
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
 
@@ -121,6 +148,7 @@ int main( int argc, char *argv[] ) {
   finalTransfArray.resize(settings.maxNumStarts);
 
 
+  //initialization step for LIMA - START  
   DiskImageView<PixelGray<uint8> >   DRG(inputDRGFilename);
   GeoReference DRGGeo;
   read_georeference(DRGGeo, inputDRGFilename);
@@ -129,17 +157,19 @@ int main( int argc, char *argv[] ) {
   ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
 									ConstantEdgeExtension()),
 							    BilinearInterpolation());
-
+  
   //get the true image points
   cout << "GetAllPtsFromImage..." << endl; 
   GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-
+  
   cout << "ComputeTrackReflectance..." << endl;
-  ComputeAllReflectance(trackPts, modelParams, settings/*globalParams*/);
-  float scaleFactor = ComputeScaleFactor(trackPts);
+  ComputeAllReflectance(trackPts, modelParams, settings);
+  //initialization step for LIMA - END  
+
+  //TO DO: initialization step for LIDEM
 
   if (settings.analyseFlag == 1){
-
+    float scaleFactor = ComputeScaleFactor(trackPts);
     SaveImagePoints(trackPts, 3, imgPtsFilename);
     SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
     SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
