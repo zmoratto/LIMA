@@ -182,4 +182,64 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
 }
 
+
+//TO DO: ignore NODATA values.
+template <class ViewT>
+void 
+GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo)
+{
+    vector<pointCloud> LOLAPts;
+
+  cout<<"pixu0"<<endl;
+  ImageViewRef<float> interpDEM;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+
+    //cout << "NOT masked" <<endl;
+  } else {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+
+
+  for(int ti = 0; ti < trackPts.size(); ti++){
+    for(int si = 0; si < trackPts[ti].size(); si++){
+   
+      LOLAPts = trackPts[ti][si].LOLAPt;
+      int numLOLAPts = LOLAPts.size();
+  
+      trackPts[ti][si].valid = 0;
+      if (numLOLAPts > 0){ 
+
+	trackPts[ti][si].DEMPt.resize(LOLAPts.size());
+
+	for (int li = 0; li < LOLAPts.size(); li++){
+          
+	    float lon = LOLAPts[li].coords[0];
+	    float lat = LOLAPts[li].coords[1];
+	    float rad = LOLAPts[li].coords[2];
+     
+	    Vector2 DEM_lonlat(lon, lat);
+	    Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
+	  
+	    float x = DEM_pix[0];
+	    float y = DEM_pix[1];
+      
+            if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
+	      trackPts[ti][si].DEMPt[li].val = interpDEM(x, y);
+	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
+	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
+	    }
+	}
+
+	trackPts[ti][si].valid = 1;
+      } 
+     
+    }//i  
+  }//k
+}
 #endif /* TRACKS_H */

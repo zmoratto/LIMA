@@ -812,18 +812,17 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 
         for (si[index] = 0; si[index] < trackPts[ti[index]].size(); si[index]++){
 
-          if ((trackPts[ti[index]][si[index]].valid ==1) && (trackPts[ti[index]][si[index]].reflectance !=0)){
+          if (trackPts[ti[index]][si[index]].valid ==1){
            
             //weight = trackPts[k][i].weight_prd;
         
             for (li[index] = 0; li[index] < trackPts[ti[index]][si[index]].LOLAPt.size(); li[index]++){//for each point of a LOLA shot
 
-              if (trackPts[ti[index]][si[index]].LOLAPt[li[index]].s == 3){//center point of a valid shot
-    
-		iA[index] = (int) floor(finalTransfArray[index][0]*trackPts[ti[index]][si[index]].imgPt[li[index]].x 
-                          + finalTransfArray[index][1]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][2]);
-		jA[index] = (int) floor(finalTransfArray[index][3]*trackPts[ti[index]][si[index]].imgPt[li[index]].x 
-                          + finalTransfArray[index][4]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][5]);
+     
+		iA[index] = (int) floor(finalTransfArray[index][0]*trackPts[ti[index]][si[index]].DEMPt[li[index]].x 
+                          + finalTransfArray[index][1]*trackPts[ti[index]][si[index]].DEMPt[li[index]].y + finalTransfArray[index][2]);
+		jA[index] = (int) floor(finalTransfArray[index][3]*trackPts[ti[index]][si[index]].DEMPt[li[index]].x 
+                          + finalTransfArray[index][4]*trackPts[ti[index]][si[index]].DEMPt[li[index]].y + finalTransfArray[index][5]);
                 
                 // check (iA,jA) are inside the image!
 		if ( ( iA[index] >= 0) && ( iA[index] < row_max) && ( jA[index] >= 0) && ( jA[index] < col_max)){
@@ -876,12 +875,11 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 		  rhs[index](4,5) += jj[index]           * I_y_sqr[index];
 		  rhs[index](5,5) +=                       I_y_sqr[index];
 
-		}
-	      }           
-            }// end of if statement: inside image
-          }// end of if statement: valid reflectance  
-        }// end of for loop over i
-      }//end of loop over k
+		}//end of if statemenet: check (iA,jA) are inside the image! 
+            }// end of for loop over li
+          }// end of if statement: valid track and reflectance  
+        }// end of for loop over si
+      }//end of loop over ti
 
       // Fill in symmetric entries
       rhs[index](1,0) = rhs[index](0,1);

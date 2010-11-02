@@ -55,28 +55,24 @@ int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
   string inputDEMFilename;
-  string inputDRGFilename;  
+  //string inputDRGFilename;  
 
   if (argc == 5){ 
 
-     if (strcmp(argv[1], "-i") == 0){
-         inputDRGFilename = string(argv[2]);
+    
+     if (strcmp(argv[1], "-d") == 0){
+         inputDEMFilename = string(argv[2]);
      }
      else{
-         if (strcmp(argv[1], "-d") == 0){
-             inputDEMFilename = string(argv[2]);
-         }
-         else{
-	    cout<<"Usage: coregister -i DRGFilename -d DEMFilename -l CSVFilename"<<endl;
+	    cout<<"Usage: coregister -d DEMFilename -l CSVFilename"<<endl;
 	    return -1;
-         }
      }
-
+    
      if (strcmp(argv[3], "-l") == 0){
         inputCSVFilename = string(argv[4]);
      }
      else{
-          cout<<"Usage: coregister -i DRGFilename -d DEMFilename -l CSVFilename"<<endl;
+          cout<<"Usage: coregister -d DEMFilename -l CSVFilename"<<endl;
           return -1;
      }
  
@@ -91,7 +87,7 @@ int main( int argc, char *argv[] ) {
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
 
- 
+   
   ModelParams modelParams;
   string modelParamsFilename="light_viewer_pos.txt";
   ReadModelParamsFile(modelParamsFilename, &modelParams);
@@ -100,22 +96,19 @@ int main( int argc, char *argv[] ) {
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results");
 
-  string DRGFilenameNoPath = sufix_from_filename(inputDRGFilename);
+  string DEMFilenameNoPath = sufix_from_filename(inputDEMFilename);
 
-  string imgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";    
-  string reflectancePtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
-  string syntImgPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "synth.txt";  
-  string altitudePtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "alt.txt";
-  string demPtsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "dem.txt";
-  string lolaTracksFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
-  string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
-  string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
-  string matchResultsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
+  string altitudePtsFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "alt.txt";
+  string demPtsFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "dem.txt";
+  string lolaTracksFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "_lola.tif";  
+  string outFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "_results.tif";  
+  string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "_features_lola.txt";  
+  string matchResultsFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "match_results"  +".txt";  
 
   //create the results directory and prepare the output filenames - END
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-
+  
   vector<Vector<float, 6> >initTransfArray;
   initTransfArray.resize(settings.maxNumStarts);
   for (int i = 0; i < settings.maxNumStarts; i++){
@@ -139,25 +132,6 @@ int main( int argc, char *argv[] ) {
   finalTransfArray.resize(settings.maxNumStarts);
 
 
-  //initialization step for LIMA - START  
-  
-  DiskImageView<PixelGray<uint8> >   DRG(inputDRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, inputDRGFilename);
-
-
-  ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-									ConstantEdgeExtension()),
-							    BilinearInterpolation());
-  
-  //get the true image points
-  cout << "GetAllPtsFromImage..." << endl; 
-  GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-  
-  cout << "ComputeTrackReflectance..." << endl;
-  ComputeAllReflectance(trackPts, modelParams, settings);
-  //initialization step for LIMA - END  
-
   //initialization step for LIDE - START
   DiskImageView<PixelGray<float> >   DEM(inputDEMFilename);
   GeoReference DEMGeo;
@@ -168,15 +142,11 @@ int main( int argc, char *argv[] ) {
 									ConstantEdgeExtension()),
 							    BilinearInterpolation());
 
+
   GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo);
   //initialization step for LIDEM - END
 
   if (settings.analyseFlag == 1){
-    float scaleFactor = ComputeScaleFactor(trackPts);
-    SaveImagePoints(trackPts, 3, imgPtsFilename);
-    SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
-    SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-    SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
     SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
 
     int numVerPts = 6000;
@@ -184,7 +154,7 @@ int main( int argc, char *argv[] ) {
     MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
   }
 
- 
+  
   if (settings.useLOLAFeatures){
 
     cout << "Computing the LOLA features and weights ... ";
@@ -194,22 +164,14 @@ int main( int argc, char *argv[] ) {
     cout<<"done."<<endl;
 
   }
-
-  if (settings.matchingMode == LIMA){
-    //return matching error and transform
-    cout << "UpdateMatchingParams ..."<< endl;
-    UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
-				modelParams, settings,  
-				initTransfArray, finalTransfArray, errorArray);
-  }
-
-  if (settings.matchingMode == LIDEM){
-    //return matching error and transform
-    cout << "UpdateMatchingParams ..."<< endl;
-    UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
-			         modelParams, settings,  
-			         initTransfArray, finalTransfArray, errorArray);
-  }
+ 
+ 
+  //return matching error and transform
+  cout << "UpdateMatchingParams ..."<< endl;
+  UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
+			       modelParams, settings,  
+			       initTransfArray, finalTransfArray, errorArray);
+ 
 
   int bestResult = 0;
   float smallestError = errorArray[0];
@@ -229,12 +191,13 @@ int main( int argc, char *argv[] ) {
 
   //write finalTransfArray and errorArray to file
   SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
-
+  /*
   if (settings.displayResults){
     //write results to image outside matching
     ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
                              trackIndices, inputDRGFilename, outFilename);
   }
+  */
   cout << "UpdateMatchingParams done." << endl;
 
   return 0;

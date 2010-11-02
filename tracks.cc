@@ -152,6 +152,7 @@ pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
   return pt;
 }
 
+
 //this function will be similar to GetAllPtsFromImage: 
 //TO DO: rename to GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo)
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
