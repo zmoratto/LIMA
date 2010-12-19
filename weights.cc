@@ -188,7 +188,7 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   printf("make_weights report: take_point = %d, take_thresh = %f\n",take_point, take_thresh);
  
 
-  // 3. assign values - 
+  // 3. assign values 
   int count_greater = 0;
   int others = 0;
  

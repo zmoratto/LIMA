@@ -67,5 +67,6 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DR
 
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);
 void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string matchResultsFilename);
+void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename);
 
 #endif//MATCH_H

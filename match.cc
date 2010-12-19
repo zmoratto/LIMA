@@ -68,6 +68,30 @@ void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> 
     }
     fclose(d_FILE);
 }
+
+
+void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
+{
+   FILE *d_FILE = fopen(matchResultsFilename.c_str(),"w");
+
+   for (int ti = 0; ti < trackPts.size(); ti++){
+      for (int si = 0; si < trackPts[ti].size(); si++){
+	if (/*(trackPts[ti][si].weight_lsq == 1.0) &&*/ (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance !=0)) { 
+	  //printf("trackPts[%d][%d].weight_lsq = %f\n", ti, si, trackPts[ti][si].weight_lsq);
+           for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
+              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
+		int j = (int) floor(finalTransfArray[3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[5]);
+		fprintf(d_FILE,"x: %f, y: %f, z: %f, i: %d,  j: %d\n", trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].val, i, j);
+	      } 
+	   }
+        } 
+      }
+   }
+
+   fclose(d_FILE);
+}
+
 /*
 bool deriv_cached(string & input_name, string & cached_table){
   bool identified = false;
@@ -621,7 +645,7 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
       rhs[index](5,4) = rhs[index](4,5);
 
    
-      printRHS(rhs[index], index, iter[index]);
+      //printRHS(rhs[index], index, iter[index]);
      
       try {
         solve_symmetric_nocopy(rhs[index],lhs[index]);
@@ -681,8 +705,8 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 
   std::string temp = sufix_from_filename(DEMFilename);
 
-  std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
-  std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
+  std::string xDerivFilename = "../results" + prefix_from_filename(temp) + "_x_deriv.tif";
+  std::string yDerivFilename = "../results" + prefix_from_filename(temp) + "_y_deriv.tif";
 
   if ( !boost::filesystem::exists( xDerivFilename ) ) {
     cout << "Computing the x_derivative ..." << endl;
@@ -732,6 +756,7 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
     }
   }
 
+  
    vector<int> ti;
    vector<int> si;
    vector<int> li;
@@ -766,8 +791,9 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
    rhs.resize(initTransfArray.size());
    lhs.resize(initTransfArray.size());
 
-
-   int nthreads, tid, chunk; 
+   int index;
+   int nthreads, tid, chunk;
+     
    chunk = CHUNKSIZE;
    for (int index = 0; index< initTransfArray.size(); index++){
         iA[index] = 0;
@@ -775,7 +801,7 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
         iter[index] = 0;
    }
 
-#pragma omp parallel shared(ti,si, li, iter, ii, jj, iA, jA, I_e_val, I_x_val, I_y_val, I_x_sqr, I_x_I_y, I_y_sqr, rhs, lhs, nthreads,chunk) private(index,tid)
+#pragma omp parallel shared(ti, si, li, iter, ii, jj, iA, jA, I_e_val, I_x_val, I_y_val, I_x_sqr, I_x_I_y, I_y_sqr, rhs, lhs, nthreads,chunk) private(index,tid)
 {
   
   tid = omp_get_thread_num();
@@ -788,13 +814,9 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 
 #pragma omp for schedule(dynamic,chunk)
 
-  //for (int index = 0; index < initTransfArray.size(); index++){
-  //for (int index = 112; index < 117; index++){
 
-  for (int index = 125; index < 128; index++){
+  for (index = 124; index < 128; index++){
  
-    cout << "index = "<< index << endl;
-
     while( iter[index] <= numMaxIter){ //gradient descent => optimal transform
 
       //reset rhs & lhs
@@ -902,7 +924,7 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
       rhs[index](5,4) = rhs[index](4,5);
 
    
-      printRHS(rhs[index], index, iter[index]);
+      //printRHS(rhs[index], index, iter[index]);
      
       try {
         solve_symmetric_nocopy(rhs[index],lhs[index]);
@@ -918,7 +940,7 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
       }
 
 
-      printLHS_Error(lhs[index], errorArray[index], index, iter[index]);
+      //printLHS_Error(lhs[index], errorArray[index], index, iter[index]);
 
       finalTransfArray[index] += lhs[index];
   

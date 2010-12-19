@@ -158,19 +158,6 @@ int main( int argc, char *argv[] ) {
   ComputeAllReflectance(trackPts, modelParams, settings);
   //initialization step for LIMA - END  
 
-  //initialization step for LIDE - START
-  DiskImageView<PixelGray<float> >   DEM(inputDEMFilename);
-  GeoReference DEMGeo;
-  read_georeference(DEMGeo, inputDEMFilename);
-
-
-  ImageViewRef<PixelGray<float> >   interpDEM = interpolate(edge_extend(DEM.impl(),
-									ConstantEdgeExtension()),
-							    BilinearInterpolation());
-
-  GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo);
-  //initialization step for LIDEM - END
-
   if (settings.analyseFlag == 1){
     float scaleFactor = ComputeScaleFactor(trackPts);
     SaveImagePoints(trackPts, 3, imgPtsFilename);
@@ -212,23 +199,30 @@ int main( int argc, char *argv[] ) {
   }
 
   int bestResult = 0;
-  float smallestError = errorArray[0];
+  float smallestError = 10000000000;//errorArray[0];
   for (int index = 0; index < initTransfArray.size(); index++){
     printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	   index, errorArray[index], 
 	   finalTransfArray[index](0), finalTransfArray[index](1), 
 	   finalTransfArray[index](2), finalTransfArray[index](3),
 	   finalTransfArray[index](4), finalTransfArray[index](5));
-    if  (errorArray[index] < smallestError){
-      smallestError = errorArray[index]; 
-      bestResult = index;
-    }      
+      if  ( (errorArray[index] < smallestError) && (errorArray[index] > 0) ){
+          smallestError = errorArray[index]; 
+          bestResult = index;
+      }    
   }    
   cout<<"bestResult= "<<bestResult<<endl;
 
 
   //write finalTransfArray and errorArray to file
   SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
+
+  SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
+  
+  //write the image interest point 
+  //look at all points s.t. trackPts[si].weight_lsq = 1.0;  
+  //determine the image feature location using the finalTransfArray
+  //save the image features to file.
 
   if (settings.displayResults){
     //write results to image outside matching

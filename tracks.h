@@ -106,7 +106,7 @@ struct LOLAShot
 
 //computes the scale factor for all tracks at once
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
-void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
+void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
 

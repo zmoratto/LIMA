@@ -55,7 +55,7 @@ int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
   string inputDEMFilename;
-  //string inputDRGFilename;  
+
 
   if (argc == 5){ 
 
