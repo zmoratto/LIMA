@@ -5,7 +5,7 @@ void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float
  
   int numValid;
   for (int ti = 0; ti < trackPts.size() ; ti++ ){ //index track
-    cout<<"track="<<ti<<endl;
+    //cout<<"track="<<ti<<endl;
     InterpolateInvalidPoint(trackPts[ti]); 
     FindValidPoints(trackPts[ti], halfWindow, numValid);
     if (numValid > 0){
@@ -13,10 +13,10 @@ void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float
       ComputeSalientFeatures(trackPts[ti],  topPercent, numValid);
       MakeLinearWeights(trackPts[ti], halfWindow);
 
-      stringstream ss;
-      ss<<ti;
-      string lolaTrackFeaturesFilename = prefix_from_filename(filename) + ss.str() +".txt";  
-      SaveWeights(trackPts[ti], lolaTrackFeaturesFilename);
+      //stringstream ss;
+      //ss<<ti;
+      //string lolaTrackFeaturesFilename = prefix_from_filename(filename) + ss.str() +".txt";  
+      //SaveWeights(trackPts[ti], lolaTrackFeaturesFilename);
     } 
   }
 }
@@ -157,7 +157,6 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   // 
   // 
   //make weights - start with top 'take_p' accross all tracks
-  //initial implementation will be slow
 
   // 0. make a list
   vector<float> list_all_response;
@@ -175,28 +174,26 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   }
   
  
-  // 1. sort list
+  //sort the list of LOLA points
   sort(list_all_response.begin(),list_all_response.end() );
  
  
-  // 2. define the threshold
+  //determine the salient feature threshold
   int take_point = 0;
   take_point = (int)ceil( (1-topPercent) * numValid);
-  //take_thresh = 0.0;
-  float take_thresh = list_all_response[take_point];
-  printf("list_all_response.size() = %d\n",(int)list_all_response.size());
-  printf("make_weights report: take_point = %d, take_thresh = %f\n",take_point, take_thresh);
+  float salientFeatureThresh = list_all_response[take_point];
+  printf("ComputeSalientFeatures: salientFeatureThresh = %f\n", salientFeatureThresh);
  
 
   // 3. assign values 
-  int count_greater = 0;
+  int numSalientFeatures = 0;
   int others = 0;
  
   for(int si = 0; si < trackPts.size(); si ++ ){
     
-      if( abs(trackPts[si].filter_response) >= take_thresh ){
+      if( abs(trackPts[si].filter_response) >= salientFeatureThresh ){
         trackPts[si].weight_lsq = 1.0;  
-        count_greater ++;
+        numSalientFeatures ++;
       }
       else{
         trackPts[si].weight_lsq = 0.05;
@@ -204,8 +201,8 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
       }
   }
 
-  printf("count_greater = %d, others = %d", count_greater, others);
-  printf("Make weights function should be complete - take_point = %d, take_thresh = %f\n", take_point, take_thresh);
+  printf("numSalientFeatures = %d, others = %d", numSalientFeatures, others);
+
   return 0;
 }
 

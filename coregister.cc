@@ -173,13 +173,11 @@ int main( int argc, char *argv[] ) {
 
  
   if (settings.useLOLAFeatures){
-
     cout << "Computing the LOLA features and weights ... ";
     int halfWindow = 10;
     float topPercent = 0.10;
     ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
     cout<<"done."<<endl;
-
   }
 
   if (settings.matchingMode == LIMA){

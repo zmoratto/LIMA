@@ -72,24 +72,32 @@ void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> 
 
 void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
 {
-   FILE *d_FILE = fopen(matchResultsFilename.c_str(),"w");
+
+   printf("save img pts\n");
+   FILE * fp = fopen(matchResultsFilename.c_str(),"w");
 
    for (int ti = 0; ti < trackPts.size(); ti++){
+     //int numFeatures = 0;
       for (int si = 0; si < trackPts[ti].size(); si++){
-	if (/*(trackPts[ti][si].weight_lsq == 1.0) &&*/ (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance !=0)) { 
-	  //printf("trackPts[%d][%d].weight_lsq = %f\n", ti, si, trackPts[ti][si].weight_lsq);
+	if ((trackPts[ti][si].weight_lsq == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+
            for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
               if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
 		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
 		int j = (int) floor(finalTransfArray[3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[5]);
-		fprintf(d_FILE,"x: %f, y: %f, z: %f, i: %d,  j: %d\n", trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].val, i, j);
+		fprintf(fp,"x: %f, y: %f, z: %f, i: %d,  j: %d\n", 
+                        trackPts[ti][si].LOLAPt[li].coords[0], 
+			trackPts[ti][si].LOLAPt[li].coords[1], 
+                        trackPts[ti][si].LOLAPt[li].coords[2], i, j);
+		//numFeatures++;
 	      } 
 	   }
         } 
       }
+      //printf("numFeatures = %d\n", numFeatures);
    }
 
-   fclose(d_FILE);
+   fclose(fp);
 }
 
 /*
@@ -236,9 +244,9 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
     }
   }
 
-  //for (int index = 0; index < initTransfArray.size(); index++){
+  for (int index = 0; index < initTransfArray.size(); index++){
   //for (int index = 112; index < 117; index++){
-  for (int index = 125; index < 128; index++){ 
+  //for (int index = 125; index < 128; index++){ 
     cout << "index = "<< index << endl;
   
   
@@ -530,10 +538,9 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 
 #pragma omp for schedule(dynamic,chunk)
 
-  //for (int index = 0; index < initTransfArray.size(); index++){
-  //for (int index = 112; index < 117; index++){
+  for (int index = 0; index < initTransfArray.size(); index++){
 
-  for (int index = 125; index < 128; index++){
+  //for (int index = 125; index < 128; index++){
  
     cout << "index = "<< index << endl;
 
@@ -814,8 +821,8 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 
 #pragma omp for schedule(dynamic,chunk)
 
-
-  for (index = 124; index < 128; index++){
+  for (int index = 0; index < initTransfArray.size(); index++){
+    //for (index = 124; index < 128; index++){
  
     while( iter[index] <= numMaxIter){ //gradient descent => optimal transform
 
