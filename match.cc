@@ -79,7 +79,7 @@ void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTra
    for (int ti = 0; ti < trackPts.size(); ti++){
      //int numFeatures = 0;
       for (int si = 0; si < trackPts[ti].size(); si++){
-	if ((trackPts[ti][si].weight_lsq == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+	if ((trackPts[ti][si].featurePtLOLA == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
 
            for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
               if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot

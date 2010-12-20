@@ -48,6 +48,7 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 #include "weights.h"
+#include "featuresLOLA.h"
 
 
 int main( int argc, char *argv[] ) {
@@ -110,6 +111,7 @@ int main( int argc, char *argv[] ) {
   string lolaTracksFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
   string outFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
   string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
+  string transformFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "transform_results"  +".txt";  
   string matchResultsFilename = "../results" + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
 
   //create the results directory and prepare the output filenames - END
@@ -197,7 +199,7 @@ int main( int argc, char *argv[] ) {
   }
 
   int bestResult = 0;
-  float smallestError = 10000000000;//errorArray[0];
+  float smallestError = 10000000000;
   for (int index = 0; index < initTransfArray.size(); index++){
     printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	   index, errorArray[index], 
@@ -213,7 +215,7 @@ int main( int argc, char *argv[] ) {
 
 
   //write finalTransfArray and errorArray to file
-  SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
+  SaveMatchResults(finalTransfArray, errorArray, transformFilename);
 
   SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
   
