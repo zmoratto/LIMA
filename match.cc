@@ -54,33 +54,38 @@ using namespace std;
 #define CHUNKSIZE   1
 
 
-void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string matchResultsFilename)
+void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string reportFilename)
 {
-    FILE *d_FILE = fopen(matchResultsFilename.c_str(),"w");
+    FILE *fp = fopen(reportFilename.c_str(),"w");
     int numElements = errorArray.size();
+  
     for (int i = 0; i < numElements; i++){
-       fprintf(d_FILE,"index=%d d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f e=%f\n", 
+       fprintf(fp,"index=%d d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f e=%f\n", 
 	               i,
                        finalTransfArray[i](0), finalTransfArray[i](1), 
                        finalTransfArray[i](2), finalTransfArray[i](3),
                        finalTransfArray[i](4), finalTransfArray[i](5),
 	               errorArray[i]);
+        
+      
     }
-    fclose(d_FILE);
+    //TO DO: print the best match
+    //TO DO: print num tracks
+    //TO DO: print num features per track
+    fclose(fp);
 }
 
 
 void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
 {
 
-   printf("save img pts\n");
+   printf("save image points\n");
    FILE * fp = fopen(matchResultsFilename.c_str(),"w");
 
    for (int ti = 0; ti < trackPts.size(); ti++){
-     //int numFeatures = 0;
+
       for (int si = 0; si < trackPts[ti].size(); si++){
 	if ((trackPts[ti][si].featurePtLOLA == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
-
            for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
               if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
 		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
@@ -89,12 +94,10 @@ void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTra
                         trackPts[ti][si].LOLAPt[li].coords[0], 
 			trackPts[ti][si].LOLAPt[li].coords[1], 
                         trackPts[ti][si].LOLAPt[li].coords[2], i, j);
-		//numFeatures++;
 	      } 
 	   }
         } 
       }
-      //printf("numFeatures = %d\n", numFeatures);
    }
 
    fclose(fp);
@@ -154,7 +157,25 @@ void printLHS_Error( Vector<float,6> lhs, float error, int index, int iter)
   printf("--------------------------------------\n\n");
 }
 
+//DEM to DEM coregistration
+void UpdateMatchingParams(string refDEMFilename, string matchDEMFilename,  
+			  ModelParams modelParams,  int numMaxIter, 
+			  vector<Vector<float, 6> >initTransfArray, 
+                          vector<Vector<float, 6> >&finalTransfArray, 
+			  vector<float> &errorArray )
+{
 
+  DiskImageView<PixelGray<float> >   rDEM(refDEMFilename);
+  GeoReference rDEMGeo;
+  read_georeference(rDEMGeo, refDEMFilename);
+
+  DiskImageView<PixelGray<float> >   mDEM(matchDEMFilename);
+  GeoReference mDEMGeo;
+  read_georeference(mDEMGeo, matchDEMFilename);
+
+}
+
+//image to lidar coregistration
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			  ModelParams modelParams,  int numMaxIter, 
 			  vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
@@ -245,8 +266,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
   }
 
   for (int index = 0; index < initTransfArray.size(); index++){
-  //for (int index = 112; index < 117; index++){
-  //for (int index = 125; index < 128; index++){ 
+
     cout << "index = "<< index << endl;
   
   
@@ -283,7 +303,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
           if ((trackPts[ti][si].valid ==1) && (trackPts[ti][si].reflectance !=0)){
            
-            //weight = trackPts[k][i].weight_prd;
+            float weight = trackPts[ti][si].weightLOLA;
         
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
@@ -302,9 +322,28 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 		  I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
 		  errorArray[index] += abs(I_e_val);
 
+		  /*
+                  float robustWeight;
+                  float b_sqr = 0.0001;
+                  if (I_e_val == 0){
+		     float tmp = 0.001;
+                     robustWeight = sqrt(b_sqr*log(1+(tmp*tmp)/b_sqr))/tmp;
+                  }
+		  else{
+                     robustWeight = sqrt(b_sqr*log(1+(I_e_val*I_e_val)/b_sqr))/fabs(I_e_val);
+                  }
+                                
+                  // We combine the error value with the derivative and
+                  // add this to the update equation.
+			      	      
+		  float weight = spatialWeights(ii+kern_half_width, jj+kern_half_height)*robustWeight;
+            
+		  */
+
+
 		  //calculate numerical dirivatives (ii,jj).
-		  I_x_val = x_deriv(jA,iA); 
-		  I_y_val = y_deriv(jA,iA); 
+		  I_x_val = x_deriv(jA,iA)*weight; 
+		  I_y_val = y_deriv(jA,iA)*weight; 
 
 		  I_x_I_y = I_x_val*I_y_val;        
 		  I_x_sqr = I_x_val*I_x_val;
@@ -540,8 +579,6 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 
   for (int index = 0; index < initTransfArray.size(); index++){
 
-  //for (int index = 125; index < 128; index++){
- 
     cout << "index = "<< index << endl;
 
     while( iter[index] <= numMaxIter){ //gradient descent => optimal transform
@@ -563,7 +600,7 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 
           if ((trackPts[ti[index]][si[index]].valid ==1) && (trackPts[ti[index]][si[index]].reflectance !=0)){
            
-            //weight = trackPts[k][i].weight_prd;
+            float weight = trackPts[ti[index]][si[index]].weightLOLA;
         
             for (li[index] = 0; li[index] < trackPts[ti[index]][si[index]].LOLAPt.size(); li[index]++){//for each point of a LOLA shot
 
@@ -585,8 +622,8 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 		  errorArray[index] += abs(I_e_val[index]);
 
 		  //calculate numerical dirivatives (ii,jj).
-		  I_x_val[index] = x_deriv(jA[index],iA[index]); 
-		  I_y_val[index] = y_deriv(jA[index],iA[index]); 
+		  I_x_val[index] = x_deriv(jA[index],iA[index])*weight; 
+		  I_y_val[index] = y_deriv(jA[index],iA[index])*weight; 
 
 		  I_x_I_y[index] = I_x_val[index]*I_y_val[index];        
 		  I_x_sqr[index] = I_x_val[index]*I_x_val[index];

@@ -21,8 +21,6 @@ int InterpolateInvalidPoint(vector< LOLAShot>& trackPts)
     return 0;
 }
 
-
-
 //function loops through points setting the LOLAShot integer field .calc_acp to "1" 
 //if the point is valid & there are sufficent valid points on either side of that point compute a gradient.  
 //otherwise .calc_acp is set to 0 if either the point is invalid or there are insufficient 
@@ -47,7 +45,7 @@ int FindValidPoints(vector<LOLAShot > & trackPts,int halfWindow, int &numValid)
 
       //don't compute the derivatives for points close to the track boundary
       if (si >= numShots-halfWindow){
-         trackPts[si].calc_acp = false;
+         trackPts[si].calc_acp = 0;
          continue;
       }
 
@@ -77,7 +75,7 @@ int FindValidPoints(vector<LOLAShot > & trackPts,int halfWindow, int &numValid)
     
   }
  
-  cout<<"numValid in FindValidPts= "<<numValid<<endl;
+  cout<<"number of valid points for dreivative computation= "<<numValid<<endl;
   return 0;
 }
 
@@ -121,7 +119,6 @@ int ComputeGradient(vector<LOLAShot >& trackPts, int halfWindow)
           sum += f[place]*trackPts[si-halfWindow+place].reflectance;
         }
         trackPts[si].filter_response = sum;
-         //printf("track_pts[%d][%d] = %0.1f\n", iTrk , ip, track_pts[iTrk][ip].filter_response);
       }
   }
  
@@ -167,11 +164,11 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   for(int si = 0; si < trackPts.size(); si ++ ){
     
       if( abs(trackPts[si].filter_response) >= salientFeatureThresh ){
-        trackPts[si].featurePtLOLA = 1;//1.0;  
+        trackPts[si].featurePtLOLA = 1;  
         numSalientFeatures ++;
       }
       else{
-        trackPts[si].featurePtLOLA = 0;// 0.05;
+        trackPts[si].featurePtLOLA = 0;
         others ++;
       }
   }
