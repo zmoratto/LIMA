@@ -190,7 +190,7 @@ int main( int argc, char *argv[] ) {
 
 
   //write finalTransfArray and errorArray to file
-  SaveMatchResults(finalTransfArray, errorArray, matchResultsFilename);
+  SaveReportFile(trackPts, finalTransfArray, errorArray, matchResultsFilename);
   /*
   if (settings.displayResults){
     //write results to image outside matching

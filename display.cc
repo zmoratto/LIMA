@@ -59,9 +59,9 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
   
  
   vector<pointCloud> ptHere;
-  int minX = DRG.cols();
+  int minX = DRG.cols()-1;
   int maxX = 0;
-  int minY = DRG.rows();
+  int minY = DRG.rows()-1;
   int maxY = 0;
   int point_size = 7;
 
@@ -147,25 +147,24 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    float rad = pt.coords[2];
 	
 	    Vector2 DEM_lonlat(lon, lat);
+    
+
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-	  
-	    int x = (int)DRG_pix[0];
+	    
+	    
+            int x = (int)DRG_pix[0];
 	    int y = (int)DRG_pix[1];
-          
+                  
             //make sure we are not running outside the image boundaries.
             xl = int32(x) - point_size-minX;
             yt = int32(y) - point_size-minY;
             w = point_size;
             h = point_size;
-            /* 
-	    fill(crop(DRG_crop, int32(x) - point_size-minX, 
-                                int32(y) - point_size-minY, 
-                                point_size, point_size), PixelRGB<uint8>(255, 0, 0));
-	    */
-            if ((xl>0) && (yt>0) && (xl<DRG.cols()-point_size) && (yt<DRG.rows()-point_size)){
+          
+            if ((xl>0) && (yt>0) && (xl<DRG_crop.cols()-point_size-1) && (yt<DRG_crop.rows()-point_size-1)){
                 fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(255, 0, 0));
 	    }
-
+        
 	    //compute the transformed pts
 	    int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
 	    int yd = (int)floor(d[3]*x + d[4]*y + d[5]);
@@ -176,21 +175,20 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
             w = point_size;
             h = point_size;
 
-            /*
-            fill(crop(DRG_crop, int32(xd) - point_size-minX, 
-		      int32(yd) - point_size-minY, 
-		      point_size, point_size), PixelRGB<uint8>(0, 255, 255));  
-	    */
-
-            if ((xl>0) && (yt>0) && (xl<DRG.cols()-point_size) && (yt<DRG.rows()-point_size)){
-	      fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 255, 255));
+            if ((xl>0) && (yt>0) && (xl<DRG_crop.cols()-point_size-1) && (yt<DRG_crop.rows()-point_size-1)){  
+              if (trackPts[i][j].featurePtLOLA == 1.0){
+		fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 255, 0));
+              }
+	      else{
+		fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
+	      }
 	    }
-
-	   }
-        
-	}
-      }
-    }
+      
+	}//valid track 
+      }//each point in shot
+   
+    }//each shot
+   }
    //#endif
   //write output image
 

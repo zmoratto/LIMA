@@ -68,6 +68,9 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
 
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "USE_LOLA_FEATURES %d\n", &(settings->useLOLAFeatures));
+   
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "TOP_PERCENT_FEATURES %d\n", &(settings->topPercentFeatures));
 
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "MAX_NUM_ITER %d\n", &(settings->maxNumIter));
@@ -91,6 +94,7 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     settings->reflectanceType = LUNAR_LAMBERT;// NO_REFL;//LAMBERT;
     settings->analyseFlag = 0;
     settings->useLOLAFeatures = 0;
+    settings->topPercentFeatures = 10;
     settings->maxNumIter = 3;
     settings->maxNumStarts = 160;
     settings->displayResults = 0; 
@@ -106,6 +110,7 @@ void PrintGlobalParams(struct CoregistrationParams *settings)
   printf("REFLECTANCE_TYPE %d\n", settings->reflectanceType);
   printf("ANALYSE_FLAG %d\n", settings->analyseFlag);
   printf("USE_LOLA_FEATURES %d\n", settings->useLOLAFeatures);
+  printf("TOP_PERCENT_FEATURES %d\n", settings->topPercentFeatures);
   printf("MAX_NUM_ITER  %d\n", settings->maxNumIter);
   printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
   printf("DISPLAY_RESULTS %d\n", settings->displayResults);

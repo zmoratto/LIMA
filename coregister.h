@@ -50,6 +50,7 @@ typedef struct CoregistrationParams{
   int reflectanceType;//NO, LAMBERT, LUNAR-LAMBERT
   int analyseFlag; 
   int useLOLAFeatures;
+  int topPercentFeatures;
   int maxNumIter;
   int maxNumStarts;
   int displayResults;

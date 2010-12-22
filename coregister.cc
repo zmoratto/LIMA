@@ -177,8 +177,8 @@ int main( int argc, char *argv[] ) {
   if (settings.useLOLAFeatures){
     cout << "Computing the LOLA features and weights ... ";
     int halfWindow = 10;
-    float topPercent = 0.10;
-    ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
+    //float topPercent = 0.10;
+    ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/100.0, lolaFeaturesFilename);
     cout<<"done."<<endl;
   }
 
@@ -215,8 +215,10 @@ int main( int argc, char *argv[] ) {
 
 
   //write finalTransfArray and errorArray to file
-  SaveMatchResults(finalTransfArray, errorArray, transformFilename);
-
+  //this is mostly for debugging info
+  SaveReportFile(trackPts, finalTransfArray, errorArray, transformFilename);
+  
+  //this is what is needed by further steps.
   SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
   
   //write the image interest point 

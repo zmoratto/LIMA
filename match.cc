@@ -54,11 +54,14 @@ using namespace std;
 #define CHUNKSIZE   1
 
 
-void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> errorArray, string reportFilename)
+void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6> >finalTransfArray,  
+                      vector<float> errorArray, string reportFilename)
 {
     FILE *fp = fopen(reportFilename.c_str(),"w");
     int numElements = errorArray.size();
-  
+    int bestResult = 0;
+    float smallestError = 1000000000.0;
+
     for (int i = 0; i < numElements; i++){
        fprintf(fp,"index=%d d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f e=%f\n", 
 	               i,
@@ -66,20 +69,40 @@ void SaveMatchResults(vector<Vector<float, 6> >finalTransfArray,  vector<float> 
                        finalTransfArray[i](2), finalTransfArray[i](3),
                        finalTransfArray[i](4), finalTransfArray[i](5),
 	               errorArray[i]);
-        
+        if ( (errorArray[i] < smallestError) && (errorArray[i] > 0) ){
+          smallestError = errorArray[i]; 
+          bestResult = i;
+        }    
       
     }
-    //TO DO: print the best match
-    //TO DO: print num tracks
-    //TO DO: print num features per track
-    fclose(fp);
+    //print the best transform index and smallest error
+    fprintf(fp, "bestTransformIndex = %d, smallest error = %f\n", bestResult, errorArray[bestResult]);
+    //print the total number of tracks
+    fprintf(fp, "numTotalTracks = %d\n", (int)trackPts.size());
+    
+    //print the number of features per track
+    for (int ti = 0; ti < trackPts.size(); ti++){
+      fprintf(fp,"trackID: %d ", ti);
+      fprintf(fp,"numShots: %d ", (int)trackPts[ti].size());
+      int numFeatures = 0;
+      for (int si = 0; si < trackPts[ti].size(); si++){
+	if ((trackPts[ti][si].featurePtLOLA == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+	  numFeatures++;  
+	}
+      }
+      fprintf(fp,"numFeatures: %d\n", numFeatures);
+   }
+
+
+   fclose(fp);
 }
 
-
+//saves the 3D and image points in a local control network
+//will be renamed to save control network
 void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
 {
 
-   printf("save image points\n");
+   printf("saving the control network ...\n");
    FILE * fp = fopen(matchResultsFilename.c_str(),"w");
 
    for (int ti = 0; ti < trackPts.size(); ti++){
@@ -101,6 +124,7 @@ void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTra
    }
 
    fclose(fp);
+   printf("done.\n");
 }
 
 /*
