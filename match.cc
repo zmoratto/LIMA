@@ -337,15 +337,20 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 		jA = (int) floor(finalTransfArray[index][3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[index][4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[index][5]);
                 
                 // check (iA,jA) are inside the image!
-		if ( ( iA >= 0) && ( iA < row_max) && ( jA >= 0) && ( jA < col_max)){
-        	  
+		if ( ( iA >= 0) && ( iA < row_max) && ( jA >= 0) && ( jA < col_max)){ 
+		  if (is_valid(interpDRG(jA, iA)) ){
                   // calculate ii & jj relative to the image center
-		  ii = iA - i_C;
-		  jj = jA - j_C;
+		    ii = iA - i_C;
+		    jj = jA - j_C;
+		    I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
+		  }
+                  else{
+                    I_e_val= 0;
+                  }
 
-		  I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
 		  errorArray[index] += abs(I_e_val);
-
+		  
+                
 		  /*
                   float robustWeight;
                   float b_sqr = 0.0001;

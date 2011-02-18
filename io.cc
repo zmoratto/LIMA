@@ -135,8 +135,8 @@ int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
     sscanf(line, "VIEWER_POS %lf %lf %lf\n", &(params->spacecraftPosition[0]), &(params->spacecraftPosition[1]), &(params->spacecraftPosition[2]));
 
     params->exposureTime = 1.0;
-    params->rescalingParams[0] = 1;
-    params->rescalingParams[1] = 0;
+    //params->rescalingParams[0] = 1;
+    //params->rescalingParams[1] = 0;
 
     params->sunPosition[0] = 1000*(params->sunPosition[0]);
     params->sunPosition[1] = 1000*(params->sunPosition[1]);
