@@ -115,6 +115,9 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 
+void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
+                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename);
+
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
 
@@ -125,7 +128,7 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
   vector<pointCloud> LOLAPts;
 
- 
+
   ImageViewRef<float> interpDRG;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
@@ -142,7 +145,10 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
   for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
-   
+      
+      //new
+      trackPts[k][i].valid = 1; 
+
       LOLAPts = trackPts[k][i].LOLAPt;
       trackPts[k][i].imgPt.resize(LOLAPts.size());
 
@@ -158,13 +164,21 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 	    float x = DRG_pix[0];
 	    float y = DRG_pix[1];
 
-	    trackPts[k][i].imgPt[j].val = interpDRG(x, y);
-	    trackPts[k][i].imgPt[j].x = DRG_pix[0];
-	    trackPts[k][i].imgPt[j].y = DRG_pix[1];
+            //check that (x,y) are within the image boundaries 
+	    if ((x>=0)&&(y>=0)&&(x<DRG.impl().cols())&&(y<DRG.impl().rows())){   
+	       trackPts[k][i].imgPt[j].val = interpDRG(x, y);
+	       trackPts[k][i].imgPt[j].x = DRG_pix[0];
+	       trackPts[k][i].imgPt[j].y = DRG_pix[1];
+	    }
+            else{  
+	      //new
+                  trackPts[k][i].valid = 0; 
+            }
 	
       }
 
-      trackPts[k][i].valid = 0; 
+      //old
+      //trackPts[k][i].valid = 0; 
 
       //check for valid shot
       pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
@@ -173,8 +187,11 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
       if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (LOLAPts.size() <=5)){//valid LOLA shot
           
-          trackPts[k][i].valid = 1;
+	//trackPts[k][i].valid = 1;
 	
+      }
+      else{ 
+         trackPts[k][i].valid = 0;
       }
      
     }//i  

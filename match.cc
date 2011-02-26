@@ -640,9 +640,12 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 		jA[index] = (int) floor(finalTransfArray[index][3]*trackPts[ti[index]][si[index]].imgPt[li[index]].x 
                           + finalTransfArray[index][4]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][5]);
                 
+
                 // check (iA,jA) are inside the image!
 		if ( ( iA[index] >= 0) && ( iA[index] < row_max) && ( jA[index] >= 0) && ( jA[index] < col_max)){
-        	  
+
+
+                    	  
                   // calculate ii & jj relative to the image center
 		  ii[index] = iA[index] - i_C;
 		  jj[index] = jA[index] - j_C;
@@ -650,14 +653,15 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 		  I_e_val[index] = interpDRG(jA[index],iA[index]) - scaleFactor*trackPts[ti[index]][si[index]].reflectance;
 		  errorArray[index] += abs(I_e_val[index]);
 
-		  //calculate numerical dirivatives (ii,jj).
+		  //calculate numerical derivatives (ii,jj).
 		  I_x_val[index] = x_deriv(jA[index],iA[index])*weight; 
 		  I_y_val[index] = y_deriv(jA[index],iA[index])*weight; 
 
 		  I_x_I_y[index] = I_x_val[index]*I_y_val[index];        
 		  I_x_sqr[index] = I_x_val[index]*I_x_val[index];
 		  I_y_sqr[index] = I_y_val[index]*I_y_val[index];
-
+                  
+                  //printf("I_x_val=%f, I_y_val=%f, I_e_val=%f\n", I_x_val[index],  I_y_val[index], I_e_val[index]);     
 		  // Left hand side
 		  lhs[index](0) += ii[index] * I_x_val[index] * I_e_val[index];
 		  lhs[index](1) += jj[index] * I_x_val[index] * I_e_val[index];
@@ -717,9 +721,10 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
       rhs[index](5,3) = rhs[index](3,5);
       rhs[index](5,4) = rhs[index](4,5);
 
-   
+      //printf ("before\n");
       //printRHS(rhs[index], index, iter[index]);
-     
+      //printLHS_Error(lhs[index], errorArray[index], index, iter[index]);
+
       try {
         solve_symmetric_nocopy(rhs[index],lhs[index]);
       } catch (ArgumentErr &/*e*/) {

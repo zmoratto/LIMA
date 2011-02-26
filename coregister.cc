@@ -51,44 +51,6 @@ using namespace std;
 #include "weights.h"
 #include "featuresLOLA.h"
 
-void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
-                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
-{
-
-
-  //for all features in the LOLA data
-  //{
-  float x = 1;
-  float y = 1; 
-  float z = 1;
-  float sigma_x = 1;
-  float sigma_y = 1; 
-  float sigma_z = 1;
- 
- 
-  stringstream ss;
-  ss<<0;
-  cout<<"string_num"<<ss.str();
-  string this_gcpFilename = gcpFilename+"_"+ss.str()+".txt";
-  cout<<this_gcpFilename<<endl;
-  
-  FILE *fp = fopen(this_gcpFilename.c_str(), "w");
-  fprintf(fp, "%f %f %f %f %f %f\n", x, y, z, sigma_x, sigma_y, sigma_z);
-  
-  for (int k = 0; k < overlapIndices.size(); k++){
-       //int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
-       //int j = (int) floor(finalTransfArray[3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[5]);
-
-       float i = optimalTransfArray[k][0]*x + optimalTransfArray[k][1]*y + optimalTransfArray[k][2];
-       float j = optimalTransfArray[k][3]*x + optimalTransfArray[k][4]*y + optimalTransfArray[k][5];
-
-       fprintf(fp, "%s %f %f\n", DRGFiles[overlapIndices[k]].c_str(), i, j);
-  }
-  
-  fclose(fp);
-  //}
-  
-}
 void printOverlapList(std::vector<int>  overlapIndices)
 {
   printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
@@ -254,8 +216,9 @@ int main( int argc, char *argv[] ) {
   printOverlapList(overlapIndices);
   printf("done\n");
 
-  //int numOverlappingImages = (int)overlapIndices.size();
-  int numOverlappingImages = 1;
+  int numOverlappingImages = (int)overlapIndices.size();
+  //int numOverlappingImages = 1;
+
   //TO DO: determine the LOLA features
  
   //allocate memory for all final transforms, one per image
@@ -265,7 +228,8 @@ int main( int argc, char *argv[] ) {
   optimalErrorArray.resize(numOverlappingImages);
 
   for (int k = 0; k < numOverlappingImages; k++){
-    
+  //for (int k = 2; k < 3; k++){ 
+
     string inputDEMFilename;
     string inputDRGFilename = DRGFiles[k];  
     cout<<inputDRGFilename<<endl;
@@ -318,14 +282,18 @@ int main( int argc, char *argv[] ) {
 									ConstantEdgeExtension()),
 							    BilinearInterpolation());
   
+    
+    printf("w = %d, h = %d\n", DRG.impl().cols(), DRG.impl().rows());
+    //#if 0
     //get the true image points
     cout << "GetAllPtsFromImage..." << endl; 
     GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-  
+   
+
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParams, settings);
     //initialization step for LIMA - END  
-
+    /*
     if (settings.analyseFlag == 1){
       float scaleFactor = ComputeScaleFactor(trackPts);
       SaveImagePoints(trackPts, 3, imgPtsFilename);
@@ -338,7 +306,7 @@ int main( int argc, char *argv[] ) {
       int numHorPts = 6000;
       MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
     }
-
+    */
  
     if (settings.useLOLAFeatures){
       cout << "Computing the LOLA features and weights ... ";
@@ -355,7 +323,7 @@ int main( int argc, char *argv[] ) {
 				  modelParams, settings,  
 				  initTransfArray, finalTransfArray, errorArray);
     }
-
+    /*
     if (settings.matchingMode == LIDEM){
       //return matching error and transform
       cout << "UpdateMatchingParams ..."<< endl;
@@ -363,7 +331,7 @@ int main( int argc, char *argv[] ) {
 				   modelParams, settings,  
 				   initTransfArray, finalTransfArray, errorArray);
     }
-
+    */
     int bestResult = 0;
     float smallestError = 10000000000;
     for (int index = 0; index < initTransfArray.size(); index++){
@@ -378,7 +346,7 @@ int main( int argc, char *argv[] ) {
       }    
     }    
     cout<<"bestResult= "<<bestResult<<endl;
-    
+    //#if 0
     //copy the best transform to optimalTransfArray
     optimalTransfArray[k] = finalTransfArray[bestResult];
     optimalErrorArray[k]  = errorArray[bestResult];
@@ -388,20 +356,24 @@ int main( int argc, char *argv[] ) {
     SaveReportFile(trackPts, finalTransfArray, errorArray, transformFilename);
     
     //this is what is needed by further steps.
-    SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
+    //this s replaced by SaveGCPoints
+    //SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
   
+    //#if 0    
     //write the image interest point 
     //look at all points s.t. trackPts[si].weight_lsq = 1.0;  
     //determine the image feature location using the finalTransfArray
     //save the image features to file.
 
+    /*
     if (settings.displayResults){
       //write results to image outside matching
       ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
 			       trackIndices, inputDRGFilename, outFilename);
     }
+    */
+    //#endif
   }
-
  
   //save the GCP
   string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));
