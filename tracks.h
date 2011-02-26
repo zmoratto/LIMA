@@ -100,8 +100,7 @@ struct LOLAShot
 
   //following variables are for reflectance feature and weight computation
   //int   calc_acpRefl;             //is the filter valid here?
-  //float filterreRefl;     
-  //float featurePtRefl;          
+  //float filterreRefl;           
   //float weightRefl;        
 
   vector<pointCloud> LOLAPt;
