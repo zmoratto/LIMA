@@ -371,6 +371,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
 
 		  //calculate numerical dirivatives (ii,jj).
+                
 		  I_x_val = x_deriv(jA,iA)*weight; 
 		  I_y_val = y_deriv(jA,iA)*weight; 
 
@@ -641,9 +642,8 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
                           + finalTransfArray[index][4]*trackPts[ti[index]][si[index]].imgPt[li[index]].y + finalTransfArray[index][5]);
                 
 
-                // check (iA,jA) are inside the image!
+                // check (iA,jA) are inside the derivative image!
 		if ( ( iA[index] >= 0) && ( iA[index] < row_max) && ( jA[index] >= 0) && ( jA[index] < col_max)){
-
 
                     	  
                   // calculate ii & jj relative to the image center
@@ -654,6 +654,8 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 		  errorArray[index] += abs(I_e_val[index]);
 
 		  //calculate numerical derivatives (ii,jj).
+                  //printf("weight = %f\n", weight);
+
 		  I_x_val[index] = x_deriv(jA[index],iA[index])*weight; 
 		  I_y_val[index] = y_deriv(jA[index],iA[index])*weight; 
 

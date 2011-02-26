@@ -349,32 +349,4 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   
 }
 
-/*
-//saves the ground control points
-void SaveGCPoints(vector< vector<LOLAShot> >  &allTracks, string filename)
-{
 
-  FILE *fp;
-  for (int k = 0; k < allTracks.size(); k++ ){
-    for (int i = 0; i < allTracks[k].size(); i++){
-
-      float sigmaX = 300;
-      float sigmaY = 300;
-      float sigmaZ = 300;
-
-      for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
-        
-	fp = fopen(filename.c_str(), "w");
-	fprintf(fp , "%f %f %f %f %f %f\n", 
-		      allTracks[k][i].LOLAPt[j].coords[0], 
-                      allTracks[k][i].LOLAPt[j].coords[1],
-                      allTracks[k][i].LOLAPt[j].coords[2],
-                      sigmaX, sigmaY, sigmaZ); 
-	fclose(fp);
-      }
-
-    }
-  }
- 
-}
-*/

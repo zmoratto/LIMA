@@ -228,7 +228,6 @@ int main( int argc, char *argv[] ) {
   optimalErrorArray.resize(numOverlappingImages);
 
   for (int k = 0; k < numOverlappingImages; k++){
-  //for (int k = 2; k < 3; k++){ 
 
     string inputDEMFilename;
     string inputDRGFilename = DRGFiles[k];  
@@ -282,9 +281,6 @@ int main( int argc, char *argv[] ) {
 									ConstantEdgeExtension()),
 							    BilinearInterpolation());
   
-    
-    printf("w = %d, h = %d\n", DRG.impl().cols(), DRG.impl().rows());
-    //#if 0
     //get the true image points
     cout << "GetAllPtsFromImage..." << endl; 
     GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
@@ -346,7 +342,7 @@ int main( int argc, char *argv[] ) {
       }    
     }    
     cout<<"bestResult= "<<bestResult<<endl;
-    //#if 0
+
     //copy the best transform to optimalTransfArray
     optimalTransfArray[k] = finalTransfArray[bestResult];
     optimalErrorArray[k]  = errorArray[bestResult];
@@ -358,21 +354,20 @@ int main( int argc, char *argv[] ) {
     //this is what is needed by further steps.
     //this s replaced by SaveGCPoints
     //SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
-  
-    //#if 0    
+   
     //write the image interest point 
     //look at all points s.t. trackPts[si].weight_lsq = 1.0;  
     //determine the image feature location using the finalTransfArray
     //save the image features to file.
 
-    /*
+    
     if (settings.displayResults){
       //write results to image outside matching
       ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
 			       trackIndices, inputDRGFilename, outFilename);
     }
-    */
-    //#endif
+    
+
   }
  
   //save the GCP
