@@ -163,12 +163,12 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
  
   for(int si = 0; si < trackPts.size(); si ++ ){
     
-      if( abs(trackPts[si].filter_response) >= salientFeatureThresh ){
-        trackPts[si].featurePtLOLA = 1;  
+    if(( abs(trackPts[si].filter_response) >= salientFeatureThresh ) && (trackPts[si].calc_acp)){
+        trackPts[si].featurePtRefl = 1;  
         numSalientFeatures ++;
       }
       else{
-        trackPts[si].featurePtLOLA = 0;
+        trackPts[si].featurePtRefl = 0;
         others ++;
       }
   }
@@ -179,6 +179,78 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
 }
 
 
+int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent)
+{
+  int numShots = trackPts.size();
+  for (int si = 0; si < numShots; si++){
+     trackPts[si].featurePtLOLA = 0;
+  } 
 
+  vector<float> filResList;
+ 
+  //build filter -START
+  vector<float> f;  
+  int windowSize = 2*halfWindow + 1;
+  f.resize(windowSize);
+
+  for (int i = 0; i < windowSize ;i++ ){
+    if (i < halfWindow){
+      f[i] = -1.0; 
+    }
+    if(i == halfWindow){
+      f[i] = 0.0;
+    }
+    else{
+      f[i] = 1.0;
+    }
+  }
+  //build filter -END
+
+  //filter the tracks
+  for (int si = halfWindow; si < numShots-halfWindow+1; si++){
+    float filres = 0;
+    for(int j = -halfWindow; j < halfWindow;j++){
+      //if (trackPts[si].valid == 1){
+      if (trackPts[si].LOLAPt.size() > 2){
+         filres = filres + f[j+halfWindow]*trackPts[si].LOLAPt[2].coords[2];
+      }
+    }
+    trackPts[si].filresLOLA = abs(filres)/(2*halfWindow+1);
+    filResList.push_back(trackPts[si].filresLOLA);
+  }
+  
+
+  int numSalientFeatures = 0;
+  int others = filResList.size();
+  float salientFeatureThresh = 0.0;
+
+  if (filResList.size() > 0){
+
+    //for(int si = 0; si < trackPts.size(); si ++ ){
+    //  printf("filRes[%d] = %f\n",  si, filResList[si]);
+    //}
+    sort(filResList.begin(),filResList.end() );
+    
+    int takePoint = 0;
+    takePoint = (int)ceil( (1-topPercent) * filResList.size());
+    salientFeatureThresh = filResList[takePoint];
+
+    if (salientFeatureThresh > 0){    
+      //compute the salient features
+      for(int si = 0; si < trackPts.size(); si ++ ){
+	if(( abs(trackPts[si].filresLOLA) >= salientFeatureThresh ) && (trackPts[si].valid)){
+	  trackPts[si].featurePtLOLA = 1;  
+	  numSalientFeatures ++;
+	}
+	else{
+	  trackPts[si].featurePtLOLA = 0;
+	  others ++;
+	}
+      }
+    }
+  }
+  
+  printf("salientFeatThresh = %f, numLOLASalientFeatures = %d, others = %d\n", salientFeatureThresh, numSalientFeatures, others);
+}
 
 

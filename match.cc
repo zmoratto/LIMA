@@ -86,7 +86,7 @@ void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6>
       fprintf(fp,"numShots: %d ", (int)trackPts[ti].size());
       int numFeatures = 0;
       for (int si = 0; si < trackPts[ti].size(); si++){
-	if ((trackPts[ti][si].featurePtLOLA == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+	if ((trackPts[ti][si].featurePtRefl == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
 	  numFeatures++;  
 	}
       }
@@ -108,7 +108,7 @@ void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTra
    for (int ti = 0; ti < trackPts.size(); ti++){
 
       for (int si = 0; si < trackPts[ti].size(); si++){
-	if ((trackPts[ti][si].featurePtLOLA == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+	if ((trackPts[ti][si].featurePtRefl == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
            for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
               if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
 		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
@@ -205,6 +205,8 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 			  vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 			  vector<float> &errorArray )
 {
+
+  printf("LIMA matching single processor\n");
 
   DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
   GeoReference DRGGeo;
@@ -327,7 +329,7 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
           if ((trackPts[ti][si].valid ==1) && (trackPts[ti][si].reflectance !=0)){
            
-            float weight = trackPts[ti][si].weightLOLA;
+            float weight = trackPts[ti][si].weightRefl;
         
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
@@ -630,7 +632,7 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 
           if ((trackPts[ti[index]][si[index]].valid ==1) && (trackPts[ti[index]][si[index]].reflectance !=0)){
            
-            float weight = trackPts[ti[index]][si[index]].weightLOLA;
+            float weight = trackPts[ti[index]][si[index]].weightRefl;
         
             for (li[index] = 0; li[index] < trackPts[ti[index]][si[index]].LOLAPt.size(); li[index]++){//for each point of a LOLA shot
 

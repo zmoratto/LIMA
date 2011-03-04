@@ -319,7 +319,8 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   //for all features in the LOLA data
   for (int t=0; t<trackPts.size(); t++){
     for (int s=0; s<trackPts[t].size(); s++){
-      if (((s/50)*50==s) && (trackPts[t][s].valid==1)){
+      //if (((s/50)*50==s) && (trackPts[t][s].valid==1)){
+      if (trackPts[t][s].featurePtLOLA==1){
 
 	float x = trackPts[t][s].LOLAPt[2].coords[0];
 	float y = trackPts[t][s].LOLAPt[2].coords[1]; 
@@ -331,17 +332,16 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
 	stringstream ss;
 	ss<<index;
 	cout<<"string_num"<<ss.str();
-	string this_gcpFilename = gcpFilename+"_"+ss.str()+".txt";
+	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
 	cout<<this_gcpFilename<<endl;
     
 	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
 	
 	fprintf(fp, "%f %f %f %f %f %f\n", x, y, z, sigma_x, sigma_y, sigma_z);
 	for (int k = 0; k < overlapIndices.size(); k++){
-
 	  float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
 	  float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
-	  fprintf(fp, "%s %f %f\n", DRGFiles[overlapIndices[k]].c_str(), i, j);
+	  fprintf(fp, "%s %f %f\n", sufix_from_filename(DRGFiles[overlapIndices[k]]).c_str(), i, j);
 	}
   
 	fclose(fp);

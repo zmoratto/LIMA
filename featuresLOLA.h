@@ -31,5 +31,5 @@ int InterpolateInvalidPoint(vector< LOLAShot>& trackPts);
 int ComputeGradient(vector<LOLAShot >& trackPts, int halfWindow);
 
 int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int numValid);
-
+int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent);
 #endif

@@ -36,17 +36,17 @@ int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow)
 
     //zero the track before begining 
     for(int si = 0; si < trackPts.size(); si++){
-      trackPts[si].weightLOLA = 0; // just to begin
+      trackPts[si].weightRefl = 0; // just to begin
     }
 
     for( int si = 0; si < trackPts.size() ; si++){
-      if( trackPts[si].featurePtLOLA == 1 ){
+      if( trackPts[si].featurePtRefl == 1 ){
 
         //write out using edge - calculate normalization later
         to_add = 0.0;
         for( int m = 0; m < windowSize_f; m++){
           to_add = (windowSize_f - abs(m-halfWindow_f)) / windowSize_f;
-          trackPts[si-halfWindow+m].weightLOLA += to_add;
+          trackPts[si-halfWindow+m].weightRefl += to_add;
         }
       }
     }
@@ -69,7 +69,7 @@ int SaveWeights(vector< LOLAShot>& trackPts, string filename)
    for (int si = 0; si < trackPts.size(); si++ ){
      fprintf( sFile, "si= %d reflectance= %f calc_acp= %d filter_response= %f weight_lsq= %f weightLOLA= %f \n", 
                      si, trackPts[si].reflectance, trackPts[si].calc_acp, 
-                     trackPts[si].filter_response, trackPts[si].featurePtLOLA, trackPts[si].weightLOLA );
+                     trackPts[si].filter_response, trackPts[si].featurePtRefl, trackPts[si].weightRefl );
    }
 
  fclose(sFile);

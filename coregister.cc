@@ -217,11 +217,16 @@ int main( int argc, char *argv[] ) {
   printf("done\n");
 
   int numOverlappingImages = (int)overlapIndices.size();
-  //int numOverlappingImages = 1;
-
-  //TO DO: determine the LOLA features
  
-  //allocate memory for all final transforms, one per image
+  //determine the LOLA features
+  int halfWindow = 10;
+  printf("numTracks = %d\n", (int)trackPts.size());
+  for (int ti = 0; ti < trackPts.size(); ti++){
+    printf("trackIndex = %d\n", ti);
+    ComputeSalientLOLAFeature(trackPts[ti], halfWindow, /*(float)(settings.topPercentFeatures)/100.0*/0.001);
+  }
+
+ //allocate memory for all final transforms, one per image
   vector<Vector<float, 6> > optimalTransfArray;
   vector<float> optimalErrorArray;
   optimalTransfArray.resize(numOverlappingImages);
@@ -315,9 +320,16 @@ int main( int argc, char *argv[] ) {
     if (settings.matchingMode == LIMA){
       //return matching error and transform
       cout << "UpdateMatchingParams ..."<< endl;
+      
       UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
 				  modelParams, settings,  
 				  initTransfArray, finalTransfArray, errorArray);
+      
+      /*
+      UpdateMatchingParams(trackPts, inputDRGFilename, 
+			   modelParams, 10,  
+			   initTransfArray, finalTransfArray, errorArray);
+      */
     }
     /*
     if (settings.matchingMode == LIDEM){
@@ -329,7 +341,7 @@ int main( int argc, char *argv[] ) {
     }
     */
     int bestResult = 0;
-    float smallestError = 10000000000;
+    float smallestError = std::numeric_limits<float>::max();
     for (int index = 0; index < initTransfArray.size(); index++){
       printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	     index, errorArray[index], 

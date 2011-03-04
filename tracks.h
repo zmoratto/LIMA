@@ -95,14 +95,14 @@ struct LOLAShot
   //following variables are for LOLA feature and weight computation
   int   calc_acp;             //is the filter valid here?
   float filter_response;     
-  float featurePtLOLA;          
-  float weightLOLA;        
+  float featurePtRefl;          
+  float weightRefl;        
 
-  //following variables are for reflectance feature and weight computation
-  //int   calc_acpRefl;             //is the filter valid here?
-  //float filterreRefl;           
-  //float weightRefl;        
 
+  float featurePtLOLA;
+  //int   calc_acpLOLA;             //is the filter valid here?
+  float filresLOLA;           
+        
   vector<pointCloud> LOLAPt;
   vector<imgPoint> imgPt;
   vector<DEMPoint> DEMPt; 

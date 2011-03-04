@@ -176,7 +176,7 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
             h = point_size;
 
             if ((xl>0) && (yt>0) && (xl<DRG_crop.cols()-point_size-1) && (yt<DRG_crop.rows()-point_size-1)){  
-              if (trackPts[i][j].featurePtLOLA == 1.0){
+              if (trackPts[i][j].featurePtRefl == 1.0){
 		fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 255, 0));
               }
 	      else{
