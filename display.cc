@@ -137,8 +137,8 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
     for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
       for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
        
-	if (trackPts[i][j].valid == 1){
-	    
+	//if (trackPts[i][j].valid == 1){//add here if we want just the LOLA features.
+	if ((trackPts[i][j].valid == 1) && (trackPts[i][j].featurePtLOLA == 1)){//add here if we want just the LOLA features.  
             int xl, yt, w, h;
 
 	    pointCloud pt = trackPts[i][j].LOLAPt[k]; 
@@ -169,22 +169,26 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
 	    int yd = (int)floor(d[3]*x + d[4]*y + d[5]);
 
-            //make sure we are not running outside the image boundaries.
+            //make sure the matched point is inside the image boundaries.
 	    xl = int32(xd) - point_size-minX;
             yt = int32(yd) - point_size-minY;
             w = point_size;
             h = point_size;
 
-            if ((xl>0) && (yt>0) && (xl<DRG_crop.cols()-point_size-1) && (yt<DRG_crop.rows()-point_size-1)){  
+            if ((xl>0) && (yt>0) && (xl<DRG_crop.cols()-point_size-1) && (yt<DRG_crop.rows()-point_size-1)){
+               fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
+
+              /*  
               if (trackPts[i][j].featurePtRefl == 1.0){
 		fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 255, 0));
               }
 	      else{
 		fill(crop(DRG_crop, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
 	      }
+	      */
 	    }
       
-	}//valid track 
+	}//valid track && LOLA feature point
       }//each point in shot
    
     }//each shot

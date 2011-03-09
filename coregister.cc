@@ -318,6 +318,15 @@ int main( int argc, char *argv[] ) {
     }
 
     if (settings.matchingMode == LIMA){
+      
+      cout<<"Initialize the affine tranformation"<<endl;
+
+      float matchingError;
+      Vector<float, 6> finalTransf; 
+      InitMatchingParams(trackPts, inputDRGFilename, modelParams, settings,  
+			 initTransfArray, finalTransf, &matchingError);
+      
+
       //return matching error and transform
       cout << "UpdateMatchingParams ..."<< endl;
       

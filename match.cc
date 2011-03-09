@@ -469,6 +469,96 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 
 } 
 
+//determines the best finalTransfArray from all initTransfArrays
+//it assumes that each image is transformed by one affine transform
+//in the future we can investigate the use of one affine transform per track. 
+void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+			ModelParams modelParams, CoregistrationParams coregistrationParams,  
+			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
+			float *matchingError)
+{
+    int ti, si, li;
+    int jA, iA;
+    float I_e_val;
+  
+    vector<float>errorArray;
+    errorArray.resize(initTransfArray.size());
+    DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
+    GeoReference DRGGeo;
+    read_georeference(DRGGeo, DRGFilename);
+
+    cout <<"Interpolating the image ...";
+    ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
+									 ConstantEdgeExtension()),
+							     BilinearInterpolation());
+    cout<<"done."<<endl;
+
+    int index;
+    float scaleFactor;
+    int row_max = DRG.rows();
+    int col_max = DRG.cols();
+  
+    //compute the scale factor between LOLA reflectance and image.
+    scaleFactor = ComputeScaleFactor(trackPts);
+    cout<<"done computing the scaling factor"<<endl;
+
+    for (index = 0; index < initTransfArray.size(); index++){
+      
+      errorArray[index] = 0.0;
+      
+      for (ti = 0; ti < trackPts.size(); ti++){//for each track
+
+	for (si = 0; si < trackPts[ti].size(); si++){//for each shot
+          
+          //cout<<ti<<" "<<si<<endl;
+
+          if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)){
+           
+            float weight = trackPts[ti][si].weightRefl;
+        
+            for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
+
+              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+    
+                 
+		iA = (int) floor(initTransfArray[index][0]*trackPts[ti][si].imgPt[li].x 
+                               + initTransfArray[index][1]*trackPts[ti][si].imgPt[li].y 
+                               + initTransfArray[index][2]);
+		jA = (int) floor(initTransfArray[index][3]*trackPts[ti][si].imgPt[li].x 
+                               + initTransfArray[index][4]*trackPts[ti][si].imgPt[li].y 
+                               + initTransfArray[index][5]);
+                
+                //check (iA,jA) are inside the image!
+		if ( ( iA >= 0) && ( iA < row_max) && ( jA >= 0) && ( jA < col_max)){ 
+		  if (is_valid(interpDRG(jA, iA)) ){
+                    //calculate ii & jj relative to the image center
+		    I_e_val = interpDRG(jA,iA) - scaleFactor*trackPts[ti][si].reflectance;
+		  }
+                  else{
+                    I_e_val= 0;
+                  }
+
+		  errorArray[index] += abs(I_e_val);
+		}
+		
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    //determine the best image transform for which the matching error is minimized 
+    float minError = errorArray[0];
+    finalTransf = initTransfArray[0];
+    for (index = 0; index < initTransfArray.size(); index++){
+      if (errorArray[index] < minError){
+	minError = errorArray[index];
+        finalTransf = initTransfArray[index];
+      }  
+    } 
+    *matchingError = minError;
+}
 
 //this is the MP-multi processor version of the above function
 void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
