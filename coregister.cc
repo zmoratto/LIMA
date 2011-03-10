@@ -35,6 +35,8 @@ namespace fs = boost::filesystem;
 #include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
+#include <asp/IsisIO.h>
+#include <asp/IsisIO/IsisCameraModel.h>
 
 using namespace vw;
 using namespace vw::math;
@@ -141,14 +143,16 @@ int main( int argc, char *argv[] ) {
   
   std::vector<std::string> DRGFiles;
   std::vector<std::string> DEMFiles;
+  std::vector<std::string> cubFiles;
   std::string resDir = "../results";
  
   po::options_description general_options("Options");
   general_options.add_options()
     ("LidarFile,l", po::value<std::string>(&inputCSVFilename))
     ("DRGFiles,i", po::value<std::vector<std::string> >(&DRGFiles))
+    ("cubFiles,c", po::value<std::vector<std::string> >(&cubFiles))
     ("res-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
-    ("config-filename,c", po::value<std::string>(&configFilename)->default_value("coregister_settings.txt"), "configuration filename.")
+    ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("coregister_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
   
 
@@ -263,7 +267,8 @@ int main( int argc, char *argv[] ) {
       initTransfArray[i][4] = 1.0;
       initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
     }    
- 
+    Vector<float, 6> bestInitTransf;
+
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
     for (int i = 0; i < trackPts.size(); i++){
@@ -322,14 +327,24 @@ int main( int argc, char *argv[] ) {
       cout<<"Initialize the affine tranformation"<<endl;
 
       float matchingError;
-      Vector<float, 6> finalTransf; 
+      Vector<float, 6> bestInitTransf; 
       InitMatchingParams(trackPts, inputDRGFilename, modelParams, settings,  
-			 initTransfArray, finalTransf, &matchingError);
+			 initTransfArray, bestInitTransf, &matchingError);
+     
       
-
+      
       //return matching error and transform
       cout << "UpdateMatchingParams ..."<< endl;
-      
+      //copy bestInitTransf to initTransfArray
+      initTransfArray.resize(1);
+      initTransfArray[0](0)=bestInitTransf(0);
+      initTransfArray[0](1)=bestInitTransf(1);
+      initTransfArray[0](2)=bestInitTransf(2);
+      initTransfArray[0](3)=bestInitTransf(3);
+      initTransfArray[0](4)=bestInitTransf(4);
+      initTransfArray[0](5)=bestInitTransf(5);
+      finalTransfArray.resize(1);
+      //resize finalTransfArray
       UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
 				  modelParams, settings,  
 				  initTransfArray, finalTransfArray, errorArray);
@@ -340,15 +355,7 @@ int main( int argc, char *argv[] ) {
 			   initTransfArray, finalTransfArray, errorArray);
       */
     }
-    /*
-    if (settings.matchingMode == LIDEM){
-      //return matching error and transform
-      cout << "UpdateMatchingParams ..."<< endl;
-      UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
-				   modelParams, settings,  
-				   initTransfArray, finalTransfArray, errorArray);
-    }
-    */
+ 
     int bestResult = 0;
     float smallestError = std::numeric_limits<float>::max();
     for (int index = 0; index < initTransfArray.size(); index++){
