@@ -51,17 +51,24 @@ using namespace std;
 
 //displays the original tracks(red) and transformed tracks(cyan) over the image
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
-                              vector<int> trackIndices, string DRGFilename, string outFilename)
+                              vector<int> trackIndices, string cubFilename, string outFilename)
 {
-  DiskImageView<PixelRGB<uint8> >   DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-  
+  //DiskImageView<PixelRGB<uint8> >   DRG(DRGFilename);
+  //GeoReference DRGGeo;
+  //read_georeference(DRGGeo, DRGFilename);
+
+
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+  double nodataVal = rsrc->nodata_read();
+  cout<<"nodaval:"<<nodataVal<<endl;
+  DiskImageView<PixelGray<float> > cub( rsrc );
+  camera::IsisCameraModel model(cubFilename);
  
+
   vector<pointCloud> ptHere;
-  int minX = DRG.cols()-1;
+  int minX = cub.cols()-1;
   int maxX = 0;
-  int minY = DRG.rows()-1;
+  int minY = cub.rows()-1;
   int maxY = 0;
   int point_size = 7;
 
@@ -75,11 +82,16 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	  float lat = pt.coords[1];
 	  float rad = pt.coords[2];
 	
-	  Vector2 DEM_lonlat(lon, lat);
-	  Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+	  //Vector2 DEM_lonlat(lon, lat);
+	  //Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
+          //int x = (int)DRG_pix[0];
+	  //int y = (int)DRG_pix[1];
 
-	  int x = (int)DRG_pix[0];
-	  int y = (int)DRG_pix[1];
+          Vector3 lon_lat_rad (lon,lat,rad*1000);
+          Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+          Vector2 DRG_pix = model.point_to_pixel(xyz);
+          float x = DRG_pix[0];
+          float y = DRG_pix[1];
 
           //compute the transformed pts
           int xd = (int)floor(d[0]*x + d[1]*y + d[2]);
@@ -125,13 +137,14 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
    //make sure the bounding box is within the image boundaries
    if (minX < 0) minX = 0;   
    if (minY < 0) minY = 0; 
-   if (maxX > DRG.cols()-1) maxX = DRG.cols()-1;   
-   if (maxY > DRG.rows()-1) maxY = DRG.rows()-1; 
+   if (maxX > cub.cols()-1) maxX = cub.cols()-1;   
+   if (maxY > cub.rows()-1) maxY = cub.rows()-1; 
   
    printf("minX = %d, minY = %d, maxX = %d,  maxY = %d\n", minX, minY, maxX, maxY);
 
+   ImageView<PixelGray<uint8> > DRG = apply_mask(normalize(create_mask(cub,nodataVal))*255,0);
    ImageView<PixelRGB<uint8> > DRG_crop = crop(DRG, int32(minX), int32(minY), maxX-minX+1, maxY-minY+1);
-
+   
    //#if 0
    for (int i = 0; i < trackPts.size(); i++){//for each track
     for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
@@ -145,15 +158,17 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    float lon = pt.coords[0];
 	    float lat = pt.coords[1];
 	    float rad = pt.coords[2];
-	
+	    /*
 	    Vector2 DEM_lonlat(lon, lat);
-    
-
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-	    
-	    
             int x = (int)DRG_pix[0];
 	    int y = (int)DRG_pix[1];
+	    */
+            Vector3 lon_lat_rad (lon,lat,rad*1000);
+            Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+            Vector2 DRG_pix = model.point_to_pixel(xyz);
+            float x = DRG_pix[0];
+            float y = DRG_pix[1];
                   
             //make sure we are not running outside the image boundaries.
             xl = int32(x) - point_size-minX;
@@ -195,10 +210,12 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
    }
    //#endif
   //write output image
-
+  GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
+   
   write_georeferenced_image(outFilename,
                             DRG_crop,
-                            DRGGeo, TerminalProgressCallback("Core","Processing:"));
+                            moonref, TerminalProgressCallback("Core","Processing:"));
+   
 }
 
 

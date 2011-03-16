@@ -35,6 +35,8 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Photometry.h>
 #include <vw/Math.h>
+#include <asp/IsisIO.h>
+#include <asp/IsisIO/IsisCameraModel.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -100,7 +102,6 @@ struct LOLAShot
 
 
   float featurePtLOLA;
-  //int   calc_acpLOLA;             //is the filter valid here?
   float filresLOLA;           
         
   vector<pointCloud> LOLAPt;
@@ -110,6 +111,7 @@ struct LOLAShot
 
 
 //computes the scale factor for all tracks at once
+Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
@@ -126,6 +128,9 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
 
+//template <class ViewT>
+void 
+GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
 
 template <class ViewT>
 void 

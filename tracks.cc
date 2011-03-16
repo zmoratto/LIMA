@@ -47,6 +47,107 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 
+
+Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
+{
+  Vector2 minmax;
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+  double nodataVal = rsrc->nodata_read();
+  cout<<"nodaval:"<<nodataVal<<endl;
+  DiskImageView<PixelGray<float> > isis_view( rsrc );
+  int width = isis_view.cols();
+  int height = isis_view.rows();
+  float minVal = 100000000.0;
+  float maxVal = -100000000.0;
+  for (int i = 0; i < height; i++){
+    for (int j = 0; j < width; j++){
+      
+      if ((isis_view(j,i) < minVal) && (isis_view(j,i) > nodataVal)){
+	minVal = isis_view(j,i);
+      }
+      if ((isis_view(j,i) > maxVal) && (isis_view(j,i) > nodataVal)){
+	maxVal = isis_view(j,i);
+      }
+    }
+  }
+  minmax(0) = minVal;
+  minmax(1) = maxVal;
+  cout<<"min="<<minVal<<", max="<<maxVal<<endl;
+
+  return minmax;
+}
+
+void 
+GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
+{
+
+  vector<pointCloud> LOLAPts;
+  
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+  double nodata_value = rsrc->nodata_read();
+ 
+  DiskImageView<PixelGray<float> > isis_view( rsrc );
+  int width = isis_view.cols();
+  int height = isis_view.rows();
+  camera::IsisCameraModel model(cubFilename);
+
+  //calculate the min max value of the image
+  Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
+
+  ImageViewRef<float> interpImg;
+  interpImg = pixel_cast<float>(interpolate(edge_extend(isis_view,
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+  
+  for(int k = 0; k < trackPts.size();k++){
+    for(int i = 0; i < trackPts[k].size(); i++){
+      
+      trackPts[k][i].valid = 1; 
+
+      LOLAPts = trackPts[k][i].LOLAPt;
+      trackPts[k][i].imgPt.resize(LOLAPts.size());
+
+      for (int j = 0; j < LOLAPts.size(); j++){
+          
+	    float lon = LOLAPts[j].coords[0];
+	    float lat = LOLAPts[j].coords[1];
+	    float rad = LOLAPts[j].coords[2];
+            
+            Vector3 lon_lat_rad (lon,lat,rad*1000);
+            Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+            Vector2 cub_pix = model.point_to_pixel(xyz);
+            float x = cub_pix[0];
+            float y = cub_pix[1];
+            //check that (x,y) are within the image boundaries
+	    if ((x>=0) && (y>=0) && (x<width) && (y<height)){//valid position  
+              //check for valid data as well
+              if (interpImg(x, y)>nodata_value){//valid values
+		 trackPts[k][i].imgPt[j].val = interpImg(x, y) - minmax(0);
+	         trackPts[k][i].imgPt[j].x = cub_pix[0];
+	         trackPts[k][i].imgPt[j].y = cub_pix[1];
+	      }
+              else{//invalidate the point
+                 trackPts[k][i].valid = 0;
+              }
+	    }
+            else{ //invalidate the point  
+                 trackPts[k][i].valid = 0; 
+            }
+	
+      }
+      //check for valid shot with 3 points to compute reflectance
+      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
+      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
+      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
+      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() >5)){//invalid LOLA shot
+          trackPts[k][i].valid = 0; 
+      }
+
+    }//i  
+  }//k
+ 
+}
+
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
 {
   vector<float> pts;
@@ -75,7 +176,7 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 
   for(int k = 0; k < trackPts.size();k++){
     for(int i = 0; i < trackPts[k].size(); i++){
-      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0)){//valid track and non-zero reflectance
+      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
 
         //update the nominator for the center point
         for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
@@ -310,7 +411,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 }
 
 
-void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
+void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
                   vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
 {
 
@@ -319,7 +420,6 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   //for all features in the LOLA data
   for (int t=0; t<trackPts.size(); t++){
     for (int s=0; s<trackPts[t].size(); s++){
-      //if (((s/50)*50==s) && (trackPts[t][s].valid==1)){
       if (trackPts[t][s].featurePtLOLA==1){
 
 	float x = trackPts[t][s].LOLAPt[2].coords[0];
@@ -331,9 +431,7 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
  
 	stringstream ss;
 	ss<<index;
-	cout<<"string_num"<<ss.str();
 	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
-	cout<<this_gcpFilename<<endl;
     
 	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
 	
@@ -341,7 +439,12 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
 	for (int k = 0; k < overlapIndices.size(); k++){
 	  float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
 	  float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
-	  fprintf(fp, "%s %f %f\n", sufix_from_filename(DRGFiles[overlapIndices[k]]).c_str(), i, j);
+          string filenameNoPath = imgFiles[overlapIndices[k]];
+          int lastSlashPos = filenameNoPath.find_last_of("/");
+          if (lastSlashPos != -1){
+	    filenameNoPath.erase(0, lastSlashPos+1);
+	  }
+          fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
 	}
   
 	fclose(fp);
@@ -352,5 +455,8 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   }
   
 }
+
+
+
 
 

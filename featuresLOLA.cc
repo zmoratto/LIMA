@@ -238,7 +238,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
     if (salientFeatureThresh > 0){    
       //compute the salient features
       for(int si = 0; si < trackPts.size(); si ++ ){
-	if(( abs(trackPts[si].filresLOLA) >= salientFeatureThresh ) && (trackPts[si].valid)){
+	if(( abs(trackPts[si].filresLOLA) >= salientFeatureThresh ) /*&& (trackPts[si].valid)*/){
 	  trackPts[si].featurePtLOLA = 1;  
 	  numSalientFeatures ++;
 	}

@@ -42,8 +42,9 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace vw::photometry;
-
+using namespace vw::camera;
 using namespace std;
+
 #include <math.h>
 #include "tracks.h"
 #include "io.h"
@@ -60,7 +61,7 @@ void printOverlapList(std::vector<int>  overlapIndices)
       printf("%d ", overlapIndices[i]);
     }
 }
-
+/*
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
 Vector4 ComputeGeoBoundary(GeoReference Geo, int width, int height)
@@ -97,6 +98,48 @@ Vector4 ComputeGeoBoundary(GeoReference Geo, int width, int height)
 
   return corners;
 }
+*/
+
+
+
+//this will be used to compute the makeOverlapList in a more general way.
+//it takes into consideration any set of overlapping images.
+Vector4 ComputeGeoBoundary(string cubFilename)
+{
+  GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
+  boost::shared_ptr<IsisCameraModel> isiscam( new IsisCameraModel( cubFilename ) );
+  BBox2 camera_boundary =
+    camera_bbox( moonref, boost::shared_dynamic_cast<CameraModel>(isiscam),
+		 isiscam->samples(), isiscam->lines() );
+ 
+  Vector4 corners;
+ 
+
+  float minLon = camera_boundary.min()[0];
+  float minLat = camera_boundary.min()[1];
+  float maxLon = camera_boundary.max()[0];
+  float maxLat = camera_boundary.max()[1];
+
+  printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
+  if (maxLat<minLat){
+      float temp = minLat;
+      minLat = maxLat;
+      maxLat = temp;    
+  }
+
+  if (maxLon<minLon){
+     float temp = minLon;
+     minLon = maxLon;
+     maxLon = temp;    
+  }
+
+  corners(0) = minLon;
+  corners(1) = maxLon;
+  corners(2) = minLat;
+  corners(3) = maxLat;
+
+  return corners;
+}
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
@@ -108,13 +151,16 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
 
        int lonOverlap = 0;
        int latOverlap = 0; 
-
+       /*
        DiskImageView<PixelMask<PixelGray<uint8> > >  image(inputFiles[i]);
        GeoReference geo;
        read_georeference(geo, inputFiles[i]);
        int width = image.cols();
        int height = image.rows();
        Vector4 corners = ComputeGeoBoundary(geo, width, height);
+       */
+       Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
+
        printf("corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
 
        if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon in interval 
@@ -141,17 +187,16 @@ int main( int argc, char *argv[] ) {
   string inputCSVFilename; 
   std::string configFilename="coregister_settings.txt";
   
-  std::vector<std::string> DRGFiles;
+  //std::vector<std::string> DRGFiles;
   std::vector<std::string> DEMFiles;
   std::vector<std::string> cubFiles;
   std::string resDir = "../results";
  
   po::options_description general_options("Options");
   general_options.add_options()
-    ("LidarFile,l", po::value<std::string>(&inputCSVFilename))
-    ("DRGFiles,i", po::value<std::vector<std::string> >(&DRGFiles))
+    ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("cubFiles,c", po::value<std::vector<std::string> >(&cubFiles))
-    ("res-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
+    ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
     ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("coregister_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
   
@@ -165,7 +210,7 @@ int main( int argc, char *argv[] ) {
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
-  p.add("DRGFiles", -1);
+  p.add("cubFiles", -1);
 
   std::ostringstream usage;
   usage << "Description: main code for Lidar to image or DEM co-registration" << std::endl << std::endl;
@@ -187,13 +232,18 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("DRGFiles") < 1 ) && (vm.count("DEMFiles") < 1)) {
+  if(( vm.count("cubFiles") < 1 ) /*&& (vm.count("DEMFiles") < 1)*/) {
     std::cerr << "Error: Must specify at least one orthoprojected image file or one DEM file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
   }
 
-
+  int numCubFiles = cubFiles.size();
+  printf("numCubFiles = %d\n", numCubFiles);
+  for (int i = 0; i < numCubFiles; i++){
+    printf("cubFiles[%d] = %s\n", i, cubFiles[i].c_str());
+  }
+  
   struct CoregistrationParams settings;
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
@@ -216,12 +266,24 @@ int main( int argc, char *argv[] ) {
   lon_lat_bb[2]=lat_lon_bb[0];
   lon_lat_bb[3]=lat_lon_bb[1];
   printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
-  std::vector<int> overlapIndices = makeOverlapList(DRGFiles, lon_lat_bb);
+  /*
+  //generate the DRG filenames
+  DRGFiles.resize(cubFiles.size());
+  for(int i = 0; i < cubFiles.size(); i++){
+    DRGFiles[i] = cubFiles[i];
+    int start = DRGFiles[i].find("_map.cub");
+    DRGFiles[i].replace(start, 8, "_geo.tif");
+    start = DRGFiles[i].find("-CUB");
+    DRGFiles[i].replace(start, 4, "-DRG");
+    printf("DRGFiles[%d] = %s\n", i, DRGFiles[i].c_str());
+  }    
+  */
+  
+  std::vector<int> overlapIndices = makeOverlapList(cubFiles, lon_lat_bb);
   printOverlapList(overlapIndices);
   printf("done\n");
 
   int numOverlappingImages = (int)overlapIndices.size();
- 
   //determine the LOLA features
   int halfWindow = 10;
   printf("numTracks = %d\n", (int)trackPts.size());
@@ -239,21 +301,21 @@ int main( int argc, char *argv[] ) {
   for (int k = 0; k < numOverlappingImages; k++){
 
     string inputDEMFilename;
-    string inputDRGFilename = DRGFiles[k];  
-    cout<<inputDRGFilename<<endl;
+    string inputImgFilename = cubFiles[k];;  
+    cout<<inputImgFilename<<endl;
 
-    string DRGFilenameNoPath = sufix_from_filename(inputDRGFilename);
+    string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
 
-    string imgPtsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "img.txt";    
-    string reflectancePtsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "refl.txt";  
-    string syntImgPtsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "synth.txt";  
-    string altitudePtsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "alt.txt";
-    string demPtsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "dem.txt";
-    string lolaTracksFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "_lola.tif";  
-    string outFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "_results.tif";  
-    string lolaFeaturesFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "_features_lola.txt";  
-    string transformFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "transform_results"  +".txt";  
-    string matchResultsFilename = resDir + prefix_less3_from_filename(DRGFilenameNoPath) + "match_results"  +".txt";  
+    string imgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img.txt";    
+    string reflectancePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "refl.txt";  
+    string syntImgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "synth.txt";  
+    string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";
+    string demPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "dem.txt";
+    string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_lola.tif";  
+    string outFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_results.tif";  
+    string lolaFeaturesFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_features_lola.txt";  
+    string transformFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "transform_results"  +".txt";  
+    string matchResultsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "match_results"  +".txt";  
 
     //create the results directory and prepare the output filenames - END
 
@@ -281,7 +343,7 @@ int main( int argc, char *argv[] ) {
     finalTransfArray.resize(settings.maxNumStarts);
 
     //initialization step for LIMA - START  
-  
+    /* 
     DiskImageView<PixelGray<uint8> >   DRG(inputDRGFilename);
     GeoReference DRGGeo;
     read_georeference(DRGGeo, inputDRGFilename);
@@ -294,7 +356,11 @@ int main( int argc, char *argv[] ) {
     //get the true image points
     cout << "GetAllPtsFromImage..." << endl; 
     GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-   
+    */
+
+    cout<<"GetAllPtsFromCub"<<endl; 
+    cout<<"cubFile ="<<cubFiles[k]<<endl;
+    GetAllPtsFromCub(trackPts, cubFiles[k]);
 
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParams, settings);
@@ -328,14 +394,16 @@ int main( int argc, char *argv[] ) {
 
       float matchingError;
       Vector<float, 6> bestInitTransf; 
-      InitMatchingParams(trackPts, inputDRGFilename, modelParams, settings,  
-			 initTransfArray, bestInitTransf, &matchingError);
+      //InitMatchingParams(trackPts, inputDRGFilename, modelParams, settings,  
+      //		   initTransfArray, bestInitTransf, &matchingError);
      
-      
+      InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings,  
+				initTransfArray, bestInitTransf, &matchingError);
       
       //return matching error and transform
-      cout << "UpdateMatchingParams ..."<< endl;
+      //resize finalTransfArray
       //copy bestInitTransf to initTransfArray
+      
       initTransfArray.resize(1);
       initTransfArray[0](0)=bestInitTransf(0);
       initTransfArray[0](1)=bestInitTransf(1);
@@ -343,23 +411,49 @@ int main( int argc, char *argv[] ) {
       initTransfArray[0](3)=bestInitTransf(3);
       initTransfArray[0](4)=bestInitTransf(4);
       initTransfArray[0](5)=bestInitTransf(5);
+      errorArray.resize(1);
+      errorArray[0] = matchingError;
+      for (int index = 0; index < initTransfArray.size(); index++){
+	printf("init %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+	     index, errorArray[index], 
+	     initTransfArray[index](0), initTransfArray[index](1), 
+	     initTransfArray[index](2), initTransfArray[index](3),
+	     initTransfArray[index](4), initTransfArray[index](5));
+      }
+
       finalTransfArray.resize(1);
-      //resize finalTransfArray
+
+      /* 
+      cout << "UpdateMatchingParams ..."<< endl;
       UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
 				  modelParams, settings,  
 				  initTransfArray, finalTransfArray, errorArray);
+      */
       
       /*
       UpdateMatchingParams(trackPts, inputDRGFilename, 
 			   modelParams, 10,  
 			   initTransfArray, finalTransfArray, errorArray);
       */
+      
+      UpdateMatchingParamsFromCub(trackPts, cubFiles[k], 
+      			          modelParams, 10,  
+      			          initTransfArray, finalTransfArray, errorArray);
+      
+      /*
+      finalTransfArray[0](0) = initTransfArray[0](0); 
+      finalTransfArray[0](1) = initTransfArray[0](1); 
+      finalTransfArray[0](2) = initTransfArray[0](2); 
+      finalTransfArray[0](3) = initTransfArray[0](3); 
+      finalTransfArray[0](4) = initTransfArray[0](4); 
+      finalTransfArray[0](5) = initTransfArray[0](5); 
+      */    
     }
  
     int bestResult = 0;
     float smallestError = std::numeric_limits<float>::max();
     for (int index = 0; index < initTransfArray.size(); index++){
-      printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+      printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	     index, errorArray[index], 
 	     finalTransfArray[index](0), finalTransfArray[index](1), 
 	     finalTransfArray[index](2), finalTransfArray[index](3),
@@ -377,7 +471,7 @@ int main( int argc, char *argv[] ) {
 
     //write finalTransfArray and errorArray to file
     //this is mostly for debugging info
-    SaveReportFile(trackPts, finalTransfArray, errorArray, transformFilename);
+    //SaveReportFile(trackPts, finalTransfArray, errorArray, transformFilename);
     
     //this is what is needed by further steps.
     //this s replaced by SaveGCPoints
@@ -388,11 +482,11 @@ int main( int argc, char *argv[] ) {
     //determine the image feature location using the finalTransfArray
     //save the image features to file.
 
-    
+   
     if (settings.displayResults){
       //write results to image outside matching
       ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
-			       trackIndices, inputDRGFilename, outFilename);
+			       trackIndices, cubFiles[k], outFilename);
     }
     
 
@@ -400,11 +494,18 @@ int main( int argc, char *argv[] ) {
  
   //save the GCP
   string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));
-  SaveGCPoints(trackPts, DRGFiles,  overlapIndices, 
+
+  for (int k = 0; k < numOverlappingImages; k++){
+    printf("k=%d, [0]:%f  [1]:%f [2]:%f [3]:%f [4]:%f [5]:%f\n",
+	   k, optimalTransfArray[k][0], optimalTransfArray[k][1],
+              optimalTransfArray[k][2], optimalTransfArray[k][3],
+              optimalTransfArray[k][4], optimalTransfArray[k][5]);
+  }
+  cout<<"writting the GC file..."<<endl;
+  SaveGCPoints(trackPts, cubFiles,  overlapIndices, 
                optimalTransfArray, optimalErrorArray, gcpFilenameRoot);
-
-
   return 0;
+
 }
 
 

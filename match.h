@@ -49,7 +49,14 @@ using namespace std;
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
- 
+void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
+			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
+			       vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
+				float *matchingError);
+void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
+			         ModelParams modelParams,  int numMaxIter, 
+			         vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+			         vector<float> &errorArray );
 void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
