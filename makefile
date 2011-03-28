@@ -25,7 +25,10 @@ LDFLAGS += -arch i386
 coregister: coregister.cc
 	g++ -arch i386 -fopenmp $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS) coregister.cc tracks.cc match.cc io.cc display.cc weights.cc featuresLOLA.cc -o coregister 
 
+assembler: assembler.cc
+	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  assembler.cc -o assembler 
+
 clean:
 	rm coregister
-#	rm *.o
+	rm assembler
 

@@ -53,10 +53,6 @@ using namespace std;
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
                               vector<int> trackIndices, string cubFilename, string outFilename)
 {
-  //DiskImageView<PixelRGB<uint8> >   DRG(DRGFilename);
-  //GeoReference DRGGeo;
-  //read_georeference(DRGGeo, DRGFilename);
-
 
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
   double nodataVal = rsrc->nodata_read();
@@ -81,12 +77,7 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	  float lon = pt.coords[0];
 	  float lat = pt.coords[1];
 	  float rad = pt.coords[2];
-	
-	  //Vector2 DEM_lonlat(lon, lat);
-	  //Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-          //int x = (int)DRG_pix[0];
-	  //int y = (int)DRG_pix[1];
-
+       
           Vector3 lon_lat_rad (lon,lat,rad*1000);
           Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
           Vector2 DRG_pix = model.point_to_pixel(xyz);
@@ -158,12 +149,7 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 	    float lon = pt.coords[0];
 	    float lat = pt.coords[1];
 	    float rad = pt.coords[2];
-	    /*
-	    Vector2 DEM_lonlat(lon, lat);
-	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
-            int x = (int)DRG_pix[0];
-	    int y = (int)DRG_pix[1];
-	    */
+	  
             Vector3 lon_lat_rad (lon,lat,rad*1000);
             Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
             Vector2 DRG_pix = model.point_to_pixel(xyz);
