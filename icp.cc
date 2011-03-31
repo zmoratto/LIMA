@@ -174,7 +174,7 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
 {
 
   for (int i=0; i < featureArray.size(); i++){
-    featureArray[i] = rotation*featureArray[i] + translation; 
+    featureArray[i] = inverse(rotation)*featureArray[i] - translation; 
   }
 
  

@@ -179,17 +179,18 @@ int main( int argc, char *argv[] ) {
     vector<Vector3> matchArray;
     matchArray.resize(featureArray.size());
   
-    int maxNumIter = 2;
+    int maxNumIter = 10;
     int numIter = 0;
-    float deltaError=100.0;
+    //float deltaError=100.0;
+    float matchError = 100.0;
 
-    while((numIter < maxNumIter)&&(deltaError > 0.1)){
+    while((numIter < maxNumIter)&&(matchError > 0.1)){
       printf("feature matching ...\n");
       //FindMatches(featureArray, backDEM, backDEMGeo, matchArray);
       FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
       
       cout<<"computing the matching error ..."<<endl;
-      float matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
+      matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
       cout<<"match error="<<matchError<<endl;
 
       cout<<"computing DEM translation ..."<<endl;

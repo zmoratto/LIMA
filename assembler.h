@@ -136,7 +136,7 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
              Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
 
              //apply rotation and translation
-	      Vector3 transf_fore_xyz = rotation*fore_xyz + translation;       
+	     Vector3 transf_fore_xyz = inverse(rotation)*fore_xyz - translation;       
              
              //transform back in spherical coords
              Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
