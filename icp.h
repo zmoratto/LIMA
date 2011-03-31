@@ -101,7 +101,8 @@ GetFeaturesXYZ(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
  int verStep = 8;
  int horStep = 8;
  vector<Vector3> featureArray;
- 
+ //determine if this is ppd or mpp.
+ //determine the modata value as well
  ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
                                                                            ConstantEdgeExtension()),
                                                                            BilinearInterpolation());
@@ -136,8 +137,11 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  
  int matchWindowHalfWidth = 5;
  int matchWindowHalfHeight = 5;
- float usgs_2_lonlat = 180/(3.14159265*3396190);
 
+ //this should be called DPP_2_MPP_MARS (degree per pixel 2 meter per pixel Mars)
+ float usgs_2_lonlat = 180/(3.14159265*3396190); 
+ //should define PPD_2_MPP_MOON
+ 
  ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
                                                                            ConstantEdgeExtension()),
                                                                            BilinearInterpolation());

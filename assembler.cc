@@ -37,9 +37,9 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
-//#include "cv.h"
 
 #include "icp.h"
+#include "assembler.h"
 
 using namespace vw;
 using namespace vw::math;
@@ -86,115 +86,6 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   
   return numPixPerDegree;
 }
-
-
-template <class ViewT1, class ViewT2 >
-void
-ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
-                      ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3> rotation)
-{
- 
-  float usgs_2_lonlat = 180/(3.14159265*3396190);
-  float maxUpsampleRatioBackImg = 4.0;
-
-  float numPixPerDegreeBackImg = ComputePixPerDegree(backGeo, orig_backImg.impl().cols(), orig_backImg.impl().rows(), 1);
-  printf("numPixPerDegreeBackmg = %f\n", numPixPerDegreeBackImg);
-  float numPixPerDegreeForeImg = ComputePixPerDegree(foreGeo, orig_foreImg.impl().cols(), orig_foreImg.impl().rows(), 0);
-  printf("numPixPerDegreeForeImg = %f\n", numPixPerDegreeForeImg);
-  
-  float upsampleRatioBackImg = numPixPerDegreeForeImg/numPixPerDegreeBackImg;
-  float upsampleRatioForeImg = 1;
-  if (upsampleRatioBackImg > maxUpsampleRatioBackImg){
-      upsampleRatioForeImg = maxUpsampleRatioBackImg/upsampleRatioBackImg;
-      upsampleRatioBackImg = maxUpsampleRatioBackImg;  
-  }
-  
-  printf("upsampleRatioBackDEM = %f\n", upsampleRatioBackImg);
-  printf("upsampleRatioForeDEM = %f\n", upsampleRatioForeImg);
-
-  int assembledWidth = (int)floor(upsampleRatioBackImg*orig_backImg.impl().cols());
-  int assembledHeight = (int)floor(upsampleRatioBackImg*orig_backImg.impl().rows());
-  printf("W = %d, H = %d, aW = %d, aH = %d\n", orig_foreImg.impl().cols(), orig_foreImg.impl().rows(), assembledWidth, assembledHeight);
-  
-
-  Matrix<double> H;
-  ImageView<typename ViewT1::pixel_type> assembledImg(assembledWidth, assembledHeight);
-
-  ImageViewRef<typename ViewT1::pixel_type>  foreImg = interpolate(edge_extend(orig_foreImg.impl(),
-                                                                           ConstantEdgeExtension()),
-                                                                           BilinearInterpolation());
-   
-  ImageViewRef<typename ViewT2::pixel_type>  backImg = interpolate(edge_extend(orig_backImg.impl(),
-                                                                           ConstantEdgeExtension()),
-                                                                           BilinearInterpolation());
- 
-  H = backGeo.transform();
-  H(0,0) /=upsampleRatioBackImg;
-  H(1,1) /=upsampleRatioBackImg;
-  GeoReference assembledGeo; 
-  assembledGeo.set_transform(H);
-
-  typedef typename PixelChannelType<typename ViewT2::pixel_type>::type channel_type;
-
-  int num_channels = PixelNumChannels<typename ViewT1::pixel_type>::value;
-  cout << "num_channels = "<< num_channels << "\n";
-
-  for (int j = 0; j < assembledHeight-1; j++){
-    for (int i = 0; i < assembledWidth-1; i++){
-      
-       float y = j/upsampleRatioBackImg;
-       float x = i/upsampleRatioBackImg;     
-
-       //copy the background image
-       if (mode == 0){ //DEM
-          assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
-       }
-       else{ //DRG
-	 assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
-	 assembledImg.impl()(i,j)[1] = backImg.impl()(x,y)[0];
-	 assembledImg.impl()(i,j)[2] = backImg.impl()(x,y)[0];
-       }
-
-       //get the pixel with these coordinates in the foreDRG 
-       Vector2 pix(x, y);
-       Vector2 backUSGS_lonlat = backGeo.pixel_to_lonlat(pix);
-       Vector2 back_lonlat = backUSGS_lonlat*usgs_2_lonlat;
-           
-       if (back_lonlat(0)< 0) back_lonlat(0) = 180+back_lonlat(0);
-      
-       Vector2 fore_pix = foreGeo.lonlat_to_pixel(back_lonlat);
-       x = fore_pix(0);
-       y = fore_pix(1);
-       
-       //copy the foreground image
-       if ((x>0) && (x<foreImg.impl().cols()-1) && (y>0) && (y<foreImg.impl().rows())){
-
-         if (mode == 0){
-	   if ((isnan(foreImg.impl()(x,y)[0])!=FP_NAN) && (foreImg.impl()(x,y)[0]) != 0)  { 
-	     //assembledImg.impl()(i,j)[0] = foreImg.impl()(x,y)[0] - 1927.6;
-             assembledImg.impl()(i,j) = foreImg.impl()(x,y) - translation[2];
-             
-	   }
-	 }
-         else{
-	   if ((foreImg.impl()(x,y)[0]!=255) && (foreImg.impl()(x,y)[1]!=255) && (foreImg.impl()(x,y)[2]!=255)){
-             assembledImg.impl()(i,j)[0] = foreImg.impl()(x,y)[0];
-             assembledImg.impl()(i,j)[1] = foreImg.impl()(x,y)[1];
-             assembledImg.impl()(i,j)[2] = foreImg.impl()(x,y)[2];
-	   }
-	 }
-       }
-       
-   }
-  }
-  
-  write_georeferenced_image(assembledImgFilename,
-                            assembledImg,
-                            assembledGeo, TerminalProgressCallback("{Core}","Processing:"));
- 
-}
-
 
 
 int main( int argc, char *argv[] ) {
@@ -272,24 +163,7 @@ int main( int argc, char *argv[] ) {
     read_georeference(backDEMGeo, backDEMFilename);
     printf("done opening the the backDEM\n");
 
-    /*
-      ImageView<PixelGray<float> > tempDEM(backDEM.cols(), backDEM.rows());
-      tempDEM = copy(backDEM);
-
-      Matrix<double> H;  
-      H = backDEMGeo.transform();
-      //H(0,0) /=upsampleRatioBackImg;
-      //H(1,1) /=upsampleRatioBackImg;
-      float usgs_2_lonlat = 180/(3.14159265*3396190);
-      H(0,0) /usgs_2_lonlat;
-      H(1,1) /usgs_2_lonlat;
-      GeoReference tempGeo; 
-      tempGeo.set_transform(H);
-
-      string tempFilename = "../results/Mars/MER_HIRISE/temp_dem.tif";
-      write_georeferenced_image(tempFilename, tempDEM,backDEMGeo, TerminalProgressCallback("{Core}","Processing:"));
-  */
-
+  
     //large image low res - background
     DiskImageView<PixelGray<float> >  foreDEM(foreDEMFilename);
     GeoReference foreDEMGeo;
@@ -356,8 +230,8 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDRGGeo, foreDRGFilename);
     printf("done opening the the foreDRG\n");
  
-    ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
-			  assembledDRGFilename, 1, translation, rotation);
+    ComputeAssembledImageNew(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
+			     assembledDRGFilename, 1, translation, rotation);
   
    }
 }
