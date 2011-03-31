@@ -172,8 +172,8 @@ int main( int argc, char *argv[] ) {
     
 
     printf("feature extraction ...\n");
-    //vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
-    vector<Vector3> featureArray = GetFeaturesXYZ(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
+    vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
+    //vector<Vector3> featureArray = GetFeaturesXYZ(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
     vector<float> errorArray;
     errorArray.resize(featureArray.size());
     vector<Vector3> matchArray;
@@ -185,8 +185,8 @@ int main( int argc, char *argv[] ) {
 
     while((numIter < maxNumIter)&&(deltaError > 0.1)){
       printf("feature matching ...\n");
-      //FindMatches(featureArray, backDEM, backDEMGeo, matchArray);
-      FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
+      FindMatches(featureArray, backDEM, backDEMGeo, matchArray);
+      //FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
       
       cout<<"computing the matching error ..."<<endl;
       float matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
@@ -230,8 +230,8 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDRGGeo, foreDRGFilename);
     printf("done opening the the foreDRG\n");
  
-    ComputeAssembledImageNew(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
-			     assembledDRGFilename, 1, translation, rotation);
+    ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
+			  assembledDRGFilename, 1, translation, rotation);
   
    }
 }
