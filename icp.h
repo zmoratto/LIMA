@@ -115,7 +115,7 @@ GetFeaturesXYZ(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 
 	 Vector2 forePix(i,j);
 	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
-	 fore_lonlat(0) = fore_lonlat(0)-180;
+	 //fore_lonlat(0) = fore_lonlat(0)-180;
        
          Vector3 fore_lonlat3(fore_lonlat(0), fore_lonlat(1), (foreImg.impl())(i,j));
          Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat3);
@@ -151,6 +151,8 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
      Vector2 fore_lonlat;
      fore_lonlat(0) = featureArray[i](0); 
      fore_lonlat(1) = featureArray[i](1);
+     //fore_lonlat(0) = fore_lonlat(0)-180;
+     
      Vector2 back_lonlat = fore_lonlat/usgs_2_lonlat;
      Vector2 backPix = backGeo.lonlat_to_pixel(back_lonlat);	 
      float x = backPix(0);
@@ -173,7 +175,8 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
           t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat; 
           t_back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
           t_back_lonlat3(2) = interpBackImg(l,k);
-           
+                 
+    
           float distance1 = t_back_lonlat3(0) - featureArray[i](0);
           float distance2 = t_back_lonlat3(1) - featureArray[i](1);
           float distance3 = t_back_lonlat3(2) - featureArray[i](2);
@@ -214,7 +217,7 @@ FindMatchesXYZ(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg
      //TO DO:revert fore from cartesian to spherical coordinates
      Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic(featureArray[i]);
      Vector2 fore_lonlat;
-     fore_lonlat(0) = fore_lonlat3(0); 
+     fore_lonlat(0) = fore_lonlat3(0)-180; 
      fore_lonlat(1) = fore_lonlat3(1);
      
      Vector2 back_lonlat = fore_lonlat/usgs_2_lonlat;
@@ -233,10 +236,19 @@ FindMatchesXYZ(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg
 	  Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
           Vector3 t_back_lonlat3;
           
-          t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat; 
+          //revert to fore lon lat system
+          //t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat; 
+          t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat+180;
           t_back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
           t_back_lonlat3(2) = interpBackImg(l,k);
-           
+          //cout<<"fore"<<fore_lonlat3(0)<<fore_lonlat3(1)<<fore_lonlat3(2)<<endl;          
+          //cout<<"back"<<t_back_lonlat3(0)<<t_back_lonlat3(1)<<t_back_lonlat3(2)<<endl;
+
+          //TO DO: transform into xyz coordinates.
+          t_back_lonlat3= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
+          //cout<<"fore"<<featureArray[i](0)<<" "<<featureArray[i](1)<<" "<<featureArray[i](2)<<endl;          
+          //cout<<"back"<<t_back_lonlat3(0)<<" "<<t_back_lonlat3(1)<<" "<<t_back_lonlat3(2)<<endl;
+
           float distance1 = t_back_lonlat3(0) - featureArray[i](0);
           float distance2 = t_back_lonlat3(1) - featureArray[i](1);
           float distance3 = t_back_lonlat3(2) - featureArray[i](2);
