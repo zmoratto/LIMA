@@ -46,21 +46,18 @@ void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchAr
   translation[0] = 0;
   translation[1] = 0;
   translation[2] = 0;
-
-  int count = 0;
   
   for (int i = 0; i < featureArray.size(); i++){
-       Vector3 fore_lonlat3 = featureArray[i];
-       Vector3 back_lonlat3 = matchArray[i];
-       translation[0] = translation[0] + fore_lonlat3(0) - back_lonlat3(0);
-       translation[1] = translation[1] + fore_lonlat3(1) - back_lonlat3(1);
-       translation[2] = translation[2] + fore_lonlat3(2) - back_lonlat3(2);
-       count++;
+       Vector3 fore = featureArray[i];
+       Vector3 back = matchArray[i];
+       translation[0] = translation[0] + back(0) - fore(0);
+       translation[1] = translation[1] + back(1) - fore(1);
+       translation[2] = translation[2] + back(2) - fore(2);
   }
 
-  translation[0] = translation[0]/count;
-  translation[1] = translation[1]/count;
-  translation[2] = translation[2]/count;
+  translation[0] = translation[0]/featureArray.size();
+  translation[1] = translation[1]/featureArray.size();
+  translation[2] = translation[2]/featureArray.size();
 
 }
 
@@ -96,6 +93,7 @@ float ComputeMatchingError(vector<Vector3> featureArray, vector<Vector3> matchAr
        //cout<<endl;
        errorArray[i]=sqrt(overallDist);
        matchError = matchError + errorArray[i];
+       //cout<<"error= "<<errorArray[i]<<endl;
    }
    return matchError/featureArray.size();
   
@@ -119,21 +117,46 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
     }
   }
 
-
+  //compute the centroids
+  Vector3 featureCenter;
+  Vector3 matchCenter;
+  for (int i = 0; i < featureArray.size(); i++){  
+      featureCenter = featureCenter + featureArray[i];
+      matchCenter = matchCenter + matchArray[i];
+  }
+  featureCenter = featureCenter/featureArray.size();
+  matchCenter = matchCenter/matchArray.size();
+  
+  cout<<"F_center"<<featureCenter<<endl;
+  cout<<"M_center"<<matchCenter<<endl;
+  
   for (int i = 0; i < featureArray.size(); i++){     
        
-       Vector3 fore_lonlat3 = featureArray[i];
-       Vector3 back_lonlat3 = matchArray[i];
-
-       A[0][0] = A[0][0] + back_lonlat3[0]*(fore_lonlat3[0] - translation[0]);
-       A[0][1] = A[0][1] + back_lonlat3[1]*(fore_lonlat3[0] - translation[0]);
-       A[0][2] = A[0][2] + back_lonlat3[2]*(fore_lonlat3[0] - translation[0]);
-       A[1][0] = A[1][0] + back_lonlat3[0]*(fore_lonlat3[1] - translation[1]);
-       A[1][1] = A[1][1] + back_lonlat3[1]*(fore_lonlat3[1] - translation[1]);
-       A[1][2] = A[1][2] + back_lonlat3[2]*(fore_lonlat3[1] - translation[1]);
-       A[2][0] = A[2][0] + back_lonlat3[0]*(fore_lonlat3[2] - translation[2]);
-       A[2][1] = A[2][1] + back_lonlat3[1]*(fore_lonlat3[2] - translation[2]);
-       A[2][2] = A[2][2] + back_lonlat3[2]*(fore_lonlat3[2] - translation[2]);
+       Vector3 feature = featureArray[i];
+       Vector3 match = matchArray[i];
+        
+       /*
+       A[0][0] = A[0][0] + match[0]*(feature[0] - translation[0]);
+       A[0][1] = A[0][1] + match[1]*(feature[0] - translation[0]);
+       A[0][2] = A[0][2] + match[2]*(feature[0] - translation[0]);
+       A[1][0] = A[1][0] + match[0]*(feature[1] - translation[1]);
+       A[1][1] = A[1][1] + match[1]*(feature[1] - translation[1]);
+       A[1][2] = A[1][2] + match[2]*(feature[1] - translation[1]);
+       A[2][0] = A[2][0] + match[0]*(feature[2] - translation[2]);
+       A[2][1] = A[2][1] + match[1]*(feature[2] - translation[2]);
+       A[2][2] = A[2][2] + match[2]*(feature[2] - translation[2]);
+       */
+       A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
+       A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
+       A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
+       
+       A[0][1] = A[0][1] + (match[0]-matchCenter[0])*(feature[1] - featureCenter[1]);
+       A[1][1] = A[1][1] + (match[1]-matchCenter[1])*(feature[1] - featureCenter[1]);
+       A[2][1] = A[2][1] + (match[2]-matchCenter[2])*(feature[1] - featureCenter[1]);
+       
+       A[0][2] = A[0][2] + (match[0]-matchCenter[0])*(feature[2] - featureCenter[2]);
+       A[1][2] = A[1][2] + (match[1]-matchCenter[1])*(feature[2] - featureCenter[2]);
+       A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
   }
   
 
@@ -159,9 +182,13 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
 
   Matrix<float,3,3> VT = transpose(V);
   //PrintMatrix(VT);
+  // cout<<"s"<<s<<endl;
+  //rotation = U*VT;
+  rotation = U*V;
 
-  rotation = U*VT;
 
+  Matrix<float,3,3> id = rotation*transpose(rotation); 
+  //cout<<"IDENTITY="<<id<<endl; 
   //printf("R\n");
   //PrintMatrix(rotation);
 
@@ -173,8 +200,15 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
 void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matrix<float,3,3> rotation)
 {
 
+
+  Vector3 featureCenter;
+  for (int i = 0; i < featureArray.size(); i++){  
+      featureCenter = featureCenter + featureArray[i];
+  }
+  featureCenter = featureCenter/featureArray.size();
+
   for (int i=0; i < featureArray.size(); i++){
-    featureArray[i] = inverse(rotation)*featureArray[i] - translation; 
+    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter +translation; 
   }
 
  

@@ -115,6 +115,37 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
     }
    }
   cout<<"t[0]"<<translation[0]<<", t[1]"<<translation(1)<<", t[2]"<<translation(2)<<endl;
+  
+
+  //TO DO:compute the foreground centroid
+  Vector3 foreCenter_xyz;
+  int count = 0;
+  for (int j = 0; j < foreImg.impl().rows()-1; j++){
+    for (int i = 0; i < foreImg.impl().cols()-1; i++){ 
+      if (mode == 0){
+        if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != 0)  {       
+            
+             //case of cartesian coordinates
+	     //get the coordinates
+             Vector2 forePix(i,j);
+             Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
+	     //cout<<"orig:"<<fore_lon_lat(0)<<","<<fore_lon_lat(1)<<endl; 
+             
+             //spherical to cartesian
+             Vector3 fore_lon_lat_rad;
+             fore_lon_lat_rad(0) = fore_lon_lat(0);
+	     fore_lon_lat_rad(1) = fore_lon_lat(1);
+             fore_lon_lat_rad(2) = foreImg.impl()(i,j)[0];
+             Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
+             foreCenter_xyz = foreCenter_xyz + fore_xyz;
+             count++;
+	}
+      }
+    }
+  }
+  foreCenter_xyz = foreCenter_xyz/count;
+  cout<<"foreCenter_xyz"<<foreCenter_xyz<<endl;
+
   //transform the foreground image and copy it over the background image
   for (int j = 0; j < foreImg.impl().rows()-1; j++){
     for (int i = 0; i < foreImg.impl().cols()-1; i++){
@@ -134,18 +165,19 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     fore_lon_lat_rad(1) = fore_lon_lat(1);
              fore_lon_lat_rad(2) = foreImg.impl()(i,j)[0];
              Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
+             //cout<<"fore_"<<fore_xyz-foreCenter_xyz<<endl;
 
-             //apply rotation and translation
-	     Vector3 transf_fore_xyz = inverse(rotation)*fore_xyz - translation;       
-             
+             Vector3 transf_fore_xyz = rotation*(fore_xyz-foreCenter_xyz)+translation+foreCenter_xyz;
+             //Vector3 transf_fore_xyz = inverse(rotation)*fore_xyz + translation;     
              //transform back in spherical coords
              Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
-             
-             //cout<<"transf:"<<transf_fore_lon_lat_rad(0)<<","<<transf_fore_lon_lat_rad(1)<<endl;          
+
+             //cout<<"orig:"<<fore_lon_lat_rad<<endl;
+             //cout<<"transf:"<<transf_fore_lon_lat_rad<<endl;          
 
              //change into USGS coords
              fore_lon_lat(0) = transf_fore_lon_lat_rad(0)-180;  
-             fore_lon_lat(1) = transf_fore_lon_lat_rad(1);      
+             fore_lon_lat(1) = transf_fore_lon_lat_rad(1);    //very dangeorous  
              fore_lon_lat = fore_lon_lat/usgs_2_lonlat;  
           
              //determine their location on the assembled image
@@ -171,8 +203,11 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
              //case of spherical coordinates - END
 	     */
 
+             //cout<<backPix<<endl;
              //overwrite the assembled image 
-	     assembledImg.impl()(x,y) = foreImg.impl()(i,j) - translation[2];
+             if ((x>0) && (y>0) && (x<assembledImg.impl().cols()) && (y<assembledImg.impl().rows())){ 
+	         assembledImg.impl()(x,y) =  transf_fore_lon_lat_rad(2);
+	     }
 	   }
         }
         else{

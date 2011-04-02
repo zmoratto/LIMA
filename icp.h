@@ -224,14 +224,24 @@ FindMatchesXYZ(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg
      Vector2 backPix = backGeo.lonlat_to_pixel(back_lonlat);	 
      float x = backPix(0);
      float y = backPix(1);
+     
+     //initialize the search with the closest position on the background DEM
+     //Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
      Vector3 back_lonlat3;
-       
+     back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat+180;
+     back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
+     back_lonlat3(2) = interpBackImg(x,y);
+     
+     //cout<<"fore: "<<fore_lonlat3<<endl;
+     //cout<<"back_direct: "<<back_lonlat3<<endl;
+     
+
+     Vector3 back_xyz;
      //this can be commented out - START
      float minDistance = 10000000000.0;
      for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight; k++){
         for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth; l++){
  
-        
           Vector2 backPix(l,k);
 	  Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
           Vector3 t_back_lonlat3;
@@ -241,28 +251,31 @@ FindMatchesXYZ(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg
           t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat+180;
           t_back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
           t_back_lonlat3(2) = interpBackImg(l,k);
-          //cout<<"fore"<<fore_lonlat3(0)<<fore_lonlat3(1)<<fore_lonlat3(2)<<endl;          
-          //cout<<"back"<<t_back_lonlat3(0)<<t_back_lonlat3(1)<<t_back_lonlat3(2)<<endl;
 
-          //TO DO: transform into xyz coordinates.
-          t_back_lonlat3= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
+          //cout<<backPix<<endl;
+          //cout<<"fore: "<<fore_lonlat3<<endl;          
+          //cout<<"back: "<<t_back_lonlat3<<endl;
+
+          //transform into xyz coordinates of the foregound image.
+          Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
           //cout<<"fore"<<featureArray[i](0)<<" "<<featureArray[i](1)<<" "<<featureArray[i](2)<<endl;          
           //cout<<"back"<<t_back_lonlat3(0)<<" "<<t_back_lonlat3(1)<<" "<<t_back_lonlat3(2)<<endl;
 
-          float distance1 = t_back_lonlat3(0) - featureArray[i](0);
-          float distance2 = t_back_lonlat3(1) - featureArray[i](1);
-          float distance3 = t_back_lonlat3(2) - featureArray[i](2);
+          float distance1 = t_back_xyz(0) - featureArray[i](0);
+          float distance2 = t_back_xyz(1) - featureArray[i](1);
+          float distance3 = t_back_xyz(2) - featureArray[i](2);
           float distance = sqrt(distance1*distance1 + distance2*distance2 + distance3*distance3);   
           if (distance < minDistance){
 	    minDistance = distance;
-            back_lonlat3 = t_back_lonlat3;
+            back_xyz = t_back_xyz;
           }
   
 	}
      }
      //this can be commented out - END
-     
-     matchArray[i]=back_lonlat3;
+     //cout<<"back_window: "<<back_lonlat3<<endl;
+    
+     matchArray[i]=back_xyz;
  }
  
 };

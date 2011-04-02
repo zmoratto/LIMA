@@ -151,6 +151,9 @@ int main( int argc, char *argv[] ) {
   
   Vector3 translation;
   Matrix<float, 3,3 > rotation;
+  rotation[0][0]=0.99;
+  rotation[1][1]=0.99;
+  rotation[2][2]=0.99;
 
   if (mode.compare("DEM")==0){
     string backDEMFilename = backFile;
@@ -182,8 +185,9 @@ int main( int argc, char *argv[] ) {
     int maxNumIter = 10;
     int numIter = 0;
     //float deltaError=100.0;
-    float matchError = 100.0;
-
+    float matchError = 100.0; 
+    //FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
+    
     while((numIter < maxNumIter)&&(matchError > 0.1)){
       printf("feature matching ...\n");
       //FindMatches(featureArray, backDEM, backDEMGeo, matchArray);
@@ -196,7 +200,7 @@ int main( int argc, char *argv[] ) {
       cout<<"computing DEM translation ..."<<endl;
       ComputeDEMTranslation(featureArray, matchArray, translation);
       cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-  
+             
       cout<<"computing DEM rotation ..."<<endl;
       ComputeDEMRotation(featureArray, matchArray, translation, rotation);
       PrintMatrix(rotation);
