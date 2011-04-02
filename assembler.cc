@@ -149,6 +149,8 @@ int main( int argc, char *argv[] ) {
       printf("DRG\n");
   }
   
+  vector<Vector3> translationArray;
+  vector<Matrix<float, 3,3> > rotationArray;
   Vector3 translation;
   Matrix<float, 3,3 > rotation;
   rotation[0][0]=0.99;
@@ -175,8 +177,8 @@ int main( int argc, char *argv[] ) {
     
 
     printf("feature extraction ...\n");
-    //vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
-    vector<Vector3> featureArray = GetFeaturesXYZ(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
+
+    vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
     vector<float> errorArray;
     errorArray.resize(featureArray.size());
     vector<Vector3> matchArray;
@@ -190,8 +192,8 @@ int main( int argc, char *argv[] ) {
     
     while((numIter < maxNumIter)&&(matchError > 0.1)){
       printf("feature matching ...\n");
-      //FindMatches(featureArray, backDEM, backDEMGeo, matchArray);
-      FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
+     
+      FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
       
       cout<<"computing the matching error ..."<<endl;
       matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
@@ -208,10 +210,19 @@ int main( int argc, char *argv[] ) {
       //apply the computed rotation and translation to the featureArray  
       TransformFeatures(featureArray, translation, rotation);
 
+      translationArray.push_back(translation);
+      rotationArray.push_back(rotation);
+
       numIter++;
 
     }
-
+  
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (int i = 1; i < maxNumIter; i++){
+      rotation = rotation*rotationArray[i];
+      translation = translation + translationArray[i];
+    }
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			assembledDEMFilename, 0, translation, rotation);
 

@@ -47,7 +47,7 @@ template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
                       ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3> rotation)
+                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation)
 {
  
   float usgs_2_lonlat = 180/(3.14159265*3396190);
@@ -129,8 +129,7 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     //get the coordinates
              Vector2 forePix(i,j);
              Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-	     //cout<<"orig:"<<fore_lon_lat(0)<<","<<fore_lon_lat(1)<<endl; 
-             
+	     
              //spherical to cartesian
              Vector3 fore_lon_lat_rad;
              fore_lon_lat_rad(0) = fore_lon_lat(0);
@@ -157,7 +156,6 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     //get the coordinates
              Vector2 forePix(i,j);
              Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-	     //cout<<"orig:"<<fore_lon_lat(0)<<","<<fore_lon_lat(1)<<endl; 
              
              //spherical to cartesian
              Vector3 fore_lon_lat_rad;
@@ -165,15 +163,11 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     fore_lon_lat_rad(1) = fore_lon_lat(1);
              fore_lon_lat_rad(2) = foreImg.impl()(i,j)[0];
              Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
-             //cout<<"fore_"<<fore_xyz-foreCenter_xyz<<endl;
-
+       
              Vector3 transf_fore_xyz = rotation*(fore_xyz-foreCenter_xyz)+translation+foreCenter_xyz;
-             //Vector3 transf_fore_xyz = inverse(rotation)*fore_xyz + translation;     
+           
              //transform back in spherical coords
              Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
-
-             //cout<<"orig:"<<fore_lon_lat_rad<<endl;
-             //cout<<"transf:"<<transf_fore_lon_lat_rad<<endl;          
 
              //change into USGS coords
              fore_lon_lat(0) = transf_fore_lon_lat_rad(0)-180;  
@@ -186,24 +180,6 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
              int y = backPix(1);
 
              
-             /*
-	     //case of spherical ccordinates - START
-	     //get the coordinates
-             Vector2 forePix(i,j);
-             Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-	     
-             //change into USGS coords
-             fore_lon_lat(0) = fore_lon_lat(0)-180;      
-             fore_lon_lat = fore_lon_lat/usgs_2_lonlat;  
-              
-             //determine their location on the assembled image
-             Vector2 backPix= assembledGeo.lonlat_to_pixel(fore_lon_lat);
-             int x = backPix(0);
-             int y = backPix(1);                        
-             //case of spherical coordinates - END
-	     */
-
-             //cout<<backPix<<endl;
              //overwrite the assembled image 
              if ((x>0) && (y>0) && (x<assembledImg.impl().cols()) && (y<assembledImg.impl().rows())){ 
 	         assembledImg.impl()(x,y) =  transf_fore_lon_lat_rad(2);
