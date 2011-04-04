@@ -38,6 +38,26 @@ using namespace std;
 
 #include "icp.h"
 
+Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat)
+{ 
+  //change into USGS coords
+  float usgs_2_lonlat = 180/(3.14159265*3396190);
+  Vector2 back_lon_lat;
+  back_lon_lat(0) = fore_lon_lat(0)-180;  
+  back_lon_lat(1) = fore_lon_lat(1);  
+  back_lon_lat = back_lon_lat/usgs_2_lonlat;
+  return back_lon_lat;
+} 
+
+Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
+{
+  float usgs_2_lonlat = 180/(3.14159265*3396190);
+  Vector2 fore_lon_lat;
+  fore_lon_lat(0) = back_lon_lat(0)*usgs_2_lonlat+180;
+  fore_lon_lat(1) = back_lon_lat(1)*usgs_2_lonlat; 
+  return fore_lon_lat;
+}
+
 //computes the translation between the foreground and background pixels
 void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchArray, Vector3 &translation )
 {
@@ -61,9 +81,6 @@ void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchAr
 
 }
 
-
-
-
 void PrintMatrix(Matrix<float, 3, 3> &A)
 {
   for (int i = 0; i < 3; i++){
@@ -73,8 +90,6 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
     printf("\n");
   }
 }
-
-
 
 //compute the matching error vector and overall average error 
 float ComputeMatchingError(vector<Vector3> featureArray, vector<Vector3> matchArray, vector<float> &errorArray)
@@ -134,18 +149,7 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
        
        Vector3 feature = featureArray[i];
        Vector3 match = matchArray[i];
-        
-       /*
-       A[0][0] = A[0][0] + match[0]*(feature[0] - translation[0]);
-       A[0][1] = A[0][1] + match[1]*(feature[0] - translation[0]);
-       A[0][2] = A[0][2] + match[2]*(feature[0] - translation[0]);
-       A[1][0] = A[1][0] + match[0]*(feature[1] - translation[1]);
-       A[1][1] = A[1][1] + match[1]*(feature[1] - translation[1]);
-       A[1][2] = A[1][2] + match[2]*(feature[1] - translation[1]);
-       A[2][0] = A[2][0] + match[0]*(feature[2] - translation[2]);
-       A[2][1] = A[2][1] + match[1]*(feature[2] - translation[2]);
-       A[2][2] = A[2][2] + match[2]*(feature[2] - translation[2]);
-       */
+   
        A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
        A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
        A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
@@ -159,40 +163,13 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
        A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
   }
   
-
-  //printf("correlation: A\n");
-  //PrintMatrix(A);
-  
-  //extract the rotation matrix
-  //void svd( AMatrixT const& A, UMatrixT &U, SingularValuesT &s, VTMatrixT &VT );
   svd(A, U, s, V);
   
-
-  //printf("A = UWV^T\n");
-  //printf("W\n");
-  //PrintMatrix(A);
- 
-  //printf("U\n");
-  //PrintMatrix(U);
- 
-  //printf("V\n");
-  //PrintMatrix(V);
-
-  //printf("SVD done\n");
-
   Matrix<float,3,3> VT = transpose(V);
-  //PrintMatrix(VT);
-  // cout<<"s"<<s<<endl;
-  //rotation = U*VT;
+
   rotation = U*V;
 
-
   Matrix<float,3,3> id = rotation*transpose(rotation); 
-  //cout<<"IDENTITY="<<id<<endl; 
-  //printf("R\n");
-  //PrintMatrix(rotation);
-
-  //return rotation;
 
 }
 

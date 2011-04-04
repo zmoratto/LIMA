@@ -148,14 +148,22 @@ int main( int argc, char *argv[] ) {
   else{
       printf("DRG\n");
   }
-  
+
+  //TODO: will be moved to config file-START  
+  int maxNumIter = 10;
+  float matchErrorThresh = 0.1;
+  Vector2 samplingStep;
+  samplingStep(0) = 8;
+  samplingStep(1) = 8;
+  Vector2 matchWindowHalfSize;
+  matchWindowHalfSize(0) = 5;
+  matchWindowHalfSize(1) = 5;
+  //TODO: will be moved to config file-END 
+
   vector<Vector3> translationArray;
   vector<Matrix<float, 3,3> > rotationArray;
   Vector3 translation;
   Matrix<float, 3,3 > rotation;
-  rotation[0][0]=0.99;
-  rotation[1][1]=0.99;
-  rotation[2][2]=0.99;
 
   if (mode.compare("DEM")==0){
     string backDEMFilename = backFile;
@@ -178,22 +186,21 @@ int main( int argc, char *argv[] ) {
 
     printf("feature extraction ...\n");
 
-    vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo);
+    vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, samplingStep);
     vector<float> errorArray;
     errorArray.resize(featureArray.size());
     vector<Vector3> matchArray;
     matchArray.resize(featureArray.size());
   
-    int maxNumIter = 10;
+
     int numIter = 0;
-    //float deltaError=100.0;
     float matchError = 100.0; 
     //FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
     
-    while((numIter < maxNumIter)&&(matchError > 0.1)){
+    while((numIter < maxNumIter)&&(matchError > matchErrorThresh)){
       printf("feature matching ...\n");
      
-      FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
+      FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, matchWindowHalfSize);
       
       cout<<"computing the matching error ..."<<endl;
       matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
@@ -219,10 +226,12 @@ int main( int argc, char *argv[] ) {
   
     rotation = rotationArray[0];
     translation = translationArray[0];
-    for (int i = 1; i < maxNumIter; i++){
+    for (int i = 1; i < rotationArray.size(); i++){
       rotation = rotation*rotationArray[i];
       translation = translation + translationArray[i];
     }
+
+
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			assembledDEMFilename, 0, translation, rotation);
 

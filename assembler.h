@@ -3,13 +3,14 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-
-
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
 #pragma warning(disable:4996)
 #endif
+
+#ifndef ASSEMBLER_H
+#define ASSEMBLER_H
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,11 +38,14 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
+#include "icp.h"
 
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
+
+
 
 template <class ViewT1, class ViewT2 >
 void
@@ -50,7 +54,6 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
                       string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation)
 {
  
-  float usgs_2_lonlat = 180/(3.14159265*3396190);
   float maxUpsampleRatioBackImg = 4.0;
 
   float numPixPerDegreeBackImg = ComputePixPerDegree(backGeo, orig_backImg.impl().cols(), orig_backImg.impl().rows(), 1);
@@ -143,7 +146,7 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
     }
   }
   foreCenter_xyz = foreCenter_xyz/count;
-  cout<<"foreCenter_xyz"<<foreCenter_xyz<<endl;
+  //cout<<"foreCenter_xyz"<<foreCenter_xyz<<endl;
 
   //transform the foreground image and copy it over the background image
   for (int j = 0; j < foreImg.impl().rows()-1; j++){
@@ -168,14 +171,16 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
            
              //transform back in spherical coords
              Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
+             Vector2 transf_fore_lon_lat;
+             transf_fore_lon_lat(0)=transf_fore_lon_lat_rad(0);
+             transf_fore_lon_lat(1)=transf_fore_lon_lat_rad(1);
+            
+             //change into USGS coords  
+             Vector2 back_lon_lat;
+	     back_lon_lat = fore_2_back_lonlat(transf_fore_lon_lat);
 
-             //change into USGS coords
-             fore_lon_lat(0) = transf_fore_lon_lat_rad(0)-180;  
-             fore_lon_lat(1) = transf_fore_lon_lat_rad(1);    //very dangeorous  
-             fore_lon_lat = fore_lon_lat/usgs_2_lonlat;  
-          
              //determine their location on the assembled image
-             Vector2 backPix= assembledGeo.lonlat_to_pixel(fore_lon_lat);
+             Vector2 backPix= assembledGeo.lonlat_to_pixel(back_lon_lat);
              int x = backPix(0);
              int y = backPix(1);
 
@@ -193,12 +198,12 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
               Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
 
               //change into USGS coords
-              fore_lon_lat(0) = fore_lon_lat(0)-180;      
-              fore_lon_lat = fore_lon_lat/usgs_2_lonlat;  
-
+     
+              Vector2 back_lon_lat;
+              back_lon_lat = fore_2_back_lonlat(fore_lon_lat);
               
               //determine their location on the assembled image
-              Vector2 backPix= assembledGeo.lonlat_to_pixel(fore_lon_lat);
+              Vector2 backPix= assembledGeo.lonlat_to_pixel(back_lon_lat);
               int x = backPix(0);
               int y = backPix(1);
          
@@ -219,4 +224,5 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
  
 }
 
+#endif
 

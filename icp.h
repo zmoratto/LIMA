@@ -3,7 +3,8 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-
+#ifndef ICP_H
+#define ICP_H
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -31,11 +32,14 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
+//#include "assembler.h"
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+Vector2 back_2_fore_lonlat(Vector2 back_lon_lat);
+Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat);
 
 //computes the translation between the foreground and background pixels
 void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchArray, Vector3 &translation );
@@ -51,18 +55,15 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
 //applies a 3D rotation and transform to a DEM
 void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matrix<float,3,3> rotation);
 
-
-
-
 //compute a set of features from the fore image.
 template <class ViewT>
 vector<Vector3> 
 GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
-            ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo)
+            ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, Vector2 samplingStep)
 {
  
- int verStep = 8;
- int horStep = 8;
+  int verStep = samplingStep(0);
+  int horStep = samplingStep(1);
  vector<Vector3> featureArray;
  //determine if this is ppd or mpp.
  //determine the modata value as well
@@ -78,8 +79,7 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 
 	 Vector2 forePix(i,j);
 	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
-	 //fore_lonlat(0) = fore_lonlat(0)-180;
-       
+	
          Vector3 fore_lonlat3(fore_lonlat(0), fore_lonlat(1), (foreImg.impl())(i,j));
          Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat3);
       
@@ -96,12 +96,11 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 template <class ViewT>
 void
 FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            GeoReference const &foreGeo, vector<Vector3>& matchArray )
+            GeoReference const &foreGeo, vector<Vector3>& matchArray, Vector2 matchWindowHalfSize )
 {
  
- int matchWindowHalfWidth = 5;
- int matchWindowHalfHeight = 5;
- float usgs_2_lonlat = 180/(3.14159265*3396190);
+ int matchWindowHalfWidth = matchWindowHalfSize(0);
+ int matchWindowHalfHeight = matchWindowHalfSize(1);
 
  ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
                                                                            ConstantEdgeExtension()),
@@ -109,53 +108,37 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  
  for (int i = 0; i < featureArray.size(); i++){
 
-     //TO DO:revert fore from cartesian to spherical coordinates
+     //revert fore from cartesian to spherical coordinates
      Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic(featureArray[i]);
      Vector2 fore_lonlat;
-     fore_lonlat(0) = fore_lonlat3(0)-180; 
-     fore_lonlat(1) = fore_lonlat3(1);
-     
-     Vector2 back_lonlat = fore_lonlat/usgs_2_lonlat;
+ 
+     fore_lonlat(0)= fore_lonlat3(0);
+     fore_lonlat(1)= fore_lonlat3(1);
+     Vector2 back_lonlat = fore_2_back_lonlat(fore_lonlat);
+
      Vector2 backPix = backGeo.lonlat_to_pixel(back_lonlat);	 
      float x = backPix(0);
      float y = backPix(1);
-     
-     //initialize the search with the closest position on the background DEM
-     //Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
-     Vector3 back_lonlat3;
-     back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat+180;
-     back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
-     back_lonlat3(2) = interpBackImg(x,y);
-     
-     //cout<<"fore: "<<fore_lonlat3<<endl;
-     //cout<<"back_direct: "<<back_lonlat3<<endl;
-     
 
      Vector3 back_xyz;
-     //this can be commented out - START
+    
      float minDistance = 10000000000.0;
-     for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight; k++){
-        for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth; l++){
+     for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
+        for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
  
           Vector2 backPix(l,k);
 	  Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
-          Vector3 t_back_lonlat3;
-          
+           
           //revert to fore lon lat system
-          //t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat; 
-          t_back_lonlat3(0) = back_lonlat(0)*usgs_2_lonlat+180;
-          t_back_lonlat3(1) = back_lonlat(1)*usgs_2_lonlat; 
+          Vector2 t_back_lonlat2 = back_2_fore_lonlat(back_lonlat);
+          Vector3 t_back_lonlat3;
+          t_back_lonlat3(0) = t_back_lonlat2(0);
+          t_back_lonlat3(1) = t_back_lonlat2(1); 
           t_back_lonlat3(2) = interpBackImg(l,k);
-
-          //cout<<backPix<<endl;
-          //cout<<"fore: "<<fore_lonlat3<<endl;          
-          //cout<<"back: "<<t_back_lonlat3<<endl;
-
+      
           //transform into xyz coordinates of the foregound image.
           Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
-          //cout<<"fore"<<featureArray[i](0)<<" "<<featureArray[i](1)<<" "<<featureArray[i](2)<<endl;          
-          //cout<<"back"<<t_back_lonlat3(0)<<" "<<t_back_lonlat3(1)<<" "<<t_back_lonlat3(2)<<endl;
-
+      
           float distance1 = t_back_xyz(0) - featureArray[i](0);
           float distance2 = t_back_xyz(1) - featureArray[i](1);
           float distance3 = t_back_xyz(2) - featureArray[i](2);
@@ -167,10 +150,11 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
   
 	}
      }
-     //this can be commented out - END
-     //cout<<"back_window: "<<back_lonlat3<<endl;
+     
     
      matchArray[i]=back_xyz;
  }
  
 };
+
+#endif
