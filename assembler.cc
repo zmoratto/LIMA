@@ -156,8 +156,8 @@ int main( int argc, char *argv[] ) {
   samplingStep(0) = 8;
   samplingStep(1) = 8;
   Vector2 matchWindowHalfSize;
-  matchWindowHalfSize(0) = 5;
-  matchWindowHalfSize(1) = 5;
+  matchWindowHalfSize(0) = 15;
+  matchWindowHalfSize(1) = 15;
   //TODO: will be moved to config file-END 
 
   vector<Vector3> translationArray;
@@ -169,7 +169,8 @@ int main( int argc, char *argv[] ) {
     string backDEMFilename = backFile;
     string foreDEMFilename = foreFile;
     string assembledDEMFilename = resDir+"/assembled_dem.tif";
- 
+    string assembledInitDEMFilename = resDir+"/assembled_init_dem.tif";
+
     //small image high res - foreground 
     DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
     GeoReference backDEMGeo;
@@ -182,7 +183,12 @@ int main( int argc, char *argv[] ) {
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
     printf("done opening the the foreDEM\n");
-    
+
+    rotation[0][0]=1.0;
+    rotation[1][1]=1.0;
+    rotation[2][2]=1.0;
+    ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
+			  assembledInitDEMFilename, 0, translation, rotation);
 
     printf("feature extraction ...\n");
 
@@ -231,7 +237,8 @@ int main( int argc, char *argv[] ) {
       translation = translation + translationArray[i];
     }
 
-
+    cout<<"final Rotation matrix "<<rotation<<endl;
+    cout<<"final translation vector "<<translation<<endl;
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			assembledDEMFilename, 0, translation, rotation);
 

@@ -198,7 +198,6 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
               Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
 
               //change into USGS coords
-     
               Vector2 back_lon_lat;
               back_lon_lat = fore_2_back_lonlat(fore_lon_lat);
               

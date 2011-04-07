@@ -266,18 +266,6 @@ int main( int argc, char *argv[] ) {
   lon_lat_bb[2]=lat_lon_bb[0];
   lon_lat_bb[3]=lat_lon_bb[1];
   printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
-  /*
-  //generate the DRG filenames
-  DRGFiles.resize(cubFiles.size());
-  for(int i = 0; i < cubFiles.size(); i++){
-    DRGFiles[i] = cubFiles[i];
-    int start = DRGFiles[i].find("_map.cub");
-    DRGFiles[i].replace(start, 8, "_geo.tif");
-    start = DRGFiles[i].find("-CUB");
-    DRGFiles[i].replace(start, 4, "-DRG");
-    printf("DRGFiles[%d] = %s\n", i, DRGFiles[i].c_str());
-  }    
-  */
   
   std::vector<int> overlapIndices = makeOverlapList(cubFiles, lon_lat_bb);
   printOverlapList(overlapIndices);
@@ -289,7 +277,7 @@ int main( int argc, char *argv[] ) {
   printf("numTracks = %d\n", (int)trackPts.size());
   for (int ti = 0; ti < trackPts.size(); ti++){
     printf("trackIndex = %d\n", ti);
-    ComputeSalientLOLAFeature(trackPts[ti], halfWindow, /*(float)(settings.topPercentFeatures)/100.0*/0.001);
+    ComputeSalientLOLAFeature(trackPts[ti], halfWindow, (float)(settings.topPercentFeatures)/1000.0);
   }
 
  //allocate memory for all final transforms, one per image
@@ -320,6 +308,11 @@ int main( int argc, char *argv[] ) {
     //create the results directory and prepare the output filenames - END
 
     vector<Vector<float, 6> >initTransfArray;
+    vector<Vector<float, 6> >bestInitTransfArray; 
+    vector<Vector<float, 6> > finalTransfArray;
+    vector<float> errorArray;
+    errorArray.resize(settings.maxNumStarts);
+    
     initTransfArray.resize(settings.maxNumStarts);
     for (int i = 0; i < settings.maxNumStarts; i++){
       initTransfArray[i][0] = 1.0;
@@ -329,35 +322,14 @@ int main( int argc, char *argv[] ) {
       initTransfArray[i][4] = 1.0;
       initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
     }    
-    Vector<float, 6> bestInitTransf;
-
+   
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
     for (int i = 0; i < trackPts.size(); i++){
       trackIndices[i] = i;
     }
-  
-    vector<Vector<float, 6> > finalTransfArray;
-    vector<float> errorArray;
-    errorArray.resize(settings.maxNumStarts);
-    finalTransfArray.resize(settings.maxNumStarts);
 
     //initialization step for LIMA - START  
-    /* 
-    DiskImageView<PixelGray<uint8> >   DRG(inputDRGFilename);
-    GeoReference DRGGeo;
-    read_georeference(DRGGeo, inputDRGFilename);
-
-
-    ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-									ConstantEdgeExtension()),
-							    BilinearInterpolation());
-  
-    //get the true image points
-    cout << "GetAllPtsFromImage..." << endl; 
-    GetAllPtsFromImage(trackPts, interpDRG, DRGGeo);
-    */
-
     cout<<"GetAllPtsFromCub"<<endl; 
     cout<<"cubFile ="<<cubFiles[k]<<endl;
     GetAllPtsFromCub(trackPts, cubFiles[k]);
@@ -365,6 +337,7 @@ int main( int argc, char *argv[] ) {
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParams, settings);
     //initialization step for LIMA - END  
+
     /*
     if (settings.analyseFlag == 1){
       float scaleFactor = ComputeScaleFactor(trackPts);
@@ -382,77 +355,24 @@ int main( int argc, char *argv[] ) {
  
     if (settings.useLOLAFeatures){
       cout << "Computing the LOLA features and weights ... ";
-      int halfWindow = 10;
-      //float topPercent = 0.10;
-      ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/100.0, lolaFeaturesFilename);
+      int halfWindow = 10; //this should go into settings
+      ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename); //or x/100.0?
       cout<<"done."<<endl;
     }
+   
+    cout<<"Initialize the affine tranformation"<<endl;
 
-    if (settings.matchingMode == LIMA){
+    float matchingError;
+       
+    InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings,  
+			       initTransfArray, bestInitTransfArray, &matchingError);
+        
+    UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings.maxNumIter,  
+      			        bestInitTransfArray, finalTransfArray, errorArray);
       
-      cout<<"Initialize the affine tranformation"<<endl;
-
-      float matchingError;
-      Vector<float, 6> bestInitTransf; 
-      //InitMatchingParams(trackPts, inputDRGFilename, modelParams, settings,  
-      //		   initTransfArray, bestInitTransf, &matchingError);
-     
-      InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings,  
-				initTransfArray, bestInitTransf, &matchingError);
-      
-      //return matching error and transform
-      //resize finalTransfArray
-      //copy bestInitTransf to initTransfArray
-      
-      initTransfArray.resize(1);
-      initTransfArray[0](0)=bestInitTransf(0);
-      initTransfArray[0](1)=bestInitTransf(1);
-      initTransfArray[0](2)=bestInitTransf(2);
-      initTransfArray[0](3)=bestInitTransf(3);
-      initTransfArray[0](4)=bestInitTransf(4);
-      initTransfArray[0](5)=bestInitTransf(5);
-      errorArray.resize(1);
-      errorArray[0] = matchingError;
-      for (int index = 0; index < initTransfArray.size(); index++){
-	printf("init %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	     index, errorArray[index], 
-	     initTransfArray[index](0), initTransfArray[index](1), 
-	     initTransfArray[index](2), initTransfArray[index](3),
-	     initTransfArray[index](4), initTransfArray[index](5));
-      }
-
-      finalTransfArray.resize(1);
-
-      /* 
-      cout << "UpdateMatchingParams ..."<< endl;
-      UpdateMatchingParamsLIMA_MP(trackPts, inputDRGFilename, 
-				  modelParams, settings,  
-				  initTransfArray, finalTransfArray, errorArray);
-      */
-      
-      /*
-      UpdateMatchingParams(trackPts, inputDRGFilename, 
-			   modelParams, 10,  
-			   initTransfArray, finalTransfArray, errorArray);
-      */
-      
-      UpdateMatchingParamsFromCub(trackPts, cubFiles[k], 
-      			          modelParams, 10,  
-      			          initTransfArray, finalTransfArray, errorArray);
-      
-      /*
-      finalTransfArray[0](0) = initTransfArray[0](0); 
-      finalTransfArray[0](1) = initTransfArray[0](1); 
-      finalTransfArray[0](2) = initTransfArray[0](2); 
-      finalTransfArray[0](3) = initTransfArray[0](3); 
-      finalTransfArray[0](4) = initTransfArray[0](4); 
-      finalTransfArray[0](5) = initTransfArray[0](5); 
-      */    
-    }
- 
     int bestResult = 0;
     float smallestError = std::numeric_limits<float>::max();
-    for (int index = 0; index < initTransfArray.size(); index++){
+    for (int index = 0; index < finalTransfArray.size(); index++){
       printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	     index, errorArray[index], 
 	     finalTransfArray[index](0), finalTransfArray[index](1), 
@@ -462,33 +382,19 @@ int main( int argc, char *argv[] ) {
 	smallestError = errorArray[index]; 
 	bestResult = index;
       }    
-    }    
+    } 
+   
     cout<<"bestResult= "<<bestResult<<endl;
 
     //copy the best transform to optimalTransfArray
     optimalTransfArray[k] = finalTransfArray[bestResult];
     optimalErrorArray[k]  = errorArray[bestResult];
-
-    //write finalTransfArray and errorArray to file
-    //this is mostly for debugging info
-    //SaveReportFile(trackPts, finalTransfArray, errorArray, transformFilename);
-    
-    //this is what is needed by further steps.
-    //this s replaced by SaveGCPoints
-    //SaveImagePts(trackPts, finalTransfArray[bestResult], errorArray[bestResult], matchResultsFilename);
-   
-    //write the image interest point 
-    //look at all points s.t. trackPts[si].weight_lsq = 1.0;  
-    //determine the image feature location using the finalTransfArray
-    //save the image features to file.
-
-   
+  
     if (settings.displayResults){
       //write results to image outside matching
       ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
 			       trackIndices, cubFiles[k], outFilename);
-    }
-    
+    }    
 
   }
  

@@ -494,12 +494,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   int height = DRG.rows();
   cout<<"width="<<width<<" "<<"height="<<height<<endl;
 
-  /*
-  DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
-  GeoReference DRGGeo;
-  read_georeference(DRGGeo, DRGFilename);
-  */
-
+  
   cout <<"Interpolating the image ...";
   ImageViewRef<PixelGray<float> >   interpDRG = interpolate(edge_extend(DRG,
         ConstantEdgeExtension()),
@@ -576,6 +571,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   A couple of thoughts - we rezero lhs & rhs every iteration this should not be the problem.  Could the problem simple be a scaling issue where the size of the error terms on the right & left hand side - caused by the great number of points - causes numerical stability issues for solving the matrix?
 */
 
+  finalTransfArray.resize(initTransfArray.size());
   //copy initTransfArray into finalTransfArray.
   for (int index = 0; index < initTransfArray.size(); index++){
     for (int i = 0; i < 6; i++){
@@ -823,7 +819,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 //in the future we can investigate the use of one affine transform per track. 
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
-			       vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
+			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
 			       float *matchingError)
 {
     int ti, si, li;
@@ -917,11 +913,12 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     //determine the best image transform for which the matching error is minimized 
     float minError = errorArray[0];
     int bestIndex = 0;
-    finalTransf = initTransfArray[0];
+    finalTransfArray.resize(1);
+    finalTransfArray[0] = initTransfArray[0];
     for (index = 0; index < initTransfArray.size(); index++){
       if (errorArray[index] < minError){
 	minError = errorArray[index];
-        finalTransf = initTransfArray[index];
+        finalTransfArray[0] = initTransfArray[index];
         bestIndex = index;
       }  
     }
