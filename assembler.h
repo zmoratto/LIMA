@@ -46,7 +46,6 @@ using namespace vw::cartography;
 using namespace std;
 
 
-
 template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,

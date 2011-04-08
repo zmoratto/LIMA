@@ -31,12 +31,13 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
+#include "util.h"
 
-//#include "assembler.h"
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
+
 
 Vector2 back_2_fore_lonlat(Vector2 back_lon_lat);
 Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat);
@@ -156,5 +157,56 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  }
  
 };
+
+
+template <class ViewT>
+void 
+RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
+       GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, GlobalSettings settings,
+       Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
+{
+    int numIter = 0;
+    float matchError = 100.0; 
+
+    vector<Vector3> translationArray;
+    vector<Matrix<float, 3,3> > rotationArray;
+    vector<Vector3> matchArray;
+    matchArray.resize(featureArray.size());
+
+    while((numIter < settings.maxNumIter)&&(matchError > settings.matchErrorThresh)){
+      
+      printf("feature matching ...\n");
+     
+      FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, settings.matchWindowHalfSize);
+      
+      cout<<"computing the matching error ..."<<endl;
+      matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
+      cout<<"match error="<<matchError<<endl;
+
+      cout<<"computing DEM translation ..."<<endl;
+      ComputeDEMTranslation(featureArray, matchArray, translation);
+      cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+             
+      cout<<"computing DEM rotation ..."<<endl;
+      ComputeDEMRotation(featureArray, matchArray, translation, rotation);
+      PrintMatrix(rotation);
+
+      //apply the computed rotation and translation to the featureArray  
+      TransformFeatures(featureArray, translation, rotation);
+
+      translationArray.push_back(translation);
+      rotationArray.push_back(rotation);
+
+      numIter++;
+
+    }
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (int i = 1; i < rotationArray.size(); i++){
+      rotation = rotation*rotationArray[i];
+      translation = translation + translationArray[i];
+    }
+}
 
 #endif

@@ -38,6 +38,7 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
+#include "util.h"
 #include "icp.h"
 #include "assembler.h"
 
@@ -87,6 +88,54 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   return numPixPerDegree;
 }
 
+void ReadSettingsFile(string settingsFilename, GlobalSettings *settings)
+{
+  int MAX_LENGTH = 5000;
+  char line[MAX_LENGTH];
+  ifstream configFile(settingsFilename.c_str());
+
+  if (configFile.is_open()){
+    printf("CONFIG FILE FOUND\n");
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "RUN_ICP %d\n", &(settings->runICP));
+    
+    configFile.getline(line, MAX_LENGTH);
+    int samplingStepX, samplingStepY;
+    sscanf(line, "SAMPLING_STEP %d %d\n", &samplingStepX, &samplingStepY);
+    settings->samplingStep(0) = samplingStepX;
+    settings->samplingStep(1) = samplingStepY; 
+
+    configFile.getline(line, MAX_LENGTH);
+    int windowSizeX, windowSizeY;
+    sscanf(line, "MATCH_WINDOW %d %d\n", &windowSizeX, &windowSizeY);
+    settings->matchWindowHalfSize(0) = windowSizeX;
+    settings->matchWindowHalfSize(1) = windowSizeY;
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "MAX_NUM_ITER %d\n", &(settings->maxNumIter));
+    configFile.getline(line, MAX_LENGTH);
+    float matchErrorThresh;
+    sscanf(line, "ERROR_THRESH %f\n", &matchErrorThresh); 
+    settings->matchErrorThresh = matchErrorThresh; 
+  }
+  else{
+    settings->runICP = 1;
+    settings->samplingStep(0) = 8;
+    settings->samplingStep(1) = 8;
+    settings->matchWindowHalfSize(0) = 5;
+    settings->matchWindowHalfSize(1) = 5;
+    settings->maxNumIter = 10;
+    settings->matchErrorThresh = 0.1;
+  }
+}
+
+void PrintSettings(GlobalSettings *settings)
+{
+  cout<<"runICP "<<settings->runICP<<endl;
+  cout<<"samplingStep "<<settings->samplingStep<<endl;
+  cout<<"matchWindowHalfSize "<<settings->matchWindowHalfSize<<endl;
+  cout<<"maxNumIter "<<settings->maxNumIter<<endl;
+  cout<<"matchErrorThresh "<<settings->matchErrorThresh<<endl;
+}
 
 int main( int argc, char *argv[] ) {
    
@@ -149,21 +198,16 @@ int main( int argc, char *argv[] ) {
       printf("DRG\n");
   }
 
-  //TODO: will be moved to config file-START  
-  int maxNumIter = 10;
-  float matchErrorThresh = 0.1;
-  Vector2 samplingStep;
-  samplingStep(0) = 8;
-  samplingStep(1) = 8;
-  Vector2 matchWindowHalfSize;
-  matchWindowHalfSize(0) = 15;
-  matchWindowHalfSize(1) = 15;
-  //TODO: will be moved to config file-END 
+  struct GlobalSettings settings;
+  string settingsFilename = "assembler_settings.txt"; 
+  ReadSettingsFile(settingsFilename, &settings);
+  PrintSettings(&settings);
 
-  vector<Vector3> translationArray;
-  vector<Matrix<float, 3,3> > rotationArray;
   Vector3 translation;
   Matrix<float, 3,3 > rotation;
+  rotation[0][0]=1.0;
+  rotation[1][1]=1.0;
+  rotation[2][2]=1.0;
 
   if (mode.compare("DEM")==0){
     string backDEMFilename = backFile;
@@ -184,59 +228,19 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDEMGeo, foreDEMFilename);
     printf("done opening the the foreDEM\n");
 
-    rotation[0][0]=1.0;
-    rotation[1][1]=1.0;
-    rotation[2][2]=1.0;
+   
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			  assembledInitDEMFilename, 0, translation, rotation);
 
-    printf("feature extraction ...\n");
-
-    vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, samplingStep);
-    vector<float> errorArray;
-    errorArray.resize(featureArray.size());
-    vector<Vector3> matchArray;
-    matchArray.resize(featureArray.size());
+    if (settings.runICP == 1){
+      printf("feature extraction ...\n");
+      vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, settings.samplingStep);
+      vector<float> errorArray;
+      errorArray.resize(featureArray.size());
   
-
-    int numIter = 0;
-    float matchError = 100.0; 
-    //FindMatchesXYZ(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray);
-    
-    while((numIter < maxNumIter)&&(matchError > matchErrorThresh)){
-      printf("feature matching ...\n");
-     
-      FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, matchWindowHalfSize);
-      
-      cout<<"computing the matching error ..."<<endl;
-      matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
-      cout<<"match error="<<matchError<<endl;
-
-      cout<<"computing DEM translation ..."<<endl;
-      ComputeDEMTranslation(featureArray, matchArray, translation);
-      cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-             
-      cout<<"computing DEM rotation ..."<<endl;
-      ComputeDEMRotation(featureArray, matchArray, translation, rotation);
-      PrintMatrix(rotation);
-
-      //apply the computed rotation and translation to the featureArray  
-      TransformFeatures(featureArray, translation, rotation);
-
-      translationArray.push_back(translation);
-      rotationArray.push_back(rotation);
-
-      numIter++;
-
+      RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
+	     translation, rotation, errorArray);
     }
-  
-    rotation = rotationArray[0];
-    translation = translationArray[0];
-    for (int i = 1; i < rotationArray.size(); i++){
-      rotation = rotation*rotationArray[i];
-      translation = translation + translationArray[i];
-    }
-
     cout<<"final Rotation matrix "<<rotation<<endl;
     cout<<"final translation vector "<<translation<<endl;
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,

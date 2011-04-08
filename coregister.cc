@@ -360,16 +360,22 @@ int main( int argc, char *argv[] ) {
       cout<<"done."<<endl;
     }
    
-    cout<<"Initialize the affine tranformation"<<endl;
-
+    cout<<"Initializing the affine tranformation ..."<<endl;
     float matchingError;
-       
+    //matchingError is a float that contains the smallest matching error over all maxNumStarts
+    //TO DO: matchingError will become initMatchingErrorArray and will retain the matching error for each bestInitTransfArray
     InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings,  
 			       initTransfArray, bestInitTransfArray, &matchingError);
-        
+    cout<<"done."<<endl;
+
+    cout<<"Computing the affine tranformation ..."<<endl;
+    //errorArray retains the matching error over consecutive iterations
+    //errorArray will become finalMatchingErrorArray and will retain the matching error after the last iteration for each finalTransfArray   
     UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings.maxNumIter,  
       			        bestInitTransfArray, finalTransfArray, errorArray);
-      
+    cout<<"done."<<endl;
+
+    //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
     int bestResult = 0;
     float smallestError = std::numeric_limits<float>::max();
     for (int index = 0; index < finalTransfArray.size(); index++){
@@ -383,7 +389,6 @@ int main( int argc, char *argv[] ) {
 	bestResult = index;
       }    
     } 
-   
     cout<<"bestResult= "<<bestResult<<endl;
 
     //copy the best transform to optimalTransfArray
