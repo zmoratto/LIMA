@@ -118,6 +118,7 @@ void ReadSettingsFile(string settingsFilename, GlobalSettings *settings)
     settings->matchErrorThresh = matchErrorThresh; 
   }
   else{
+    printf("CONFIG FILE NOT FOUND\n");
     settings->runICP = 1;
     settings->samplingStep(0) = 8;
     settings->samplingStep(1) = 8;
@@ -199,8 +200,7 @@ int main( int argc, char *argv[] ) {
   }
 
   struct GlobalSettings settings;
-  string settingsFilename = "assembler_settings.txt"; 
-  ReadSettingsFile(settingsFilename, &settings);
+  ReadSettingsFile(configFilename, &settings);
   PrintSettings(&settings);
 
   Vector3 translation;
@@ -213,8 +213,7 @@ int main( int argc, char *argv[] ) {
     string backDEMFilename = backFile;
     string foreDEMFilename = foreFile;
     string assembledDEMFilename = resDir+"/assembled_dem.tif";
-    string assembledInitDEMFilename = resDir+"/assembled_init_dem.tif";
-
+  
     //small image high res - foreground 
     DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
     GeoReference backDEMGeo;
@@ -227,10 +226,6 @@ int main( int argc, char *argv[] ) {
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
     printf("done opening the the foreDEM\n");
-
-   
-    ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
-			  assembledInitDEMFilename, 0, translation, rotation);
 
     if (settings.runICP == 1){
       printf("feature extraction ...\n");
