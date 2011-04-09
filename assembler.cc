@@ -227,24 +227,65 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDEMGeo, foreDEMFilename);
     printf("done opening the the foreDEM\n");
 
+    Vector2 bestDeltaLonLat;
+    bestDeltaLonLat(0)=0;
+    bestDeltaLonLat(1)=0;
+    float minMatchError = 100000000.0;
+
     if (settings.runICP == 1){
-      printf("feature extraction ...\n");
-      vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, settings.samplingStep);
-      vector<float> errorArray;
-      errorArray.resize(featureArray.size());
-  
-      RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
-	     translation, rotation, errorArray);
+       
+       Vector2 delta_lonlat; 
+      
+       for (int k = -2; k < 3; k++){
+	   delta_lonlat(0) = k*0.001; 
+	   for (int l = -2; l < 3; l++){
+	       delta_lonlat(1) = l*0.001;
+	       printf("feature extraction ...\n");
+	    
+	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, settings.samplingStep, delta_lonlat);
+	       vector<float> errorArray;
+	       errorArray.resize(featureArray.size());
+               
+               Vector3 currTranslation;
+               Matrix<float, 3,3 > currRotation;
+	       RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
+		      currTranslation, currRotation, errorArray);
+
+	       float matchError = 0;
+	       for (int m = 0; m < errorArray.size(); m++){
+		 matchError = matchError+errorArray[m];
+	       }
+	       matchError = matchError/errorArray.size();
+               cout<<"currMatchError="<<matchError<<", minMatchError="<<minMatchError<<endl;
+
+	       if (matchError < minMatchError){
+		  minMatchError = matchError;
+                  bestDeltaLonLat = delta_lonlat;
+		  rotation = currRotation;
+		  translation = currTranslation;
+	       }
+	       
+	 }
+       }
     }
+
+    cout<<"minMatchError "<<minMatchError<<endl;
     cout<<"final Rotation matrix "<<rotation<<endl;
     cout<<"final translation vector "<<translation<<endl;
+    cout<<"bestDeltaLonLat="<<bestDeltaLonLat<<endl;
+
+
     ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
-			assembledDEMFilename, 0, translation, rotation);
+			  assembledDEMFilename, 0, translation, rotation, bestDeltaLonLat);
 
   }
  
   //DRG assembler
   if (mode.compare("DRG")==0){
+    Vector2 bestDeltaLonLat;
+    bestDeltaLonLat(0) = 0;
+    bestDeltaLonLat(1) = 0;
+   
     string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
     string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
     string assembledDRGFilename =  resDir+"/assembled_drg.tif";
@@ -262,7 +303,7 @@ int main( int argc, char *argv[] ) {
     printf("done opening the the foreDRG\n");
  
     ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
-			  assembledDRGFilename, 1, translation, rotation);
+			  assembledDRGFilename, 1, translation, rotation, bestDeltaLonLat);
   
    }
 }

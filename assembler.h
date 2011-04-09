@@ -50,7 +50,7 @@ template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
                       ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation)
+                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation, Vector2 bestDeltaLonLat)
 {
  
   float maxUpsampleRatioBackImg = 4.0;
@@ -131,7 +131,9 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     //get the coordinates
              Vector2 forePix(i,j);
              Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-	     
+             fore_lon_lat(0)=fore_lon_lat(0)+bestDeltaLonLat(0);
+	     fore_lon_lat(1)=fore_lon_lat(1)+bestDeltaLonLat(1);
+
              //spherical to cartesian
              Vector3 fore_lon_lat_rad;
              fore_lon_lat_rad(0) = fore_lon_lat(0);
@@ -158,7 +160,9 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 	     //get the coordinates
              Vector2 forePix(i,j);
              Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-             
+             fore_lon_lat(0)=fore_lon_lat(0)+bestDeltaLonLat(0);
+	     fore_lon_lat(1)=fore_lon_lat(1)+bestDeltaLonLat(1);
+     
              //spherical to cartesian
              Vector3 fore_lon_lat_rad;
              fore_lon_lat_rad(0) = fore_lon_lat(0);

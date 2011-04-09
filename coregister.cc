@@ -61,45 +61,6 @@ void printOverlapList(std::vector<int>  overlapIndices)
       printf("%d ", overlapIndices[i]);
     }
 }
-/*
-//this will be used to compute the makeOverlapList in a more general way.
-//it takes into consideration any set of overlapping images.
-Vector4 ComputeGeoBoundary(GeoReference Geo, int width, int height)
-{
- 
-  Vector4 corners;
-  Vector2 leftTopPixel(0,0);
-  Vector2 leftTopLonLat = Geo.pixel_to_lonlat(leftTopPixel);
-
-  Vector2 rightBottomPixel(width-1, height-1);
-  Vector2 rightBottomLonLat = Geo.pixel_to_lonlat(rightBottomPixel);
-  
-  float minLon = leftTopLonLat(0);
-  float minLat = leftTopLonLat(1);
-  float maxLon = rightBottomLonLat(0);
-  float maxLat = rightBottomLonLat(1);
-
-  if (maxLat<minLat){
-     float temp = minLat;
-     minLat = maxLat;
-     maxLat = temp;    
-  }
-
-  if (maxLon<minLon){
-     float temp = minLon;
-     minLon = maxLon;
-     maxLon = temp;    
-  }
-
-  corners(0) = minLon;
-  corners(1) = maxLon;
-  corners(2) = minLat;
-  corners(3) = maxLat;
-
-  return corners;
-}
-*/
-
 
 
 //this will be used to compute the makeOverlapList in a more general way.
@@ -151,14 +112,7 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
 
        int lonOverlap = 0;
        int latOverlap = 0; 
-       /*
-       DiskImageView<PixelMask<PixelGray<uint8> > >  image(inputFiles[i]);
-       GeoReference geo;
-       read_georeference(geo, inputFiles[i]);
-       int width = image.cols();
-       int height = image.rows();
-       Vector4 corners = ComputeGeoBoundary(geo, width, height);
-       */
+     
        Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
 
        printf("corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
@@ -180,6 +134,43 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
   }
 
   return overlapIndices;
+}
+
+void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 
+                      Vector<float, 6> &optimalTransf, float &optimalError)
+{
+    //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
+    int bestResult = 0;
+    float smallestError = std::numeric_limits<float>::max();
+    for (int index = 0; index < finalTransfArray.size(); index++){
+      printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+	     index, finalMatchingErrorArray[index], 
+	     finalTransfArray[index](0), finalTransfArray[index](1), 
+	     finalTransfArray[index](2), finalTransfArray[index](3),
+	     finalTransfArray[index](4), finalTransfArray[index](5));
+      if  ( (finalMatchingErrorArray[index] < smallestError) && (finalMatchingErrorArray[index] > 0) ){
+	smallestError = finalMatchingErrorArray[index]; 
+	bestResult = index;
+      }    
+    } 
+    cout<<"bestResult= "<<bestResult<<endl;
+
+    //copy the best transform to optimalTransfArray
+    optimalTransf = finalTransfArray[bestResult];
+    optimalError  = finalMatchingErrorArray[bestResult];
+}
+
+void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
+{
+    initTransfArray.resize(settings.maxNumStarts);
+    for (int i = 0; i < settings.maxNumStarts; i++){
+      initTransfArray[i][0] = 1.0;
+      initTransfArray[i][1] = 0.0;
+      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
+      initTransfArray[i][3] = 0.0;
+      initTransfArray[i][4] = 1.0;
+      initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
+    }  
 }
 
 int main( int argc, char *argv[] ) {
@@ -238,21 +229,34 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  int numCubFiles = cubFiles.size();
-  printf("numCubFiles = %d\n", numCubFiles);
-  for (int i = 0; i < numCubFiles; i++){
-    printf("cubFiles[%d] = %s\n", i, cubFiles[i].c_str());
-  }
-  
+
   struct CoregistrationParams settings;
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
- 
-  ModelParams modelParams;
-  string modelParamsFilename="light_viewer_pos.txt";
-  ReadModelParamsFile(modelParamsFilename, &modelParams);
-  PrintModelParams(&modelParams);
-  
+
+
+  int numCubFiles = cubFiles.size();
+  printf("numCubFiles = %d\n", numCubFiles);
+  vector<ModelParams> modelParamsArray;
+  modelParamsArray.resize(numCubFiles);
+  for (int i = 0; i < numCubFiles; i++){
+    printf("cubFiles[%d] = %s\n", i, cubFiles[i].c_str());
+    camera::IsisCameraModel model(cubFiles[i]);
+    Vector3 center_of_moon(0,0,0);
+    Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+    Vector3 cameraPosition = model.camera_center( pixel_location );
+    Vector3 lightPosition= model.sun_position( pixel_location );
+    modelParamsArray[i].sunPosition[0] = lightPosition[0];
+    modelParamsArray[i].sunPosition[1] = lightPosition[1];
+    modelParamsArray[i].sunPosition[2] = lightPosition[2];
+
+    modelParamsArray[i].spacecraftPosition[0] = cameraPosition[0];
+    modelParamsArray[i].spacecraftPosition[1] = cameraPosition[1];
+    modelParamsArray[i].spacecraftPosition[2] = cameraPosition[2];
+    
+    PrintModelParams(&modelParamsArray[i]);
+  }
+
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results");
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
@@ -288,7 +292,7 @@ int main( int argc, char *argv[] ) {
 
   for (int k = 0; k < numOverlappingImages; k++){
 
-    string inputDEMFilename;
+    //string inputDEMFilename;
     string inputImgFilename = cubFiles[k];;  
     cout<<inputImgFilename<<endl;
 
@@ -310,19 +314,11 @@ int main( int argc, char *argv[] ) {
     vector<Vector<float, 6> >initTransfArray;
     vector<Vector<float, 6> >bestInitTransfArray; 
     vector<Vector<float, 6> > finalTransfArray;
-    vector<float> errorArray;
-    errorArray.resize(settings.maxNumStarts);
+    vector<float> initMatchingErrorArray;
+    vector<float> finalMatchingErrorArray;
+
+    GenerateInitTransforms(initTransfArray, settings);
     
-    initTransfArray.resize(settings.maxNumStarts);
-    for (int i = 0; i < settings.maxNumStarts; i++){
-      initTransfArray[i][0] = 1.0;
-      initTransfArray[i][1] = 0.0;
-      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
-      initTransfArray[i][3] = 0.0;
-      initTransfArray[i][4] = 1.0;
-      initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
-    }    
-   
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
     for (int i = 0; i < trackPts.size(); i++){
@@ -331,11 +327,10 @@ int main( int argc, char *argv[] ) {
 
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub"<<endl; 
-    cout<<"cubFile ="<<cubFiles[k]<<endl;
     GetAllPtsFromCub(trackPts, cubFiles[k]);
 
     cout << "ComputeTrackReflectance..." << endl;
-    ComputeAllReflectance(trackPts, modelParams, settings);
+    ComputeAllReflectance(trackPts, modelParamsArray[k], settings);
     //initialization step for LIMA - END  
 
     /*
@@ -356,48 +351,27 @@ int main( int argc, char *argv[] ) {
     if (settings.useLOLAFeatures){
       cout << "Computing the LOLA features and weights ... ";
       int halfWindow = 10; //this should go into settings
-      ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename); //or x/100.0?
+      ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename);
       cout<<"done."<<endl;
     }
    
     cout<<"Initializing the affine tranformation ..."<<endl;
-    float matchingError;
-    //matchingError is a float that contains the smallest matching error over all maxNumStarts
-    //TO DO: matchingError will become initMatchingErrorArray and will retain the matching error for each bestInitTransfArray
-    InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings,  
-			       initTransfArray, bestInitTransfArray, &matchingError);
+    //initMatchingErrorArray retains the matching error for each bestInitTransfArray
+    InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings,  
+			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     cout<<"done."<<endl;
 
     cout<<"Computing the affine tranformation ..."<<endl;
-    //errorArray retains the matching error over consecutive iterations
-    //errorArray will become finalMatchingErrorArray and will retain the matching error after the last iteration for each finalTransfArray   
-    UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParams, settings.maxNumIter,  
-      			        bestInitTransfArray, finalTransfArray, errorArray);
+    //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
+    UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings.maxNumIter,  
+      			        bestInitTransfArray, finalTransfArray, finalMatchingErrorArray);
     cout<<"done."<<endl;
 
-    //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
-    int bestResult = 0;
-    float smallestError = std::numeric_limits<float>::max();
-    for (int index = 0; index < finalTransfArray.size(); index++){
-      printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	     index, errorArray[index], 
-	     finalTransfArray[index](0), finalTransfArray[index](1), 
-	     finalTransfArray[index](2), finalTransfArray[index](3),
-	     finalTransfArray[index](4), finalTransfArray[index](5));
-      if  ( (errorArray[index] < smallestError) && (errorArray[index] > 0) ){
-	smallestError = errorArray[index]; 
-	bestResult = index;
-      }    
-    } 
-    cout<<"bestResult= "<<bestResult<<endl;
-
-    //copy the best transform to optimalTransfArray
-    optimalTransfArray[k] = finalTransfArray[bestResult];
-    optimalErrorArray[k]  = errorArray[bestResult];
-  
+    GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
+    
     if (settings.displayResults){
-      //write results to image outside matching
-      ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
+       //write results to image outside matching
+       ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
 			       trackIndices, cubFiles[k], outFilename);
     }    
 

@@ -115,7 +115,7 @@ void PrintGlobalParams(struct CoregistrationParams *settings)
   printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
   printf("DISPLAY_RESULTS %d\n", settings->displayResults);
 }
-
+//this function will be removed
 int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
 {
 

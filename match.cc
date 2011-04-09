@@ -570,8 +570,10 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
  
   A couple of thoughts - we rezero lhs & rhs every iteration this should not be the problem.  Could the problem simple be a scaling issue where the size of the error terms on the right & left hand side - caused by the great number of points - causes numerical stability issues for solving the matrix?
 */
-
+  
+  errorArray.resize(initTransfArray.size());
   finalTransfArray.resize(initTransfArray.size());
+  
   //copy initTransfArray into finalTransfArray.
   for (int index = 0; index < initTransfArray.size(); index++){
     for (int i = 0; i < 6; i++){
@@ -656,12 +658,13 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 		    lhs(3) += ii * I_y_val * I_e_val;
 		    lhs(4) += jj * I_y_val * I_e_val;
 		    lhs(5) +=      I_y_val * I_e_val;
-
+		    /*
 		    if (weight>0.0){
 		      cout<<"weight="<<weight<<", I_x_val="<<I_x_val<<", I_y_val= "<<I_y_val<<
                             ", x_deriv="<<x_deriv(jA, iA)<<", y_deriv="<<y_deriv(jA, iA)<<", I_e_val="<<I_e_val<<endl;
 		      cout<<"lhs"<<lhs(0)<<endl;
 		    }
+		    */
 		    // Right Hand Side UL
 		    rhs(0,0) += ii*ii * I_x_sqr;
 		    rhs(0,1) += ii*jj * I_x_sqr;
@@ -693,72 +696,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
                   }
 
 		  errorArray[index] += abs(I_e_val);
-		  
-            #if 0    
-		  /*
-                  float robustWeight;
-                  float b_sqr = 0.0001;
-                  if (I_e_val == 0){
-		     float tmp = 0.001;
-                     robustWeight = sqrt(b_sqr*log(1+(tmp*tmp)/b_sqr))/tmp;
-                  }
-		  else{
-                     robustWeight = sqrt(b_sqr*log(1+(I_e_val*I_e_val)/b_sqr))/fabs(I_e_val);
-                  }
-                                
-                  // We combine the error value with the derivative and
-                  // add this to the update equation.
-			      	      
-		  float weight = spatialWeights(ii+kern_half_width, jj+kern_half_height)*robustWeight;
-            
-		  */
 
-
-		  //calculate numerical dirivatives (ii,jj).
-                  
-		  I_x_val = x_deriv(jA,iA)*weight; 
-		  I_y_val = y_deriv(jA,iA)*weight; 
-              
-		  I_x_I_y = I_x_val*I_y_val;        
-		  I_x_sqr = I_x_val*I_x_val;
-		  I_y_sqr = I_y_val*I_y_val;
-
-		  // Left hand side
-		  lhs(0) += ii * I_x_val * I_e_val;
-		  lhs(1) += jj * I_x_val * I_e_val;
-		  lhs(2) +=      I_x_val * I_e_val;
-		  lhs(3) += ii * I_y_val * I_e_val;
-		  lhs(4) += jj * I_y_val * I_e_val;
-		  lhs(5) +=      I_y_val * I_e_val;
-
-                  if (weight>0.0){
-                    cout<<"weight="<<weight<<", I_x_val="<<I_x_val<<", I_y_val= "<<I_y_val<<", x_deriv="<<x_deriv(jA, iA)<<", y_deriv="<<y_deriv(jA, iA)<<", I_e_val="<<I_e_val<<endl;
-                    cout<<"lhs"<<lhs(0)<<endl;
-		  }
-		  // Right Hand Side UL
-		  rhs(0,0) += ii*ii * I_x_sqr;
-		  rhs(0,1) += ii*jj * I_x_sqr;
-		  rhs(0,2) += ii    * I_x_sqr;
-		  rhs(1,1) += jj*jj * I_x_sqr;
-		  rhs(1,2) += jj    * I_x_sqr;
-		  rhs(2,2) +=         I_x_sqr;
-
-		  // Right Hand Side UR
-		  rhs(0,3) += ii*ii * I_x_I_y;
-		  rhs(0,4) += ii*jj * I_x_I_y;
-		  rhs(0,5) += ii    * I_x_I_y;
-		  rhs(1,4) += jj*jj * I_x_I_y;
-		  rhs(1,5) += jj    * I_x_I_y;
-		  rhs(2,5) +=         I_x_I_y;
-
-		  // Right Hand Side LR
-		  rhs(3,3) += ii*ii * I_y_sqr;
-		  rhs(3,4) += ii*jj * I_y_sqr;
-		  rhs(3,5) += ii    * I_y_sqr;
-		  rhs(4,4) += jj*jj * I_y_sqr;
-		  rhs(4,5) += jj    * I_y_sqr;
-		  rhs(5,5) +=         I_y_sqr;
-#endif
 		}
 	      }           
             }// end of if statement: inside image
@@ -820,7 +758,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
-			       float *matchingError)
+			       vector<float> &matchingErrorArray /*float *matchingError*/)
 {
     int ti, si, li;
     int jA, iA;
@@ -914,6 +852,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     float minError = errorArray[0];
     int bestIndex = 0;
     finalTransfArray.resize(1);
+    matchingErrorArray.resize(1);
     finalTransfArray[0] = initTransfArray[0];
     for (index = 0; index < initTransfArray.size(); index++){
       if (errorArray[index] < minError){
@@ -924,7 +863,8 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     }
     cout<<"minError= "<<minError<<endl;
     cout<<"bestIndex="<<bestIndex<<endl; 
-    *matchingError = minError;
+    //*matchingError = minError;
+    matchingErrorArray[0] = minError;
     
 }
 

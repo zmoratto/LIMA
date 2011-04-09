@@ -60,7 +60,8 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
 template <class ViewT>
 vector<Vector3> 
 GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
-            ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, Vector2 samplingStep)
+            ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
+            Vector2 samplingStep, Vector2 delta_lonlat)
 {
  
   int verStep = samplingStep(0);
@@ -80,7 +81,9 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 
 	 Vector2 forePix(i,j);
 	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
-	
+         fore_lonlat(0)=fore_lonlat(0)+delta_lonlat(0);
+	 fore_lonlat(1)=fore_lonlat(1)+delta_lonlat(1);
+
          Vector3 fore_lonlat3(fore_lonlat(0), fore_lonlat(1), (foreImg.impl())(i,j));
          Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat3);
       
@@ -97,7 +100,7 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 template <class ViewT>
 void
 FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            GeoReference const &foreGeo, vector<Vector3>& matchArray, Vector2 matchWindowHalfSize, Vector2 delta_lonlat)
+            GeoReference const &foreGeo, vector<Vector3>& matchArray, Vector2 matchWindowHalfSize)
 {
  
  int matchWindowHalfWidth = matchWindowHalfSize(0);
@@ -113,8 +116,8 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
      Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic(featureArray[i]);
      Vector2 fore_lonlat;
  
-     fore_lonlat(0) = fore_lonlat3(0) + delta_lonlat(0);
-     fore_lonlat(1) = fore_lonlat3(1) + delta_lonlat(1);
+     fore_lonlat(0) = fore_lonlat3(0);
+     fore_lonlat(1) = fore_lonlat3(1);
 
      Vector2 back_lonlat = fore_2_back_lonlat(fore_lonlat);
 
@@ -173,60 +176,47 @@ RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
     vector<Vector3> matchArray;
     matchArray.resize(featureArray.size());
     
-    Vector2 delta_lonlat;
-    float minMatchError = 1000000000.0;
-   
-    for (int k = -2; k < 3; k++){
-      delta_lonlat(0) = k*0.001; 
-      for (int l = -2; l < 3; l++){
-        
-        delta_lonlat(1) = l*0.001;	
-        cout<<"delta_lonlat"<<delta_lonlat<<endl;
-        int numIter = 0;
-        float matchError = 100.0; 
-
-        while((numIter < settings.maxNumIter)&&(matchError > settings.matchErrorThresh)){
-      
-	  printf("feature matching ...\n");
-     
-	  FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, settings.matchWindowHalfSize, delta_lonlat);
-      
-	  cout<<"computing the matching error ..."<<endl;
-	  matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
-	  cout<<"match error="<<matchError<<endl;
-	  
-	  cout<<"computing DEM translation ..."<<endl;
-	  ComputeDEMTranslation(featureArray, matchArray, translation);
-	  cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-             
-	  cout<<"computing DEM rotation ..."<<endl;
-	  ComputeDEMRotation(featureArray, matchArray, translation, rotation);
-	  PrintMatrix(rotation);
-
-	  //apply the computed rotation and translation to the featureArray  
-	  TransformFeatures(featureArray, translation, rotation);
-
-	  translationArray.push_back(translation);
-	  rotationArray.push_back(rotation);
-      
-	  numIter++;
-
-	}
+    int numIter = 0;
+    float matchError = 100.0; 
+    rotationArray.clear();
+    translationArray.clear();
     
-        if (matchError < minMatchError){
-          minMatchError = matchError;
-	  rotation = rotationArray[0];
-	  translation = translationArray[0];
-	  for (int i = 1; i < rotationArray.size(); i++){
-	    rotation = rotation*rotationArray[i];
-	    translation = translation + translationArray[i];
-	  }
-	}
+    while((numIter < settings.maxNumIter)&&(matchError > settings.matchErrorThresh)){
+      
+	    printf("feature matching ...\n");
+     
+	    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, settings.matchWindowHalfSize);
+      
+	    cout<<"computing the matching error ..."<<endl;
+	    matchError = ComputeMatchingError(featureArray, matchArray, errorArray);
+	    cout<<"match error="<<matchError<<endl;
+	  
+	    cout<<"computing DEM translation ..."<<endl;
+	    ComputeDEMTranslation(featureArray, matchArray, translation);
+	    //cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+             
+	    cout<<"computing DEM rotation ..."<<endl;
+	    ComputeDEMRotation(featureArray, matchArray, translation, rotation);
+	    //PrintMatrix(rotation);
 
-	cout<<"minMatchError"<<minMatchError<<endl;
-       
-      }
+	    //apply the computed rotation and translation to the featureArray  
+	    TransformFeatures(featureArray, translation, rotation);
+
+	    translationArray.push_back(translation);
+	    rotationArray.push_back(rotation);
+	    
+	    numIter++;
+            cout<<"numIter="<<numIter<<endl;
+
     }
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (int i = 1; i < rotationArray.size(); i++){
+	 rotation = rotation*rotationArray[i];
+	 translation = translation + translationArray[i];
+    }
+ 
 }
 
 #endif
