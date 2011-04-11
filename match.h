@@ -49,14 +49,21 @@ using namespace std;
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
+
+void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings);
+void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 
+                      Vector<float, 6> &optimalTransf, float &optimalError);
+
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransf, 
 			       vector<float> &matchingError/*float *matchingError*/);
+
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			         ModelParams modelParams,  int numMaxIter, 
 			         vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 			         vector<float> &errorArray );
+
 void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
@@ -66,12 +73,12 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
                      ModelParams modelParams,  int numMaxIter, 
                      vector<Vector<float, 6> > initTransfArray,  vector<Vector<float, 6> >&finalTransfArray, 
                      vector<float> &errorArray);
-
+/*
 void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 				 ModelParams modelParams, CoregistrationParams coregistrationParams,
 				 vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
 				 vector<float> &errorArray );
-
+*/
 void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			          ModelParams modelParams, CoregistrationParams coregistrationParams,
 			          vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 

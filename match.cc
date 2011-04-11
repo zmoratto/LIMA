@@ -181,6 +181,85 @@ void printLHS_Error( Vector<float,6> lhs, float error, int index, int iter)
   printf("--------------------------------------\n\n");
 }
 
+//This functions needs to be changed to generate multiple starting points for each 
+//element of the affine transform 
+void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
+{
+    initTransfArray.resize(settings.maxNumStarts);
+    for (int i = 0; i < settings.maxNumStarts; i++){
+      initTransfArray[i][0] = 1.0;
+      initTransfArray[i][1] = 0.0;
+      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
+      initTransfArray[i][3] = 0.0;
+      initTransfArray[i][4] = 1.0;
+      initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
+    }  
+}
+/*
+//This functions needs to be changed to generate multiple starting points for each 
+//element of the affine transform 
+void GenerateInitTransformsNew(vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
+{
+  vector<int> numParamsArray.resize(6);
+  numParams(0)=3;
+  numParams(1)=3;
+  numParams(2)=3;
+  numParams(3)=3;
+  numParams(4)=3;
+  numParams(5)=3;
+  
+  int maxNumStarts = 1;
+  for( int i = 0; i < 6; i++){
+     maxNumStarts = maxNumStarts*numParams(i);
+  } 
+  
+  initTransfArray.resize(maxNumStarts);
+  int index = 0;
+  for (int i0 = 0; i0 < numParams(0); i0++){
+    for (int i1 = 0; i1 < numParams(1); i1++){ 
+      for (int i2 = 0; i2 < numParams(2); i2++){
+        for (int i3 = 0; i3 < numParams(3); i3++){
+          for (int i4 = 0; i4 < numParams(4); i4++){
+            for (int i5 = 0; i5 < numParams(5); i5++){
+	      initTransfArray[index][0] = i0*delta(0);
+	      initTransfArray[index][1] = i1*delta(1);
+	      initTransfArray[index][2] = i2*delta(2);
+	      initTransfArray[index][3] = i3*delta(3);
+	      initTransfArray[index][4] = i4*delta(4);
+	      initTransfArray[index][5] = i5*delta(5);
+              index++;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+*/
+void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 
+                      Vector<float, 6> &optimalTransf, float &optimalError)
+{
+    //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
+    int bestResult = 0;
+    float smallestError = std::numeric_limits<float>::max();
+    for (int index = 0; index < finalTransfArray.size(); index++){
+      printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
+	     index, finalMatchingErrorArray[index], 
+	     finalTransfArray[index](0), finalTransfArray[index](1), 
+	     finalTransfArray[index](2), finalTransfArray[index](3),
+	     finalTransfArray[index](4), finalTransfArray[index](5));
+      if  ( (finalMatchingErrorArray[index] < smallestError) && (finalMatchingErrorArray[index] > 0) ){
+	smallestError = finalMatchingErrorArray[index]; 
+	bestResult = index;
+      }    
+    } 
+    cout<<"bestResult= "<<bestResult<<endl;
+
+    //copy the best transform to optimalTransfArray
+    optimalTransf = finalTransfArray[bestResult];
+    optimalError  = finalMatchingErrorArray[bestResult];
+}
+/*
 //DEM to DEM coregistration
 void UpdateMatchingParams(string refDEMFilename, string matchDEMFilename,  
 			  ModelParams modelParams,  int numMaxIter, 
@@ -198,7 +277,7 @@ void UpdateMatchingParams(string refDEMFilename, string matchDEMFilename,
   read_georeference(mDEMGeo, matchDEMFilename);
 
 }
-
+*/
 //image to lidar coregistration
 void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			  ModelParams modelParams,  int numMaxIter, 
@@ -958,7 +1037,7 @@ void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,
     } 
     *matchingError = minError;
 }
-
+#if 0
 //this is the MP-multi processor version of the above function
 void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 				 ModelParams modelParams, CoregistrationParams coregistrationParams,  
@@ -1246,7 +1325,7 @@ void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRG
 
 
 } 
-
+#endif
 
 
 //this is the MP-multi processor version of the above function

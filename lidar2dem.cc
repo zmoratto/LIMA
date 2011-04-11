@@ -148,7 +148,6 @@ int main( int argc, char *argv[] ) {
 
   if (settings.analyseFlag == 1){
     SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
-
     int numVerPts = 6000;
     int numHorPts = 6000;
     MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
@@ -156,16 +155,23 @@ int main( int argc, char *argv[] ) {
 
   
   if (settings.useLOLAFeatures){
-
     cout << "Computing the LOLA features and weights ... ";
     int halfWindow = 10;
     float topPercent = 0.10;
     ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
     cout<<"done."<<endl;
-
   }
  
- 
+  Vector3 currTranslation;
+  Matrix<float, 3,3 > currRotation;
+  /*
+  //TO DO: featureArray is returned from tracksDEMPt.
+  RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
+	 currTranslation, currRotation, errorArray);
+
+  */
+  //this is old and it will be removed. It uses affine transform instead of a 3D rotation and translation
+  /*
   //return matching error and transform
   cout << "UpdateMatchingParams ..."<< endl;
   UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
@@ -187,10 +193,11 @@ int main( int argc, char *argv[] ) {
     }      
   }    
   cout<<"bestResult= "<<bestResult<<endl;
-
+  
 
   //write finalTransfArray and errorArray to file
   SaveReportFile(trackPts, finalTransfArray, errorArray, matchResultsFilename);
+  */
   /*
   if (settings.displayResults){
     //write results to image outside matching

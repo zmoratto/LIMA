@@ -56,6 +56,9 @@ void SaveVectorToFile(vector<float> v, string filename);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 
+void printOverlapList(std::vector<int>  overlapIndices);
+Vector4 ComputeGeoBoundary(string cubFilename);
+std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners);
 #endif//IO_H
 
 

@@ -54,125 +54,6 @@ using namespace std;
 #include "weights.h"
 #include "featuresLOLA.h"
 
-void printOverlapList(std::vector<int>  overlapIndices)
-{
-  printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
-    for (int i = 0; i < overlapIndices.size(); i++){
-      printf("%d ", overlapIndices[i]);
-    }
-}
-
-
-//this will be used to compute the makeOverlapList in a more general way.
-//it takes into consideration any set of overlapping images.
-Vector4 ComputeGeoBoundary(string cubFilename)
-{
-  GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
-  boost::shared_ptr<IsisCameraModel> isiscam( new IsisCameraModel( cubFilename ) );
-  BBox2 camera_boundary =
-    camera_bbox( moonref, boost::shared_dynamic_cast<CameraModel>(isiscam),
-		 isiscam->samples(), isiscam->lines() );
- 
-  Vector4 corners;
- 
-
-  float minLon = camera_boundary.min()[0];
-  float minLat = camera_boundary.min()[1];
-  float maxLon = camera_boundary.max()[0];
-  float maxLat = camera_boundary.max()[1];
-
-  printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
-  if (maxLat<minLat){
-      float temp = minLat;
-      minLat = maxLat;
-      maxLat = temp;    
-  }
-
-  if (maxLon<minLon){
-     float temp = minLon;
-     minLon = maxLon;
-     maxLon = temp;    
-  }
-
-  corners(0) = minLon;
-  corners(1) = maxLon;
-  corners(2) = minLat;
-  corners(3) = maxLat;
-
-  return corners;
-}
-
-//this function determines the image overlap for the general case
-//it takes into consideration any set of overlapping images.
-std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners) {
-  
-  std::vector<int> overlapIndices;
- 
-  for (unsigned int i = 0; i < inputFiles.size(); i++){
-
-       int lonOverlap = 0;
-       int latOverlap = 0; 
-     
-       Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
-
-       printf("corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
-
-       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon in interval 
-	    ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1)))) //maxlon in interval
-       {
-         lonOverlap = 1;
-       }
-       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat in interval 
-	    ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3)))) //maxlat in interval
-       {
-         latOverlap = 1;
-       }
-     
-       if ((lonOverlap == 1) && (latOverlap == 1)){
-           overlapIndices.push_back(i);
-       }
-  }
-
-  return overlapIndices;
-}
-
-void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 
-                      Vector<float, 6> &optimalTransf, float &optimalError)
-{
-    //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
-    int bestResult = 0;
-    float smallestError = std::numeric_limits<float>::max();
-    for (int index = 0; index < finalTransfArray.size(); index++){
-      printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	     index, finalMatchingErrorArray[index], 
-	     finalTransfArray[index](0), finalTransfArray[index](1), 
-	     finalTransfArray[index](2), finalTransfArray[index](3),
-	     finalTransfArray[index](4), finalTransfArray[index](5));
-      if  ( (finalMatchingErrorArray[index] < smallestError) && (finalMatchingErrorArray[index] > 0) ){
-	smallestError = finalMatchingErrorArray[index]; 
-	bestResult = index;
-      }    
-    } 
-    cout<<"bestResult= "<<bestResult<<endl;
-
-    //copy the best transform to optimalTransfArray
-    optimalTransf = finalTransfArray[bestResult];
-    optimalError  = finalMatchingErrorArray[bestResult];
-}
-
-void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
-{
-    initTransfArray.resize(settings.maxNumStarts);
-    for (int i = 0; i < settings.maxNumStarts; i++){
-      initTransfArray[i][0] = 1.0;
-      initTransfArray[i][1] = 0.0;
-      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
-      initTransfArray[i][3] = 0.0;
-      initTransfArray[i][4] = 1.0;
-      initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
-    }  
-}
-
 int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
@@ -223,7 +104,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("cubFiles") < 1 ) /*&& (vm.count("DEMFiles") < 1)*/) {
+  if(( vm.count("cubFiles") < 1 )) {
     std::cerr << "Error: Must specify at least one orthoprojected image file or one DEM file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
