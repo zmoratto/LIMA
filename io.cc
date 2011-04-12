@@ -253,7 +253,8 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
         char s[2];
 	
 	string detIDs = detID;
-    //NOTE: all of the following atoi where orignally atof but where changed to remove compiler warnings - dtj, 2010_07_21
+     
+        //NOTE: all of the following atoi where originally atof but where changed to remove compiler warnings - dtj, 2010_07_21     
         if (time.length() > 1){
 	  size_t length;
 	  length = time.copy(year, 4, 0);
@@ -290,7 +291,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
         currPt.coords(0) = atof(lon);
         currPt.coords(1) = atof(lat);
 	currPt.coords(2) = atof(rad);
-        
+        //cout<<"LOLAPt: "<<currPt.coords<<endl;
         
         if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) ){ //valid lidar point
      

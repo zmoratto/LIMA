@@ -78,6 +78,7 @@ struct imgPoint
 
 struct DEMPoint
 {
+  int valid;
   double x;
   double y;
   double val;
@@ -211,7 +212,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
 {
     vector<pointCloud> LOLAPts;
 
-  cout<<"pixu0"<<endl;
+    int noDEMVal = -10000;
   ImageViewRef<float> interpDEM;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
@@ -250,11 +251,16 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
 	    float x = DEM_pix[0];
 	    float y = DEM_pix[1];
       
+            trackPts[ti][si].DEMPt[li].valid = 0; 
             if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	      trackPts[ti][si].DEMPt[li].val = interpDEM(x, y);
-	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
-	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
+	      if (interpDEM(x,y)!=noDEMVal){
+		trackPts[ti][si].DEMPt[li].val = 1737.4 + 0.001*interpDEM(x, y);
+		trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
+		trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
+                trackPts[ti][si].DEMPt[li].valid=1; 
+	      }
 	    }
+	   
 	}
 
 	trackPts[ti][si].valid = 1;
@@ -263,4 +269,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
     }//i  
   }//k
 }
+
+
+
 #endif /* TRACKS_H */

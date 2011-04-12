@@ -31,7 +31,7 @@ assembler: assembler.cc
 
 #lidar2dem
 lidar2dem: lidar2dem.cc
-	g++ -arch i386 $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  tracks.cc match.cc display.cc weights.cc featuresLOLA.cc lidar2dem.cc -o lidar2dem 
+	g++ -arch i386 $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  io.cc tracks.cc match.cc display.cc weights.cc featuresLOLA.cc lidar2dem.cc -o lidar2dem 
 clean:
 	rm coregister
 	rm assembler

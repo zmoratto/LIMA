@@ -48,7 +48,7 @@ using namespace std;
 #include "coregister.h"
 #include "display.h"
 #include "weights.h"
-
+#include "icp.h"
 
 int main( int argc, char *argv[] ) {
 
@@ -108,24 +108,7 @@ int main( int argc, char *argv[] ) {
   //create the results directory and prepare the output filenames - END
 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-  
-  vector<Vector<float, 6> >initTransfArray;
-  initTransfArray.resize(settings.maxNumStarts);
-  for (int i = 0; i < settings.maxNumStarts; i++){
-    initTransfArray[i][0] = 1.0;
-    initTransfArray[i][1] = 0.0;
-    initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
-    initTransfArray[i][3] = 0.0;
-    initTransfArray[i][4] = 1.0;
-    initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
-  }    
  
-  vector<int> trackIndices;
-  trackIndices.resize(trackPts.size());
-  for (int i = 0; i < trackPts.size(); i++){
-    trackIndices[i] = i;
-  }
-  
   vector<Vector<float, 6> > finalTransfArray;
   vector<float> errorArray;
   errorArray.resize(settings.maxNumStarts);
@@ -145,7 +128,7 @@ int main( int argc, char *argv[] ) {
 
   GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo);
   //initialization step for LIDEM - END
-
+  /*
   if (settings.analyseFlag == 1){
     SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
     int numVerPts = 6000;
@@ -161,51 +144,47 @@ int main( int argc, char *argv[] ) {
     ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
     cout<<"done."<<endl;
   }
- 
+  */
   Vector3 currTranslation;
   Matrix<float, 3,3 > currRotation;
-  /*
-  //TO DO: featureArray is returned from tracksDEMPt.
-  RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
-	 currTranslation, currRotation, errorArray);
-
-  */
-  //this is old and it will be removed. It uses affine transform instead of a 3D rotation and translation
-  /*
-  //return matching error and transform
-  cout << "UpdateMatchingParams ..."<< endl;
-  UpdateMatchingParamsLIDEM_MP(trackPts, inputDEMFilename, 
-			       modelParams, settings,  
-			       initTransfArray, finalTransfArray, errorArray);
- 
-
-  int bestResult = 0;
-  float smallestError = errorArray[0];
-  for (int index = 0; index < initTransfArray.size(); index++){
-    printf("OUT %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
-	   index, errorArray[index], 
-	   finalTransfArray[index](0), finalTransfArray[index](1), 
-	   finalTransfArray[index](2), finalTransfArray[index](3),
-	   finalTransfArray[index](4), finalTransfArray[index](5));
-    if  (errorArray[index] < smallestError){
-      smallestError = errorArray[index]; 
-      bestResult = index;
-    }      
-  }    
-  cout<<"bestResult= "<<bestResult<<endl;
+  vector<Vector3> featureArray;//lidarData
+  vector<Vector3> modelArray;//DEM
   
+  
+  //copy info to featureArray and modelArray
+  for(int k = 0; k < trackPts.size();k++){
+     for(int i = 0; i < trackPts[k].size(); i=i+100){
+       
+       if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
+	 Vector3 model;
+	 Vector3 feature;
+         
+         //this is the LOLA data
+	 model[0] = trackPts[k][i].LOLAPt[2].coords(0); 
+	 model[1] = trackPts[k][i].LOLAPt[2].coords(1);   
+	 model[2] = trackPts[k][i].LOLAPt[2].coords(2);
 
-  //write finalTransfArray and errorArray to file
-  SaveReportFile(trackPts, finalTransfArray, errorArray, matchResultsFilename);
-  */
-  /*
-  if (settings.displayResults){
-    //write results to image outside matching
-    ShowFinalTrackPtsOnImage(trackPts, finalTransfArray[bestResult], 
-                             trackIndices, inputDRGFilename, outFilename);
+         if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100)){
+	   feature[0] = trackPts[k][i].LOLAPt[2].coords(0); 
+	   feature[1] = trackPts[k][i].LOLAPt[2].coords(1); 
+	   feature[2] = trackPts[k][i].DEMPt[2].val;
+
+	   //copy the model and features into cartesian coordinates
+	   feature = DEMGeo.datum().geodetic_to_cartesian(feature);
+	   model = DEMGeo.datum().geodetic_to_cartesian(model);
+         	 
+	   featureArray.push_back(feature);
+	   modelArray.push_back(model);
+	 }
+       }
+     }
   }
-  */
-  cout << "UpdateMatchingParams done." << endl;
+
+  cout<<modelArray.size()<<" "<<featureArray.size()<<endl;
+  ICP(featureArray, modelArray, /*settings,*/ currTranslation, currRotation, errorArray);
+
+  cout<<"Translation="<<currTranslation<<endl;
+  cout<<"Rotation="<<currRotation<<endl;
 
   return 0;
 }
