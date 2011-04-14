@@ -59,7 +59,6 @@ int main( int argc, char *argv[] ) {
   string inputCSVFilename; 
   std::string configFilename="coregister_settings.txt";
   
-  //std::vector<std::string> DRGFiles;
   std::vector<std::string> DEMFiles;
   std::vector<std::string> cubFiles;
   std::string resDir = "../results";

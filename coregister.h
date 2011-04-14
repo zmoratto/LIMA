@@ -54,9 +54,9 @@ typedef struct CoregistrationParams{
   int maxNumIter;
   int maxNumStarts;
   int displayResults;
+  double noDataVal;
+  float minConvThresh;
 };
-
-
 
 
 #endif /* COREGISTER_H */

@@ -37,6 +37,7 @@ using namespace vw::cartography;
 using namespace std;
 
 #include "icp.h"
+#include "coregister.h"
 
 Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat)
 { 
@@ -191,7 +192,7 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
  
 }
 
-void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, /*GlobalSettings settings,*/
+void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, CoregistrationParams settings,
          Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
 {
    
@@ -204,8 +205,10 @@ void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, /*GlobalSetti
     float matchError = 100.0; 
     rotationArray.clear();
     translationArray.clear();
+    errorArray.resize(featureArray.size());
+
     
-    while((numIter < maxNumIter)/*&&(matchError > settings.matchErrorThresh)*/){
+    while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
       	
       
 	    cout<<"computing the matching error ..."<<endl;

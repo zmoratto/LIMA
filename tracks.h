@@ -205,14 +205,14 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 }
 
 
-//TO DO: ignore NODATA values.
 template <class ViewT>
 void 
-GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo)
+GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo, double noDEMVal)
 {
-    vector<pointCloud> LOLAPts;
+  vector<pointCloud> LOLAPts;
 
-    int noDEMVal = -10000;
+  float radius = DEMGeo.datum().semi_major_axis();
+ 
   ImageViewRef<float> interpDEM;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
@@ -254,7 +254,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
             trackPts[ti][si].DEMPt[li].valid = 0; 
             if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
 	      if (interpDEM(x,y)!=noDEMVal){
-		trackPts[ti][si].DEMPt[li].val = 1737.4 + 0.001*interpDEM(x, y);
+		trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
 		trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
 		trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
                 trackPts[ti][si].DEMPt[li].valid=1; 

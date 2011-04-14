@@ -84,8 +84,12 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
 
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "DISPLAY_RESULTS %d\n", &(settings->displayResults)); 
-    
-    //configFile.getline(line, MAX_LENGTH);
+
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "NO_DATA_VAL %lf\n", &(settings->noDataVal)); 
+
+    configFile.getline(line, MAX_LENGTH);
+    sscanf(line, "CONV_THRESH %f\n", &(settings->minConvThresh)); 
     
     configFile.close();
 
@@ -102,6 +106,8 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     settings->maxNumIter = 3;
     settings->maxNumStarts = 160;
     settings->displayResults = 0; 
+    settings->noDataVal = -10000;
+    settings->minConvThresh = 0.01;
 
     return(0);
   }
@@ -118,6 +124,8 @@ void PrintGlobalParams(struct CoregistrationParams *settings)
   printf("MAX_NUM_ITER  %d\n", settings->maxNumIter);
   printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
   printf("DISPLAY_RESULTS %d\n", settings->displayResults);
+  printf("NO_DATA_VAL %f\n", settings->noDataVal);
+  printf("MIN_CONV_THRESH %f\n", settings->minConvThresh);
 }
 //this function will be removed
 int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
