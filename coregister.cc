@@ -46,6 +46,7 @@ using namespace vw::camera;
 using namespace std;
 
 #include <math.h>
+#include "util.h"
 #include "tracks.h"
 #include "io.h"
 #include "match.h"

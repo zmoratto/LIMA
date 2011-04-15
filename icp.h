@@ -31,7 +31,7 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
-#include "util.h"
+//#include "util.h"
 #include "coregister.h"
 
 using namespace vw;
@@ -170,7 +170,7 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
 template <class ViewT>
 void 
 RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
-       GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, GlobalSettings settings,
+       GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
        Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
 {
    
@@ -185,7 +185,7 @@ RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
     rotationArray.clear();
     translationArray.clear();
     
-    while((numIter < settings.maxNumIter)&&(matchError > settings.matchErrorThresh)){
+    while((numIter < settings.maxNumIter)&&(matchError > settings.minConvThresh)){
       
 	    printf("feature matching ...\n");
      

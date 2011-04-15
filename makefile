@@ -24,10 +24,10 @@ LDFLAGS += -arch i386
 
 #lidar2image
 coregister: coregister.cc
-	g++ -arch i386 -fopenmp $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS) coregister.cc tracks.cc match.cc io.cc display.cc weights.cc featuresLOLA.cc -o coregister 
+	g++ -arch i386 -fopenmp $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS) coregister.cc tracks.cc match.cc io.cc display.cc weights.cc featuresLOLA.cc util.cc -o coregister 
 #dem2dem
 assembler: assembler.cc
-	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  assembler.cc -o assembler 
+	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  io.cc icp.cc  assembler.cc -o assembler 
 
 #lidar2dem
 lidar2dem: lidar2dem.cc

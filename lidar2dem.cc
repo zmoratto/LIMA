@@ -178,12 +178,12 @@ int main( int argc, char *argv[] ) {
       Matrix<float, 3,3 > currRotation;
       vector<Vector3> featureArray;//DEM
       vector<Vector3> modelArray;//LOLA
-      vector<float> errorArray;
-      //errorArray.resize(settings.maxNumStarts);
+      vector<float> errorArray;//error array same size as model and feature
+   
 
       //copy info to featureArray and modelArray
       for(int k = 0; k < trackPts.size();k++){
-	for(int i = 0; i < trackPts[k].size(); i=i+100){
+	for(int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
        
 	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
 	    Vector3 model;

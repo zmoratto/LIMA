@@ -51,12 +51,26 @@ typedef struct CoregistrationParams{
   int analyseFlag; 
   int useLOLAFeatures;
   int topPercentFeatures;
+  Vector2 samplingStep;
+  Vector2 matchWindowHalfSize;
   int maxNumIter;
-  int maxNumStarts;
+  int maxNumStarts; 
   int displayResults;
   double noDataVal;
   float minConvThresh;
+  
 };
-
-
+/*
+//so far used just in assembler
+//this will removed - START
+struct GlobalSettings
+{
+  int maxNumIter;
+  float matchErrorThresh;
+  Vector2 samplingStep;
+  Vector2 matchWindowHalfSize;
+  int runICP;
+};
+//this will removed - END
+*/
 #endif /* COREGISTER_H */

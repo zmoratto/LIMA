@@ -110,8 +110,10 @@ struct LOLAShot
   vector<DEMPoint> DEMPt; 
 };
 
-
+int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 //computes the scale factor for all tracks at once
+Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
+vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);

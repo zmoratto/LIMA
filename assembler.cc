@@ -31,14 +31,14 @@ namespace po = boost::program_options;
 #include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
 
-
 #include <vw/Core.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
-#include "util.h"
+#include "coregister.h"
+#include "io.h"
 #include "icp.h"
 #include "assembler.h"
 
@@ -50,7 +50,9 @@ using namespace std;
 float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_lonlat)
 {
 
-  cout << Geo <<"\n";
+  //cout << Geo <<"\n";
+  float radius = Geo.datum().semi_major_axis();
+  cout<<"radius="<<radius<<endl;
 
   printf("width = %d, height = %d\n", width, height);
   Vector2 leftTopPixel(0,0);
@@ -66,7 +68,7 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   float maxLat = rightBottomLonLat(1);
 
   if (useUSGS_lonlat == 1){
-     float usgs_2_lonlat = 180/(3.14159265*3396190);
+    float usgs_2_lonlat = 180/(3.14159265*3396190);
      minLon = minLon*usgs_2_lonlat; 
      maxLon = maxLon*usgs_2_lonlat; 
      minLat = minLat*usgs_2_lonlat; 
@@ -86,56 +88,6 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   numPixPerDegree = height/fabs(maxLat-minLat);
   
   return numPixPerDegree;
-}
-
-void ReadSettingsFile(string settingsFilename, GlobalSettings *settings)
-{
-  int MAX_LENGTH = 5000;
-  char line[MAX_LENGTH];
-  ifstream configFile(settingsFilename.c_str());
-
-  if (configFile.is_open()){
-    printf("CONFIG FILE FOUND\n");
-    configFile.getline(line, MAX_LENGTH);
-    sscanf(line, "RUN_ICP %d\n", &(settings->runICP));
-    
-    configFile.getline(line, MAX_LENGTH);
-    int samplingStepX, samplingStepY;
-    sscanf(line, "SAMPLING_STEP %d %d\n", &samplingStepX, &samplingStepY);
-    settings->samplingStep(0) = samplingStepX;
-    settings->samplingStep(1) = samplingStepY; 
-
-    configFile.getline(line, MAX_LENGTH);
-    int windowSizeX, windowSizeY;
-    sscanf(line, "MATCH_WINDOW %d %d\n", &windowSizeX, &windowSizeY);
-    settings->matchWindowHalfSize(0) = windowSizeX;
-    settings->matchWindowHalfSize(1) = windowSizeY;
-    configFile.getline(line, MAX_LENGTH);
-    sscanf(line, "MAX_NUM_ITER %d\n", &(settings->maxNumIter));
-    configFile.getline(line, MAX_LENGTH);
-    float matchErrorThresh;
-    sscanf(line, "ERROR_THRESH %f\n", &matchErrorThresh); 
-    settings->matchErrorThresh = matchErrorThresh; 
-  }
-  else{
-    printf("CONFIG FILE NOT FOUND\n");
-    settings->runICP = 1;
-    settings->samplingStep(0) = 8;
-    settings->samplingStep(1) = 8;
-    settings->matchWindowHalfSize(0) = 5;
-    settings->matchWindowHalfSize(1) = 5;
-    settings->maxNumIter = 10;
-    settings->matchErrorThresh = 0.1;
-  }
-}
-
-void PrintSettings(GlobalSettings *settings)
-{
-  cout<<"runICP "<<settings->runICP<<endl;
-  cout<<"samplingStep "<<settings->samplingStep<<endl;
-  cout<<"matchWindowHalfSize "<<settings->matchWindowHalfSize<<endl;
-  cout<<"maxNumIter "<<settings->maxNumIter<<endl;
-  cout<<"matchErrorThresh "<<settings->matchErrorThresh<<endl;
 }
 
 int main( int argc, char *argv[] ) {
@@ -198,11 +150,12 @@ int main( int argc, char *argv[] ) {
   else{
       printf("DRG\n");
   }
-
-  struct GlobalSettings settings;
-  ReadSettingsFile(configFilename, &settings);
-  PrintSettings(&settings);
-
+ 
+  
+  struct CoregistrationParams settings;
+  ReadConfigFile((char*)configFilename.c_str(), &settings);
+  PrintGlobalParams(&settings);
+  
   Vector3 translation;
   Matrix<float, 3,3 > rotation;
   rotation[0][0]=1.0;
@@ -232,7 +185,7 @@ int main( int argc, char *argv[] ) {
     bestDeltaLonLat(1)=0;
     float minMatchError = 100000000.0;
 
-    if (settings.runICP == 1){
+    if (settings.matchingMode != 0){
        
        Vector2 delta_lonlat; 
       
@@ -242,7 +195,8 @@ int main( int argc, char *argv[] ) {
 	       delta_lonlat(1) = l*0.001;
 	       printf("feature extraction ...\n");
 	    
-	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, settings.samplingStep, delta_lonlat);
+	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, 
+                                                          settings.samplingStep, delta_lonlat);
 	       vector<float> errorArray;
 	       errorArray.resize(featureArray.size());
                
