@@ -167,19 +167,24 @@ int main( int argc, char *argv[] ) {
     string foreDEMFilename = foreFile;
     string assembledDEMFilename = resDir+"/assembled_dem.tif";
   
-    //small image high res - foreground 
+    //large image low res - background
+    cout<<"opening"<<backDEMFilename<<"..."<<endl; 
     DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
     GeoReference backDEMGeo;
     read_georeference(backDEMGeo, backDEMFilename);
-    printf("done opening the the backDEM\n");
-
-  
-    //large image low res - background
+    float back_radius = backDEMGeo.datum().semi_major_axis();
+    cout<<"radius="<<back_radius<<endl;
+    cout<<"done"<<endl;
+   
+    //small image high res - foreground
+    cout<<"opening"<<foreDEMFilename<<"..."<<endl;  
     DiskImageView<PixelGray<float> >  foreDEM(foreDEMFilename);
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
-    printf("done opening the the foreDEM\n");
-
+    float fore_radius = foreDEMGeo.datum().semi_major_axis();
+    cout<<"radius="<<fore_radius<<endl;
+    cout<<"done"<<endl;
+   
     Vector2 bestDeltaLonLat;
     bestDeltaLonLat(0)=0;
     bestDeltaLonLat(1)=0;

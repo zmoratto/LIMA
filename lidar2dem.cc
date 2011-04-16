@@ -136,6 +136,7 @@ int main( int argc, char *argv[] ) {
       double nodata_value;
       if (rsrc->has_nodata_read()){
 	nodata_value = rsrc->nodata_read();
+        settings.noDataVal = nodata_value;
       }
       else{
 	nodata_value = settings.noDataVal;
@@ -144,7 +145,6 @@ int main( int argc, char *argv[] ) {
  
       DiskImageView<PixelGray<float> > DEM( rsrc );
      
-
       GeoReference DEMGeo;
       read_georeference(DEMGeo, inputDEMFilename);
  
@@ -179,7 +179,9 @@ int main( int argc, char *argv[] ) {
       vector<Vector3> featureArray;//DEM
       vector<Vector3> modelArray;//LOLA
       vector<float> errorArray;//error array same size as model and feature
-   
+      currRotation[0][0] = 1.0;
+      currRotation[1][1] = 1.0;
+      currRotation[2][2] = 1.0;
 
       //copy info to featureArray and modelArray
       for(int k = 0; k < trackPts.size();k++){
@@ -190,30 +192,37 @@ int main( int argc, char *argv[] ) {
 	    Vector3 feature;
          
 	    //this is the LOLA data
+            float radius = DEMGeo.datum().semi_major_axis();
 	    model[0] = trackPts[k][i].LOLAPt[2].coords(0); 
 	    model[1] = trackPts[k][i].LOLAPt[2].coords(1);   
 	    model[2] = trackPts[k][i].LOLAPt[2].coords(2);
+          
 
-	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100)){
-	      feature[0] = trackPts[k][i].LOLAPt[2].coords(0); 
+	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){
+              cout<<"altitude="<<model[2]<<endl;
+	      /*
+              feature[0] = trackPts[k][i].LOLAPt[2].coords(0); 
 	      feature[1] = trackPts[k][i].LOLAPt[2].coords(1); 
 	      feature[2] = trackPts[k][i].DEMPt[2].val;
-
+	      */
 	      //copy the model and features into cartesian coordinates
-	      feature = DEMGeo.datum().geodetic_to_cartesian(feature);
+	      //feature = DEMGeo.datum().geodetic_to_cartesian(feature);
 	      model = DEMGeo.datum().geodetic_to_cartesian(model);
          	 
-	      featureArray.push_back(feature);
+	      //featureArray.push_back(feature);
 	      modelArray.push_back(model);
 	    }
 	  }
 	}
       }
 
+      featureArray.resize(modelArray.size());
       cout<<modelArray.size()<<" "<<featureArray.size()<<endl;
 
       //run ICP-matching
-      ICP(featureArray, modelArray, settings,currTranslation, currRotation, errorArray);
+
+
+      ICP(featureArray, interpDEM, DEMGeo, modelArray, settings,currTranslation, currRotation, errorArray);
       
       cout<<"Translation="<<currTranslation<<endl;
       cout<<"Rotation="<<currRotation<<endl;

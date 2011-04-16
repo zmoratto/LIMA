@@ -31,7 +31,6 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
-//#include "util.h"
 #include "coregister.h"
 
 using namespace vw;
@@ -166,6 +165,86 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  
 };
 
+//determines best DEM points that matche to LOLA track points
+//used in ICP
+template <class ViewT>
+void 
+FindMatchesFromDEM(vector<Vector3> lidar_xyz,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo, 
+                   vector<Vector3>& matchArray, Vector3 &translation, Matrix<float, 3, 3> &rotation, 
+                   double noDEMVal, Vector2 matchWindowHalfSize)
+{
+  float radius = DEMGeo.datum().semi_major_axis();
+  int matchWindowHalfWidth = matchWindowHalfSize(0);
+  int matchWindowHalfHeight = matchWindowHalfSize(1);
+
+  ImageViewRef<float> interpDEM;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+
+    //cout << "NOT masked" <<endl;
+  } else {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
+							  ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+
+ 
+  Vector3 matchCenter;
+  for (int i = 0; i < matchArray.size(); i++){  
+      matchCenter = matchCenter + matchArray[i];
+  }
+  matchCenter = matchCenter/matchArray.size();
+
+  for (int index = 0; index < lidar_xyz.size(); index++){
+  
+    Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
+    //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
+    Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
+    Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(lidar_lonlat);
+	  
+    float x = DEM_pix[0];
+    float y = DEM_pix[1];
+    
+    float minDistance = 1000000.0;
+    //search in a neigborhood around x,y and determine the best match to LOLA
+    for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
+      for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
+	if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+	  if (interpDEM(l,k)!=noDEMVal){
+
+	    //compute the distance to the lidar point
+	    Vector2 pix(l,k);
+	    Vector2 lonlat = DEMGeo.pixel_to_lonlat(pix);
+                    
+	    //revert to lon lat rad system
+	    Vector3 lonlatrad;
+	    lonlatrad(0) = lonlat(0);
+	    lonlatrad(1) = lonlat(1); 
+	    lonlatrad(2) = 0.001*(radius + interpDEM(l,k)); //km
+
+	    //transform into xyz coordinates of the foregound image.
+	    Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);             
+            dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation; 
+
+	    float distance1 = dem_xyz(0) - lidar_xyz[index](0);
+	    float distance2 = dem_xyz(1) - lidar_xyz[index](1);
+	    float distance3 = dem_xyz(2) - lidar_xyz[index](2);
+	    float distance = sqrt(distance1*distance1 + distance2*distance2 + distance3*distance3);   
+		           
+            if (distance < minDistance){
+	       minDistance = distance;
+	       matchArray[index] = dem_xyz;
+	    }
+		    
+	  }
+	}
+      }
+    }   
+  }
+}
 
 template <class ViewT>
 void 
@@ -201,6 +280,63 @@ RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
              
 	    cout<<"computing DEM rotation ..."<<endl;
 	    ComputeDEMRotation(featureArray, matchArray, translation, rotation);
+	    //PrintMatrix(rotation);
+
+	    //apply the computed rotation and translation to the featureArray  
+	    TransformFeatures(featureArray, translation, rotation);
+
+	    translationArray.push_back(translation);
+	    rotationArray.push_back(rotation);
+	    
+	    numIter++;
+            cout<<"numIter="<<numIter<<endl;
+
+    }
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (int i = 1; i < rotationArray.size(); i++){
+	 rotation = rotation*rotationArray[i];
+	 translation = translation + translationArray[i];
+    }
+ 
+}
+
+
+
+template <class ViewT>
+void 
+ICP(vector<Vector3> featureArray,  ImageViewBase<ViewT> const& DEM,  
+    GeoReference const& DEMGeo, vector<Vector3> modelArray, CoregistrationParams settings,
+    Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
+{
+   
+
+    vector<Vector3> translationArray;
+    vector<Matrix<float, 3,3> > rotationArray;
+    
+    int maxNumIter = 10;
+    int numIter = 0;
+    float matchError = 100.0; 
+    rotationArray.clear();
+    translationArray.clear();
+    errorArray.resize(featureArray.size());
+
+    
+    while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
+      	
+            FindMatchesFromDEM(modelArray, DEM, DEMGeo, featureArray, translation, rotation, settings.noDataVal, settings.matchWindowHalfSize);
+
+	    cout<<"computing the matching error ..."<<endl;
+	    matchError = ComputeMatchingError(featureArray, modelArray, errorArray);
+	    cout<<"match error="<<matchError<<endl;
+	  
+	    cout<<"computing DEM translation ..."<<endl;
+	    ComputeDEMTranslation(featureArray, modelArray, translation);
+	    //cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+             
+	    cout<<"computing DEM rotation ..."<<endl;
+	    ComputeDEMRotation(featureArray, modelArray, translation, rotation);
 	    //PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  

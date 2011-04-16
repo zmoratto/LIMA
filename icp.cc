@@ -186,62 +186,14 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
   featureCenter = featureCenter/featureArray.size();
 
   for (int i=0; i < featureArray.size(); i++){
-    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter +translation; 
+    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
   }
 
  
 }
 
-void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, CoregistrationParams settings,
-         Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
-{
-   
 
-    vector<Vector3> translationArray;
-    vector<Matrix<float, 3,3> > rotationArray;
-    
-    int maxNumIter = 10;
-    int numIter = 0;
-    float matchError = 100.0; 
-    rotationArray.clear();
-    translationArray.clear();
-    errorArray.resize(featureArray.size());
 
-    
-    while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
-      	
-      
-	    cout<<"computing the matching error ..."<<endl;
-	    matchError = ComputeMatchingError(featureArray, modelArray, errorArray);
-	    cout<<"match error="<<matchError<<endl;
-	  
-	    cout<<"computing DEM translation ..."<<endl;
-	    ComputeDEMTranslation(featureArray, modelArray, translation);
-	    //cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-             
-	    cout<<"computing DEM rotation ..."<<endl;
-	    ComputeDEMRotation(featureArray, modelArray, translation, rotation);
-	    //PrintMatrix(rotation);
-
-	    //apply the computed rotation and translation to the featureArray  
-	    TransformFeatures(featureArray, translation, rotation);
-
-	    translationArray.push_back(translation);
-	    rotationArray.push_back(rotation);
-	    
-	    numIter++;
-            cout<<"numIter="<<numIter<<endl;
-
-    }
-    
-    rotation = rotationArray[0];
-    translation = translationArray[0];
-    for (int i = 1; i < rotationArray.size(); i++){
-	 rotation = rotation*rotationArray[i];
-	 translation = translation + translationArray[i];
-    }
- 
-}
 
 
 

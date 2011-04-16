@@ -1,0 +1,41 @@
+\documentclass[12pt]{article}
+%\usepackage{amsfonts}
+%\usepackage{amssymb}
+%\usepackage{amsmath}
+
+\begin{document}
+\title {The Alignment Toolkit}
+\author{Ara V. Nefian\\
+ara.nefian@nasa.gov}
+\maketitle
+
+This document describes a basic use structure of the AlignmentTK (ATK). ATK is developed for 2D and 3D data alignment and supports the 
+following applications:
+\begin{itemize}
+\item assembler - aligns two DEMs, to be used in rover localization with a large orbital map. It uses iterative clsoest point (ICP) algorithm and has 
+been tested for MER imagery in the context of HiRISE orbital maps.
+\item lidar2dem - aligns DEM to lidar data. It uses ICP and has been tested on several DEMs and LOLA tracks.
+\item coregister - aligns lidar to images. It uses a affine transform to match the LOLA simulated reflectance to Apollo imagery. 
+\end{itemize} 
+
+Each application is controlled by a settings file with the following example format:\\
+MATCHING\underline{ }MODE 1\\
+REFLECTANCE\underline{ }TYPE 2\\
+ANALYSE\underline{ }FLAG 0\\
+USE\underline{ }LOLA\underline{ }FEATURES 1\\
+TOP\underline{ }PERCENT\underline{ }FEATURES 1\\
+SAMPLING\underline{ }STEP 100 100\\
+MATCH\underline{ }WINDOW 5 5\\
+MAX\underline{ }NUM\underline{ }ITER 15\\
+MAX\underline{ }NUM\underline{ }STARTS 20\\
+DISPLAY\underline{ }RESULTS 1\\
+NO\underline{ }DATA\underline{ }VAL -10000.0\\
+CONV\underline{ }THRESH 0.01\\
+
+Each field of the settings file is explained below:
+\begin{itemize}
+\item{MATCHING\underline{ }MODE}: 0 - no matching, 1 - affine 2D alignmment, 2 -ICP 3D alignment\\
+\item{ANALYSE\underline{ }FLAG}:  1 - will display and save verbose information, 0 - no info.\\
+\item{USE\underline{ }LOLA\underline{ }FEATURES}:  
+\end{itemize}
+\end{document}

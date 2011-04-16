@@ -206,7 +206,7 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
 }
 
-
+//determines LOLA corresponding points in a DEM
 template <class ViewT>
 void 
 GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo, double noDEMVal)
@@ -271,7 +271,6 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
     }//i  
   }//k
 }
-
 
 
 #endif /* TRACKS_H */
