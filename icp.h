@@ -340,22 +340,23 @@ ICP(vector<Vector3> featureArray,  ImageViewBase<ViewT> const& DEM,
 	    //PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  
-	    TransformFeatures(featureArray, translation, rotation);
+	    //TransformFeatures(featureArray, translation, rotation);
 
 	    translationArray.push_back(translation);
 	    rotationArray.push_back(rotation);
+	    
+            rotation = rotationArray[0];
+	    translation = translationArray[0];
+	    for (int i = 1; i < rotationArray.size(); i++){
+	      rotation = rotation*rotationArray[i];
+	      translation = translation + translationArray[i];
+	    }
 	    
 	    numIter++;
             cout<<"numIter="<<numIter<<endl;
 
     }
-    
-    rotation = rotationArray[0];
-    translation = translationArray[0];
-    for (int i = 1; i < rotationArray.size(); i++){
-	 rotation = rotation*rotationArray[i];
-	 translation = translation + translationArray[i];
-    }
+ 
  
 }
 

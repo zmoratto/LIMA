@@ -15,10 +15,10 @@ following applications:
 \item assembler - aligns two DEMs, to be used in rover localization with a large orbital map. It uses iterative clsoest point (ICP) algorithm and has 
 been tested for MER imagery in the context of HiRISE orbital maps.
 \item lidar2dem - aligns DEM to lidar data. It uses ICP and has been tested on several DEMs and LOLA tracks.
-\item coregister - aligns lidar to images. It uses a affine transform to match the LOLA simulated reflectance to Apollo imagery. 
+\item lidar2img - aligns lidar to images. It uses a affine transform to match the LOLA simulated reflectance to Apollo imagery. 
 \end{itemize} 
 
-Each application is controlled by a settings file with the following example format:\\
+Each application is controlled by a settings file (see coregister_settings_example.txt) with the following example format:\\
 MATCHING\underline{ }MODE 1\\
 REFLECTANCE\underline{ }TYPE 2\\
 ANALYSE\underline{ }FLAG 0\\

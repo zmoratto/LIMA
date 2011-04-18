@@ -35,8 +35,8 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Photometry.h>
 #include <vw/Math.h>
-#include <asp/IsisIO.h>
-#include <asp/IsisIO/IsisCameraModel.h>
+//#include <asp/IsisIO.h>
+//#include <asp/IsisIO/IsisCameraModel.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;

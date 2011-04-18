@@ -220,8 +220,6 @@ int main( int argc, char *argv[] ) {
       cout<<modelArray.size()<<" "<<featureArray.size()<<endl;
 
       //run ICP-matching
-
-
       ICP(featureArray, interpDEM, DEMGeo, modelArray, settings,currTranslation, currRotation, errorArray);
       
       cout<<"Translation="<<currTranslation<<endl;
