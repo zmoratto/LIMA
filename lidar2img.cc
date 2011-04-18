@@ -48,7 +48,6 @@ using namespace std;
 #include <math.h>
 #include "util.h"
 #include "tracks.h"
-#include "io.h"
 #include "match.h"
 #include "coregister.h"
 #include "display.h"

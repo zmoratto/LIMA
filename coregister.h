@@ -60,17 +60,11 @@ typedef struct CoregistrationParams{
   float minConvThresh;
   
 };
-/*
-//so far used just in assembler
-//this will removed - START
-struct GlobalSettings
-{
-  int maxNumIter;
-  float matchErrorThresh;
-  Vector2 samplingStep;
-  Vector2 matchWindowHalfSize;
-  int runICP;
-};
-//this will removed - END
-*/
+
+void PrintGlobalParams(struct CoregistrationParams *settings);
+int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings);
+int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
+void PrintModelParams(struct ModelParams *params);
+
+void SaveVectorToFile(vector<float> v, string filename);
 #endif /* COREGISTER_H */

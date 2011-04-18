@@ -38,7 +38,7 @@ namespace fs = boost::filesystem;
 #include <vw/Math.h>
 
 #include "coregister.h"
-#include "io.h"
+//#include "coregister.h"
 #include "icp.h"
 #include "assembler.h"
 

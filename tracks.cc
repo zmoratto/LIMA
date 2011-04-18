@@ -44,7 +44,6 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-#include "io.h"
 #include "match.h"
 #include "coregister.h"
 #include "display.h"

@@ -21,7 +21,7 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 \section{How to use}
 Examples of use are given in assembler.sh, lidar2dem.sh and lidar2img.sh respectively.
 
-Each application is controlled by an optional settings file (see coregister_settings_example.txt) with the following example format:\\
+Each application is controlled by an optional settings file (see coregister\underline{ }settings\underline{ }example.txt) with the following example format:\\
 MATCHING\underline{ }MODE 1\\
 REFLECTANCE\underline{ }TYPE 2\\
 ANALYSE\underline{ }FLAG 0\\
@@ -52,6 +52,14 @@ Each field of the settings file is explained below:
 \item{CONV\underline{ }THRESH}: float number describing the threshold under which absolute value at consecutive iterations determine 
                                 the algorithm convergence (example: 0.01)\\
 \end{itemize}
-\end{document}
+
 
 \section{Code Structure}
+The following files are part of the toolkit
+\begin{itemize}
+\item{lidar2img.cc} - main function for lidar2img
+\item{lidar2dem.cc} - main function for lidar2dem 
+\item{assembler.cc} - main function for assembler
+\end{itemize}
+
+\end{document}

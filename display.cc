@@ -46,7 +46,6 @@ using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
-#include "io.h"
 #include "coregister.h"
 #include "tracks.h"
 
