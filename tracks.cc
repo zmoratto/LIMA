@@ -587,7 +587,12 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
           if (lastSlashPos != -1){
 	    filenameNoPath.erase(0, lastSlashPos+1);
 	  }
-          fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
+          if (k == overlapIndices.size()-1){
+	    fprintf(fp, "%s %f %f", filenameNoPath.c_str(), i, j);
+          }
+	  else{
+	    fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
+	  }
 	}
   
 	fclose(fp);

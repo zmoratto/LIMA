@@ -33,6 +33,7 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Photometry.h>
 #include <vw/Math.h>
+#include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
 #include <stdio.h>
@@ -203,6 +204,92 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
                             DRG_crop,
                             moonref, TerminalProgressCallback("Core","Processing:"));
    
+}
+
+//displays info in GCP file
+void SaveGCPImages(string GCPFilename, string assembledImgFilename)
+{
+ 
+  // Open GCP file
+  vector<float> xPosArray;
+  vector<float> yPosArray;
+  vector<string> cubFilenameArray;
+ 
+  vw_out() << " -> Opening \"" << GCPFilename << "\".\n";
+  std::ifstream ifile( GCPFilename.c_str() );
+  if ( !ifile.is_open() )
+      vw_throw( ArgumentErr() << "Unable to open GCP file!\n" );
+  size_t count = 0;
+  
+    while (!ifile.eof()) {
+      if ( count == 0 ) {
+        // Don't really care about this line
+        Vector3 eh, ei;
+        ifile >> eh[0] >> eh[1] >> eh[2] >> ei[0] >> ei[1] >> ei[2];
+      } else {
+        std::string file_name;
+        Vector2 location;
+        ifile >> file_name >> location[0] >> location[1];
+        cubFilenameArray.push_back(file_name);
+        xPosArray.push_back(location[0]);
+        yPosArray.push_back(location[1]);
+      }
+      count++;
+    }
+  
+  ifile.close();
+  
+  //create the assembled image;
+
+  int numHorBlocks = 4;
+  int index = 0;
+  int colIndex = 0;
+  int rowIndex = 0;
+  int blockWidth = 100;
+  int blockHeight = 100;
+
+  ImageView<PixelRGB<uint8> > assembledImg(4*blockWidth, 4*blockHeight);
+
+  for (int i = 0; i < cubFilenameArray.size(); i++){
+    
+    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(string("../data/Apollo15-CUB/")+cubFilenameArray[i]) );
+    double nodataVal = rsrc->nodata_read();
+    cout<<"nodaval:"<<nodataVal<<endl;
+    DiskImageView<PixelGray<float> > cub( rsrc );
+    int width = cub.cols();
+    int height = cub.rows();
+    cout<<"width="<<width<<"height"<<height<<endl;
+
+    float minX, minY, maxX, maxY;
+    minX = xPosArray[i]-blockWidth/2;
+    maxX = xPosArray[i]+blockWidth/2;
+    minY = yPosArray[i]-blockHeight/2;
+    maxY = yPosArray[i]+blockHeight/2;
+    int adjustedBlockWidth = blockWidth;
+    int adjustedBlockHeight = blockHeight; 
+
+    if (maxY > height-1){adjustedBlockHeight = blockHeight-(maxY-height+1);}   
+    if (maxX > width-1){adjustedBlockWidth = blockWidth - (maxX-width+1);}
+    if (minY < 0){minY = 0;}
+    if (minX < 0){minX = 0;}
+    
+    
+    cout<<"index="<<index<<endl;
+    cout<<"rowIndex="<<rowIndex<<endl;
+    cout<<"colIndex="<<colIndex<<endl;
+    cout<<"x"<< minX<<" X "<<maxX<<" y "<<minY<<" Y "<<maxY<<endl;
+    crop( assembledImg, colIndex*blockWidth, rowIndex*blockHeight, adjustedBlockWidth, adjustedBlockHeight ) = 
+      crop(apply_mask(normalize(create_mask(cub,nodataVal))*255,0), int32(minX), int32(minY), adjustedBlockWidth, adjustedBlockHeight); 
+    
+    cout<<"done"<<endl;
+    index++;
+    rowIndex = index/numHorBlocks;
+    colIndex = index - rowIndex*numHorBlocks;
+  }
+  cout<<"before"<<endl;
+  //save the assembled image to file
+  write_image(assembledImgFilename, assembledImg);
+  cout<<"after"<<endl;
 }
 
 

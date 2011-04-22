@@ -269,6 +269,27 @@ int main( int argc, char *argv[] ) {
   cout<<"writting the GC file..."<<endl;
   SaveGCPoints(trackPts, cubFiles,  overlapIndices, 
                optimalTransfArray, optimalErrorArray, gcpFilenameRoot);
+  
+  //this will be controlled by DISPLAY_FLAG
+  cout<<"writting the GCP images..."<<endl;
+  int gc_index = 0;
+  for (int t=0; t<trackPts.size(); t++){
+    for (int s=0; s<trackPts[t].size(); s++){
+      if (trackPts[t][s].featurePtLOLA==1){ 
+        if (100*(gc_index/100)==gc_index){
+	  stringstream ss;
+	  ss<<gc_index;
+	  string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";
+	  string assembledImgFilename = gcpFilenameRoot+"_img_"+ss.str()+".tif";
+	  cout<<"gcpFilename="<<gcpFilename<<endl;
+          cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
+          SaveGCPImages(gcpFilename, assembledImgFilename);
+	}
+        gc_index++;
+      }
+    }
+  }
+
   return 0;
 
 }
