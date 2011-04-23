@@ -109,7 +109,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-
+  //#if 0
   struct CoregistrationParams settings;
   ReadConfigFile((char*)configFilename.c_str(), &settings);
   PrintGlobalParams(&settings);
@@ -273,23 +273,33 @@ int main( int argc, char *argv[] ) {
   //this will be controlled by DISPLAY_FLAG
   cout<<"writting the GCP images..."<<endl;
   int gc_index = 0;
+
+  //TO DO: this should not be hard coded
+  string cubDirname = string("../data/Apollo15-CUB");
   for (int t=0; t<trackPts.size(); t++){
     for (int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){ 
-        if (100*(gc_index/100)==gc_index){
+        if (25*(gc_index/25)==gc_index){
+         
 	  stringstream ss;
 	  ss<<gc_index;
 	  string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";
 	  string assembledImgFilename = gcpFilenameRoot+"_img_"+ss.str()+".tif";
 	  cout<<"gcpFilename="<<gcpFilename<<endl;
           cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
-          SaveGCPImages(gcpFilename, assembledImgFilename);
+          SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
 	}
         gc_index++;
       }
     }
   }
-
+  //#endif
+  /*
+  string gcpFilename = string("../results/RDR_1E8E_21N28NPointPerRow_csv_table_0.gcp");
+  string assembledImgFilename = string("../results/RDR_1E8E_21N28NPointPerRow_csv_table_0.tif");
+  string cubDirname = string("../data/Apollo15-CUB");
+  SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
+  */
   return 0;
 
 }

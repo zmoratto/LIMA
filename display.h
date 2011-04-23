@@ -44,6 +44,6 @@ using namespace std;
 #include <math.h>
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
                               vector<int> trackIndices, string DRGFilename, string outFilename);
-void SaveGCPImages(string GCPFilename, string assembledImgFilename);
+void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename);
 void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices);
 #endif /* DISPLAY_H */
