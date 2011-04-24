@@ -241,11 +241,15 @@ int main( int argc, char *argv[] ) {
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     cout<<"done."<<endl;
 
+   
     cout<<"Computing the affine tranformation ..."<<endl;
     //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
     UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings.maxNumIter,  
       			        bestInitTransfArray, finalTransfArray, finalMatchingErrorArray);
     cout<<"done."<<endl;
+    
+    //finalTransfArray = bestInitTransfArray;
+    //finalMatchingErrorArray = initMatchingErrorArray;
 
     GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
     

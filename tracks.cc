@@ -565,23 +565,52 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
     for (int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){
 
-	float x = trackPts[t][s].LOLAPt[2].coords[0];
-	float y = trackPts[t][s].LOLAPt[2].coords[1]; 
-	float z = trackPts[t][s].LOLAPt[2].coords[2];
+	float lon = trackPts[t][s].LOLAPt[2].coords[0];
+	float lat = trackPts[t][s].LOLAPt[2].coords[1]; 
+	float rad = trackPts[t][s].LOLAPt[2].coords[2];
 	float sigma_x = 1;
 	float sigma_y = 1; 
 	float sigma_z = 1;
  
+        //TO DO: compute the original imgPts from xyz - START
+	Vector3 lon_lat_rad (lon,lat,rad*1000);
+	Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+	
+        //TO DO: compute the original imgPts from xyz - END
+
 	stringstream ss;
 	ss<<index;
 	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
     
 	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
 	
-	fprintf(fp, "%f %f %f %f %f %f\n", x, y, z, sigma_x, sigma_y, sigma_z);
-	for (int k = 0; k < overlapIndices.size(); k++){
-	  float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
-	  float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
+	fprintf(fp, "%f %f %f %f %f %f\n", lon, lat, rad, sigma_x, sigma_y, sigma_z);
+	
+        for (int k = 0; k < overlapIndices.size(); k++){
+          
+          //boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+	  //double nodata_value = rsrc->nodata_read();
+	  //DiskImageView<PixelGray<float> > isis_view( rsrc );
+	  //int width = isis_view.cols();
+	  //int height = isis_view.rows();
+
+          string cubFilename =  imgFiles[overlapIndices[k]];
+	  camera::IsisCameraModel model(cubFilename);
+          Vector2 cub_pix = model.point_to_pixel(xyz);
+	  float x = cub_pix[0];
+	  float y = cub_pix[1];
+          
+          float i = (optimalTransfArray[k][0]*x + optimalTransfArray[k][1]*y + optimalTransfArray[k][2]);
+	  float j = (optimalTransfArray[k][3]*x + optimalTransfArray[k][4]*y + optimalTransfArray[k][5]);
+
+	  //float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
+	  //float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
+          
+	  //print x and y vals before 
+          cout<<"before"<<x<<" "<<y<<endl;
+          //print x and y vals after
+          cout<<"after"<<i<<" "<<j<<endl;
+
           string filenameNoPath = imgFiles[overlapIndices[k]];
           int lastSlashPos = filenameNoPath.find_last_of("/");
           if (lastSlashPos != -1){
