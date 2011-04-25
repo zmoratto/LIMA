@@ -567,13 +567,13 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
 
 	float lon = trackPts[t][s].LOLAPt[2].coords[0];
 	float lat = trackPts[t][s].LOLAPt[2].coords[1]; 
-	float rad = trackPts[t][s].LOLAPt[2].coords[2];
+	float rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
 	float sigma_x = 1;
 	float sigma_y = 1; 
 	float sigma_z = 1;
  
         //TO DO: compute the original imgPts from xyz - START
-	Vector3 lon_lat_rad (lon,lat,rad*1000);
+	Vector3 lon_lat_rad (lon,lat,rad);
 	Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
 	
         //TO DO: compute the original imgPts from xyz - END
@@ -632,7 +632,34 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   }
   
 }
+void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
+{
 
+  for (int i = 0; i < gcpArray.size(); i++){
+       stringstream ss;
+       ss<<i;
+       string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
+    
+       FILE *fp = fopen(this_gcpFilename.c_str(), "w");
+	
+       fprintf(fp, "%f %f %f %f %f %f\n", 
+                    gcpArray[i].lon, gcpArray[i].lat, gcpArray[i].rad, 
+                    gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
+       int numFiles = gcpArray[i].filename.size();
+     
+       for (int j = 0; j < numFiles-1; j++){
+	 fprintf(fp,"%s %f %f\n", 
+		    (char*)(gcpArray[i].filename[j].c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
+       }
+       if (numFiles > 0){
+	 fprintf(fp, "%s %f %f", 
+		 (char*)(gcpArray[i].filename[numFiles-1].c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
+       }
+       fclose(fp);
+  }
+   
+
+}
 
 //computes the min and max lon and lat of the LOLA data
 //this function can be moved to a new util.c file

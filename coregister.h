@@ -61,6 +61,22 @@ typedef struct CoregistrationParams{
   
 };
 
+typedef struct gcp{
+  float lon;
+  float lat;
+  float rad;
+  float sigma_lon;
+  float sigma_lat;
+  float sigma_rad;
+  vector<string> filename;
+  vector<float> x;
+  vector<float> y;
+  vector<float> x_before;
+  vector<float> y_before;
+  vector<int> width;
+  vector<int> height;
+};
+
 void PrintGlobalParams(struct CoregistrationParams *settings);
 int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings);
 int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);

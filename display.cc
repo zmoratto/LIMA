@@ -262,7 +262,7 @@ void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFil
     int height = cub.rows();
   
     //TO DO:determine the 3D point location in the current image
-    Vector3 lon_lat_rad (lon,lat,rad*1000);
+    Vector3 lon_lat_rad (lon,lat,rad);
     Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
     Vector2 DRG_pix = model.point_to_pixel(xyz);
     float x = DRG_pix[0];
@@ -314,6 +314,96 @@ void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFil
       //draw the interest point after alignment
       xl = int32(xPosArray[i]) - minX - point_size + colIndex*blockWidth;
       yt = int32(yPosArray[i]) - minY - point_size + rowIndex*blockHeight;
+      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
+        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
+      }
+
+    }
+
+    index++;
+    rowIndex = index/numHorBlocks;
+    colIndex = index - rowIndex*numHorBlocks;
+  }
+
+  //save the assembled image to file
+  write_image(assembledImgFilename, assembledImg);
+
+}
+
+//displays info in GCP file
+void SaveGCPImages(struct gcp this_gcp, string assembledImgFilename)
+{
+ 
+
+  //create the assembled image;
+  int numHorBlocks = 4;
+  int numVerBlocks = 4;
+  int index = 0;
+  int colIndex = 0;
+  int rowIndex = 0;
+  int blockWidth = 200;
+  int blockHeight = 200;
+  int point_size = 7;
+
+  numVerBlocks = (this_gcp.filename.size()/numHorBlocks)+1;
+  ImageView<PixelRGB<uint8> > assembledImg(numHorBlocks*blockWidth, numVerBlocks*blockHeight);
+
+  for (int i = 0; i < this_gcp.filename.size(); i++){
+    
+    string cubFilename = this_gcp.filename[i];
+    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+    double nodataVal = rsrc->nodata_read();
+    cout<<"nodaval:"<<nodataVal<<endl;
+    DiskImageView<PixelGray<float> > cub( rsrc );
+    int width = cub.cols();
+    int height = cub.rows();
+  
+ 
+    cout<<"before_x="<<this_gcp.x_before[i]<<" before_y="<<this_gcp.y_before[i]<<endl;
+    cout<<"after_x="<<this_gcp.x[i]<<" after_y="<<this_gcp.y[i]<<endl;
+
+    float minX, minY, maxX, maxY;
+    /*
+    //centered around the aligned features
+    minX = xPosArray[i]-blockWidth/2;
+    maxX = xPosArray[i]+blockWidth/2;
+    minY = yPosArray[i]-blockHeight/2;
+    maxY = yPosArray[i]+blockHeight/2;
+    */
+   
+    //centered around the original features
+    minX = this_gcp.x_before[i]-blockWidth/2;
+    maxX = this_gcp.x_before[i]+blockWidth/2;
+    minY = this_gcp.y_before[i]-blockHeight/2;
+    maxY = this_gcp.y_before[i]+blockHeight/2;
+
+    int adjustedBlockWidth = blockWidth;
+    int adjustedBlockHeight = blockHeight; 
+    int w = point_size;
+    int h = point_size;
+    int xl, yt;
+
+    if (maxY > height-1){adjustedBlockHeight = blockHeight-(maxY-height+1);}   
+    if (maxX > width-1){adjustedBlockWidth = blockWidth - (maxX-width+1);}
+    if (minY < 0){minY = 0;}
+    if (minX < 0){minX = 0;}
+    
+    cout<<minX<<" "<<minY<<" "<<maxX<<" "<<maxY<<" "<<adjustedBlockWidth<<" "<<adjustedBlockHeight<<endl;
+    if ((adjustedBlockHeight > 0) && (adjustedBlockWidth > 0)){
+      
+      crop( assembledImg, colIndex*blockWidth, rowIndex*blockHeight, adjustedBlockWidth, adjustedBlockHeight ) = 
+      crop(apply_mask(normalize(create_mask(cub,nodataVal))*255,0), int32(minX), int32(minY), adjustedBlockWidth, adjustedBlockHeight); 
+    
+      //draw the interest point before alignment
+      xl = int32(this_gcp.x_before[i]) - minX - point_size + colIndex*blockWidth;
+      yt = int32(this_gcp.y_before[i]) - minY - point_size + rowIndex*blockHeight;    
+      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
+        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(255, 0, 0));
+      }
+
+      //draw the interest point after alignment
+      xl = int32(this_gcp.x[i]) - minX - point_size + colIndex*blockWidth;
+      yt = int32(this_gcp.y[i]) - minY - point_size + rowIndex*blockHeight;
       if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
         fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
       }

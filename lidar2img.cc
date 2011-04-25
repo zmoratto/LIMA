@@ -164,6 +164,23 @@ int main( int argc, char *argv[] ) {
     ComputeSalientLOLAFeature(trackPts[ti], halfWindow, (float)(settings.topPercentFeatures)/1000.0);
   }
 
+  //this should be returned by ComputeSalientLOLAFeature
+  vector<gcp> gcpArray;
+  for (int t=0; t<trackPts.size(); t++){
+    for (int s=0; s<trackPts[t].size(); s++){
+      if (trackPts[t][s].featurePtLOLA==1){
+        gcp this_gcp;
+	this_gcp.lon = trackPts[t][s].LOLAPt[2].coords[0];
+	this_gcp.lat = trackPts[t][s].LOLAPt[2].coords[1]; 
+	this_gcp.rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
+        this_gcp.sigma_lon = 1.0;
+        this_gcp.sigma_lat = 1.0;
+        this_gcp.sigma_rad = 1.0;
+        gcpArray.push_back(this_gcp);
+      }
+    }
+  }
+
  //allocate memory for all final transforms, one per image
   vector<Vector<float, 6> > optimalTransfArray;
   vector<float> optimalErrorArray;
@@ -173,7 +190,7 @@ int main( int argc, char *argv[] ) {
   for (int k = 0; k < numOverlappingImages; k++){
 
     //string inputDEMFilename;
-    string inputImgFilename = cubFiles[k];;  
+    string inputImgFilename = cubFiles[k];  
     cout<<inputImgFilename<<endl;
 
     string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
@@ -198,12 +215,14 @@ int main( int argc, char *argv[] ) {
     vector<float> finalMatchingErrorArray;
 
     GenerateInitTransforms(initTransfArray, settings);
-    
+
+   
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
     for (int i = 0; i < trackPts.size(); i++){
       trackIndices[i] = i;
     }
+    
 
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub"<<endl; 
@@ -252,7 +271,30 @@ int main( int argc, char *argv[] ) {
     //finalMatchingErrorArray = initMatchingErrorArray;
 
     GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
-    
+
+
+    //save to GCP structure.
+   
+    int index = 0;
+    for (int t=0; t<trackPts.size(); t++){
+      for (int s=0; s<trackPts[t].size(); s++){
+	if (trackPts[t][s].featurePtLOLA==1){
+          if (trackPts[t][s].valid ==1){          
+	    gcpArray[index].filename.push_back(cubFiles[k]);
+         
+	    float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
+	    float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
+	    gcpArray[index].x.push_back(i);
+	    gcpArray[index].y.push_back(j);
+
+	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
+	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
+          }
+          index++;
+	}
+      }
+    }
+
     if (settings.displayResults){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
@@ -261,6 +303,9 @@ int main( int argc, char *argv[] ) {
 
   }
  
+ 
+
+
   //save the GCP
   string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));
 
@@ -271,9 +316,11 @@ int main( int argc, char *argv[] ) {
               optimalTransfArray[k][4], optimalTransfArray[k][5]);
   }
   cout<<"writting the GC file..."<<endl;
+  SaveGCPoints(gcpArray,  gcpFilenameRoot);
+  /*
   SaveGCPoints(trackPts, cubFiles,  overlapIndices, 
                optimalTransfArray, optimalErrorArray, gcpFilenameRoot);
-  
+  */
   //this will be controlled by DISPLAY_FLAG
   cout<<"writting the GCP images..."<<endl;
   int gc_index = 0;
@@ -291,7 +338,8 @@ int main( int argc, char *argv[] ) {
 	  string assembledImgFilename = gcpFilenameRoot+"_img_"+ss.str()+".tif";
 	  cout<<"gcpFilename="<<gcpFilename<<endl;
           cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
-          SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
+          SaveGCPImages(gcpArray[gc_index], assembledImgFilename);
+          //SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
 	}
         gc_index++;
       }

@@ -126,6 +126,7 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, strin
 
 void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
                   vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename);
+void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);

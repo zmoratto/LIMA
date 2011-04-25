@@ -45,5 +45,6 @@ using namespace std;
 void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6> d, 
                               vector<int> trackIndices, string DRGFilename, string outFilename);
 void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename);
+void SaveGCPImages(struct gcp this_gcp,  string assembledImgFilename);
 void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, string DEMFilename, vector<int> trackIndices);
 #endif /* DISPLAY_H */
