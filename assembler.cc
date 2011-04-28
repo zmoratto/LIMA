@@ -119,7 +119,7 @@ int main( int argc, char *argv[] ) {
   p.add("foreFile", -1);
  
   std::ostringstream usage;
-  usage << "Description: main code for DRG and DEM alignment" << std::endl << std::endl;
+  usage << "Description: main code for DEM to DEM alignment" << std::endl << std::endl;
   usage << general_options << std::endl;
   
   po::variables_map vm;
@@ -139,7 +139,7 @@ int main( int argc, char *argv[] ) {
   }
     
   if( vm.count("foreFile") < 1 ) {
-    std::cerr << "Error: Must specify at least one orthoprojected image file!" << std::endl << std::endl;
+    std::cerr << "Error: Must specify at least one foreground file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
   }
@@ -162,7 +162,13 @@ int main( int argc, char *argv[] ) {
   rotation[1][1]=1.0;
   rotation[2][2]=1.0;
 
-  if (mode.compare("DEM")==0){
+  Vector3 center;
+  Vector2 bestDeltaLonLat;
+  
+  bestDeltaLonLat(0)=0;
+  bestDeltaLonLat(1)=0;
+
+  if ((mode.compare("DEM")==0) || (mode.compare("DEM_DRG")==0) ){
     string backDEMFilename = backFile;
     string foreDEMFilename = foreFile;
     string assembledDEMFilename = resDir+"/assembled_dem.tif";
@@ -185,9 +191,8 @@ int main( int argc, char *argv[] ) {
     cout<<"radius="<<fore_radius<<endl;
     cout<<"done"<<endl;
    
-    Vector2 bestDeltaLonLat;
-    bestDeltaLonLat(0)=0;
-    bestDeltaLonLat(1)=0;
+ 
+
     float minMatchError = 100000000.0;
 
     if (settings.matchingMode != 0){
@@ -207,8 +212,8 @@ int main( int argc, char *argv[] ) {
                
                Vector3 currTranslation;
                Matrix<float, 3,3 > currRotation;
-	       RunICP(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
-		      currTranslation, currRotation, errorArray);
+	       ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
+		             currTranslation, currRotation, center, errorArray);
 
 	       float matchError = 0;
 	       for (int m = 0; m < errorArray.size(); m++){
@@ -233,18 +238,35 @@ int main( int argc, char *argv[] ) {
     cout<<"final translation vector "<<translation<<endl;
     cout<<"bestDeltaLonLat="<<bestDeltaLonLat<<endl;
 
+    ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+                          0, translation, rotation, center, bestDeltaLonLat);
 
-    ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
-			  assembledDEMFilename, 0, translation, rotation, bestDeltaLonLat);
+    if (mode.compare("DEM_DRG")==0){
+      string backDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
+      string foreDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/Photo-mod.tif";
+      string assembledDRGFilename =  resDir+"/assembled_drg.tif";
+ 
+      //small image high res - foreground 
+      DiskImageView<PixelGray<uint8> >  backDRG(backDRGFilename);
+      GeoReference backDRGGeo;
+      read_georeference(backDRGGeo, backDRGFilename);
+      printf("done opening the the backDRG\n");
+
+      //large image low res - background
+      DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFilename);
+      GeoReference foreDRGGeo;
+      read_georeference(foreDRGGeo, foreDRGFilename);
+      printf("done opening the the foreDRG\n");
+ 
+      ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+			    1, translation, rotation, center, bestDeltaLonLat);
+    }
 
   }
  
   //DRG assembler
   if (mode.compare("DRG")==0){
-    Vector2 bestDeltaLonLat;
-    bestDeltaLonLat(0) = 0;
-    bestDeltaLonLat(1) = 0;
-   
+  
     string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
     string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
     string assembledDRGFilename =  resDir+"/assembled_drg.tif";
@@ -261,8 +283,8 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDRGGeo, foreDRGFilename);
     printf("done opening the the foreDRG\n");
  
-    ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
-			  assembledDRGFilename, 1, translation, rotation, bestDeltaLonLat);
+    ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+                          1, translation, rotation, center, bestDeltaLonLat);
   
    }
 }

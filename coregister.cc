@@ -45,7 +45,7 @@ using namespace std;
 
 #include <math.h>
 #include "coregister.h"
-//#include "io.h"
+
 
 
 int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
@@ -67,7 +67,7 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     sscanf(line, "ANALYSE_FLAG %d\n", &(settings->analyseFlag));
 
     configFile.getline(line, MAX_LENGTH);
-    sscanf(line, "USE_LOLA_FEATURES %d\n", &(settings->useLOLAFeatures));
+    sscanf(line, "USE_REFLECTANCE_FEATURES %d\n", &(settings->useReflectanceFeatures));
    
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "TOP_PERCENT_FEATURES %d\n", &(settings->topPercentFeatures));
@@ -110,7 +110,7 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     settings->matchingMode = LIMA;//LIDEM
     settings->reflectanceType = LUNAR_LAMBERT;// NO_REFL;//LAMBERT;
     settings->analyseFlag = 0;
-    settings->useLOLAFeatures = 0;
+    settings->useReflectanceFeatures = 0;
     settings->topPercentFeatures = 10;
     settings->samplingStep(0) = 8;
     settings->samplingStep(1) = 8;
@@ -132,10 +132,10 @@ void PrintGlobalParams(struct CoregistrationParams *settings)
   printf("MATCHING_MODE %d\n", settings->matchingMode);
   printf("REFLECTANCE_TYPE %d\n", settings->reflectanceType);
   printf("ANALYSE_FLAG %d\n", settings->analyseFlag);
-  printf("USE_LOLA_FEATURES %d\n", settings->useLOLAFeatures);
+  printf("USE_REFLECTANCE_FEATURES %d\n", settings->useReflectanceFeatures);
   printf("TOP_PERCENT_FEATURES %d\n", settings->topPercentFeatures);
-  cout<<"samplingStep "<<settings->samplingStep<<endl;
-  cout<<"matchWindowHalfSize "<<settings->matchWindowHalfSize<<endl;
+  cout<<"SAMPLING_STEP "<<settings->samplingStep<<endl;
+  cout<<"MATCH_WINDOW_HALF_SIZE "<<settings->matchWindowHalfSize<<endl;
   printf("MAX_NUM_ITER  %d\n", settings->maxNumIter);
   printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
   printf("DISPLAY_RESULTS %d\n", settings->displayResults);

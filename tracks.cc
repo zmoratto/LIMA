@@ -554,84 +554,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 }
 
 
-void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
-                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
-{
 
-  int index = 0;
-
-  //for all features in the LOLA data
-  for (int t=0; t<trackPts.size(); t++){
-    for (int s=0; s<trackPts[t].size(); s++){
-      if (trackPts[t][s].featurePtLOLA==1){
-
-	float lon = trackPts[t][s].LOLAPt[2].coords[0];
-	float lat = trackPts[t][s].LOLAPt[2].coords[1]; 
-	float rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
-	float sigma_x = 1;
-	float sigma_y = 1; 
-	float sigma_z = 1;
- 
-        //TO DO: compute the original imgPts from xyz - START
-	Vector3 lon_lat_rad (lon,lat,rad);
-	Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
-	
-        //TO DO: compute the original imgPts from xyz - END
-
-	stringstream ss;
-	ss<<index;
-	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
-    
-	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
-	
-	fprintf(fp, "%f %f %f %f %f %f\n", lon, lat, rad, sigma_x, sigma_y, sigma_z);
-	
-        for (int k = 0; k < overlapIndices.size(); k++){
-          
-          //boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-	  //double nodata_value = rsrc->nodata_read();
-	  //DiskImageView<PixelGray<float> > isis_view( rsrc );
-	  //int width = isis_view.cols();
-	  //int height = isis_view.rows();
-
-          string cubFilename =  imgFiles[overlapIndices[k]];
-	  camera::IsisCameraModel model(cubFilename);
-          Vector2 cub_pix = model.point_to_pixel(xyz);
-	  float x = cub_pix[0];
-	  float y = cub_pix[1];
-          
-          float i = (optimalTransfArray[k][0]*x + optimalTransfArray[k][1]*y + optimalTransfArray[k][2]);
-	  float j = (optimalTransfArray[k][3]*x + optimalTransfArray[k][4]*y + optimalTransfArray[k][5]);
-
-	  //float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
-	  //float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
-          
-	  //print x and y vals before 
-          cout<<"before"<<x<<" "<<y<<endl;
-          //print x and y vals after
-          cout<<"after"<<i<<" "<<j<<endl;
-
-          string filenameNoPath = imgFiles[overlapIndices[k]];
-          int lastSlashPos = filenameNoPath.find_last_of("/");
-          if (lastSlashPos != -1){
-	    filenameNoPath.erase(0, lastSlashPos+1);
-	  }
-          if (k == overlapIndices.size()-1){
-	    fprintf(fp, "%s %f %f", filenameNoPath.c_str(), i, j);
-          }
-	  else{
-	    fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
-	  }
-	}
-  
-	fclose(fp);
-       
-        index++;
-      }
-    }
-  }
-  
-}
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 {
 
@@ -732,4 +655,84 @@ int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
   }
 }
 
+//=============================================================================================================================
+//this function can be removed - START
+void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
+                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
+{
 
+  int index = 0;
+
+  //for all features in the LOLA data
+  for (int t=0; t<trackPts.size(); t++){
+    for (int s=0; s<trackPts[t].size(); s++){
+      if (trackPts[t][s].featurePtLOLA==1){
+
+	float lon = trackPts[t][s].LOLAPt[2].coords[0];
+	float lat = trackPts[t][s].LOLAPt[2].coords[1]; 
+	float rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
+	float sigma_x = 1;
+	float sigma_y = 1; 
+	float sigma_z = 1;
+ 
+        //TO DO: compute the original imgPts from xyz - START
+	Vector3 lon_lat_rad (lon,lat,rad);
+	Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+	
+        //TO DO: compute the original imgPts from xyz - END
+
+	stringstream ss;
+	ss<<index;
+	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
+    
+	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
+	
+	fprintf(fp, "%f %f %f %f %f %f\n", lon, lat, rad, sigma_x, sigma_y, sigma_z);
+	
+        for (int k = 0; k < overlapIndices.size(); k++){
+          
+          //boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+	  //double nodata_value = rsrc->nodata_read();
+	  //DiskImageView<PixelGray<float> > isis_view( rsrc );
+	  //int width = isis_view.cols();
+	  //int height = isis_view.rows();
+
+          string cubFilename =  imgFiles[overlapIndices[k]];
+	  camera::IsisCameraModel model(cubFilename);
+          Vector2 cub_pix = model.point_to_pixel(xyz);
+	  float x = cub_pix[0];
+	  float y = cub_pix[1];
+          
+          float i = (optimalTransfArray[k][0]*x + optimalTransfArray[k][1]*y + optimalTransfArray[k][2]);
+	  float j = (optimalTransfArray[k][3]*x + optimalTransfArray[k][4]*y + optimalTransfArray[k][5]);
+
+	  //float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
+	  //float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
+          
+	  //print x and y vals before 
+          cout<<"before"<<x<<" "<<y<<endl;
+          //print x and y vals after
+          cout<<"after"<<i<<" "<<j<<endl;
+
+          string filenameNoPath = imgFiles[overlapIndices[k]];
+          int lastSlashPos = filenameNoPath.find_last_of("/");
+          if (lastSlashPos != -1){
+	    filenameNoPath.erase(0, lastSlashPos+1);
+	  }
+          if (k == overlapIndices.size()-1){
+	    fprintf(fp, "%s %f %f", filenameNoPath.c_str(), i, j);
+          }
+	  else{
+	    fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
+	  }
+	}
+  
+	fclose(fp);
+       
+        index++;
+      }
+    }
+  }
+  
+}
+//this function can be removed - END

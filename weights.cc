@@ -10,6 +10,7 @@ void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float
     //cout<<"track="<<ti<<endl;
     InterpolateInvalidPoint(trackPts[ti]); 
     FindValidPoints(trackPts[ti], halfWindow, numValid);
+    cout<<"track="<<ti<<"numValid points = "<<numValid<<endl;
     if (numValid > 0){
       ComputeGradient(trackPts[ti], halfWindow);
       ComputeSalientFeatures(trackPts[ti],  topPercent, numValid);

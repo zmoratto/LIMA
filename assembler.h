@@ -50,7 +50,8 @@ template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
                       ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation, Vector2 bestDeltaLonLat)
+                      string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation, 
+                      Vector3 center, Vector2 bestDeltaLonLat)
 {
  
   float maxUpsampleRatioBackImg = 4.0;
@@ -153,7 +154,7 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
   for (int j = 0; j < foreImg.impl().rows()-1; j++){
     for (int i = 0; i < foreImg.impl().cols()-1; i++){
        
-        if (mode == 0){
+      if (mode == 0){
 	  if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != 0)  {       
             
              //case of cartesian coordinates
@@ -196,9 +197,32 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
         }
         else{
 	  if ((foreImg.impl()(i,j)[0]!=255) && (foreImg.impl()(i,j)[1]!=255) && (foreImg.impl()(i,j)[2]!=255)){
+              
               //get the coordinates
               Vector2 forePix(i,j);
               Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
+	      
+              //new components - START
+              fore_lon_lat(0)=fore_lon_lat(0)+bestDeltaLonLat(0);
+	      fore_lon_lat(1)=fore_lon_lat(1)+bestDeltaLonLat(1);
+              
+              /*
+              //spherical to cartesian
+              Vector3 fore_lon_lat_rad;
+              fore_lon_lat_rad(0) = fore_lon_lat(0);
+	      fore_lon_lat_rad(1) = fore_lon_lat(1);
+              fore_lon_lat_rad(2) = 3396190;//foreImg.impl()(i,j)[0];
+              Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
+       
+              Vector3 transf_fore_xyz = rotation*(fore_xyz-foreCenter_xyz)+translation+foreCenter_xyz;
+           
+              //transform back in spherical coords
+              Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
+              Vector2 transf_fore_lon_lat;
+              transf_fore_lon_lat(0)=transf_fore_lon_lat_rad(0);
+              transf_fore_lon_lat(1)=transf_fore_lon_lat_rad(1);              
+	      //new components - END
+	      */
 
               //change into USGS coords
               Vector2 back_lon_lat;

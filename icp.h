@@ -246,11 +246,13 @@ FindMatchesFromDEM(vector<Vector3> lidar_xyz,  ImageViewBase<ViewT> const& DEM, 
   }
 }
 
+//used in DEM to DEM alignment
+//TODO: extract the xyz centroid position
 template <class ViewT>
 void 
-RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
-       GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
-       Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
+ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
+              GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
+              Vector3 &translation, Matrix<float, 3, 3> &rotation, Vector3 &center, vector<float> &errorArray)
 {
    
 
@@ -303,12 +305,12 @@ RunICP(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 }
 
 
-
+//used in DEM to Lidar alignment
 template <class ViewT>
 void 
-ICP(vector<Vector3> featureArray,  ImageViewBase<ViewT> const& DEM,  
-    GeoReference const& DEMGeo, vector<Vector3> modelArray, CoregistrationParams settings,
-    Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray)
+ICP_LIDAR_2_DEM(vector<Vector3> featureArray,  ImageViewBase<ViewT> const& DEM,  
+                GeoReference const& DEMGeo, vector<Vector3> modelArray, CoregistrationParams settings,
+                Vector3 &translation, Matrix<float, 3, 3> &rotation, Vector3 &center, vector<float> &errorArray)
 {
    
 

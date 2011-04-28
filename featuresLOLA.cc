@@ -75,7 +75,7 @@ int FindValidPoints(vector<LOLAShot > & trackPts,int halfWindow, int &numValid)
     
   }
  
-  cout<<"number of valid points for dreivative computation= "<<numValid<<endl;
+  //cout<<"number of valid points for derivative computation= "<<numValid<<endl;
   return 0;
 }
 

@@ -247,8 +247,8 @@ int main( int argc, char *argv[] ) {
     }
     */
  
-    if (settings.useLOLAFeatures){
-      cout << "Computing the LOLA features and weights ... ";
+    if (settings.useReflectanceFeatures){
+      cout << "Computing LOLA reflectance features and weights ... ";
       int halfWindow = 10; //this should go into settings
       ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename);
       cout<<"done."<<endl;
@@ -326,7 +326,7 @@ int main( int argc, char *argv[] ) {
   int gc_index = 0;
 
   //TO DO: this should not be hard coded
-  string cubDirname = string("../data/Apollo15-CUB");
+  //string cubDirname = string("../data/Apollo15-CUB");
   for (int t=0; t<trackPts.size(); t++){
     for (int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){ 

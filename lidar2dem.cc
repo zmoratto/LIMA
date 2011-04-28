@@ -162,15 +162,6 @@ int main( int argc, char *argv[] ) {
          int numHorPts = 6000;
          MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
       }
-
-  
-      if (settings.useLOLAFeatures){
-         cout << "Computing the LOLA features and weights ... ";
-         int halfWindow = 10;
-         float topPercent = 0.10;
-         ComputeWeights( trackPts, halfWindow, topPercent, lolaFeaturesFilename);
-         cout<<"done."<<endl;
-      }
       */
   
       Vector3 currTranslation;
@@ -181,6 +172,7 @@ int main( int argc, char *argv[] ) {
       currRotation[0][0] = 1.0;
       currRotation[1][1] = 1.0;
       currRotation[2][2] = 1.0;
+      Vector3 center;
 
       //copy info to featureArray and modelArray
       for(int k = 0; k < trackPts.size();k++){
@@ -219,10 +211,12 @@ int main( int argc, char *argv[] ) {
       cout<<modelArray.size()<<" "<<featureArray.size()<<endl;
 
       //run ICP-matching
-      ICP(featureArray, interpDEM, DEMGeo, modelArray, settings,currTranslation, currRotation, errorArray);
+      ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, settings, 
+                      currTranslation, currRotation, center, errorArray);
       
       cout<<"Translation="<<currTranslation<<endl;
       cout<<"Rotation="<<currRotation<<endl;
+      cout<<"Center="<<center;
   }
 
   return 0;

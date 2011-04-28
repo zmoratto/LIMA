@@ -49,7 +49,7 @@ typedef struct CoregistrationParams{
   int matchingMode; //LIMA, LIDEM
   int reflectanceType;//NO, LAMBERT, LUNAR-LAMBERT
   int analyseFlag; 
-  int useLOLAFeatures;
+  int useReflectanceFeatures;
   int topPercentFeatures;
   Vector2 samplingStep;
   Vector2 matchWindowHalfSize;
@@ -73,8 +73,6 @@ typedef struct gcp{
   vector<float> y;
   vector<float> x_before;
   vector<float> y_before;
-  vector<int> width;
-  vector<int> height;
 };
 
 void PrintGlobalParams(struct CoregistrationParams *settings);
