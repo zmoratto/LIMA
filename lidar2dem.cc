@@ -107,23 +107,33 @@ int main( int argc, char *argv[] ) {
   struct CoregistrationParams settings;
   if( ReadConfigFile(configFilename, &settings) )
 	{
-	std::cerr << "Config file " << configFilename << " found." << endl;
+	cerr << "Config file " << configFilename << " found." << endl;
 	}
   else
 	{
-	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	cerr << "Config file " << configFilename << " not found, using defaults." << endl;
 	}
   //PrintGlobalParams(&settings);
-  std::cerr << settings << endl;
+  cerr << settings << endl;
 
   //read LOLA tracks
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
+  vector<vector<LOLAShot> > trackPts;
+  try
+	{
+	trackPts =  CSVFileRead(inputCSVFilename);
+	cerr << "Tracks file: " << inputCSVFilename << endl;
+	}
+  catch (const vw::IOErr& error)
+	{
+	cerr << error.what() << endl;
+	exit(1);
+	}
 
 
   for (int index = 0; index <  DEMFiles.size(); index++){
 
       string inputDEMFilename = DEMFiles[index];
-      cout<<"inputDEMFilename"<<inputDEMFilename<<endl;
+      cout <<"DEM filename: " << inputDEMFilename << endl;
 
       //create the results directory and prepare the output filenames - START
       system( resDir.insert(0,"mkdir ").c_str());

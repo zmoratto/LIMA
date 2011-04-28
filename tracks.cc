@@ -137,7 +137,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	  if (lineIndex == 1){ //initialize first track
 	      trackIndex = 0;
 	      trackPts.resize(trackIndex+1);
-              printf("lineIndex = %d\n", lineIndex);
+             // printf("lineIndex = %d\n", lineIndex);
           }
           else{
             
@@ -185,9 +185,10 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
     }
     myfile.close();
   }
-
-  else cout << "Unable to open file";
-
+  else
+  {
+  vw_throw( vw::IOErr() << "Unable to open track file \"" << CSVFilename << "\"" );
+  }	
   
   return trackPts; 
 }
