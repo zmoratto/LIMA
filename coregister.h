@@ -58,8 +58,35 @@ typedef struct CoregistrationParams{
   int displayResults;
   double noDataVal;
   float minConvThresh;
-  
 };
+
+inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& cp )
+	{
+	os	<< "  MATCHING_MODE: " 
+		<< boost::lexical_cast<std::string>(cp.matchingMode)			<< endl
+		<< "  REFLECTANCE_TYPE: " 
+		<< boost::lexical_cast<std::string>(cp.reflectanceType)			<< endl
+		<< "  ANALYSE_FLAG: " 
+		<< boost::lexical_cast<std::string>(cp.analyseFlag)				<< endl
+		<< "  USE_REFLECTANCE_FEATURES: " 
+		<< boost::lexical_cast<std::string>(cp.useReflectanceFeatures)	<< endl
+		<< "  TOP_PERCENT_FEATURES: " 
+		<< boost::lexical_cast<std::string>(cp.topPercentFeatures)		<< endl
+		<< "  samplingStep: " << cp.samplingStep << endl
+		<< "  matchWindowHalfSize: "<< cp.matchWindowHalfSize			<< endl
+		<< "  MAX_NUM_ITER: " 
+		<< boost::lexical_cast<std::string>(cp.maxNumIter)				<< endl
+		<< "  MAX_NUM_STARTS: " 
+		<< boost::lexical_cast<std::string>(cp.maxNumStarts)			<< endl
+		<< "  DISPLAY_RESULTS: " 
+		<< boost::lexical_cast<std::string>(cp.displayResults)			<< endl
+		<< "  NO_DATA_VAL: " 
+		<< boost::lexical_cast<std::string>(cp.noDataVal)				<< endl
+		<< "  MIN_CONV_THRESH: " 
+		<< boost::lexical_cast<std::string>(cp.minConvThresh)			<< endl;
+		
+	return os;
+	};
 
 typedef struct gcp{
   float lon;
@@ -75,9 +102,8 @@ typedef struct gcp{
   vector<float> y_before;
 };
 
-void PrintGlobalParams(struct CoregistrationParams *settings);
-int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings);
-int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
+bool ReadConfigFile(string config_filename, struct CoregistrationParams *settings);
+// int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
 void PrintModelParams(struct ModelParams *params);
 
 void SaveVectorToFile(vector<float> v, string filename);

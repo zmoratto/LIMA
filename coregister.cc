@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <boost/lexical_cast.hpp>
 #include <boost/operators.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -47,15 +48,13 @@ using namespace std;
 #include "coregister.h"
 
 
-
-int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
+bool ReadConfigFile(string config_filename, struct CoregistrationParams *settings)
 {
   int MAX_LENGTH = 5000;
   char line[MAX_LENGTH];
-  ifstream configFile(config_filename);
+  ifstream configFile(config_filename.c_str());
 
   if (configFile.is_open()){
-    printf("CONFIG FILE FOUND\n");
     
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "MATCHING_MODE %d\n", &(settings->matchingMode));
@@ -102,13 +101,11 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     
     configFile.close();
 
-    return(1);
+    return true;
   }
   else{
-    printf("configFile NOT FOUND\n");
-
-    settings->matchingMode = LIMA;//LIDEM
-    settings->reflectanceType = LUNAR_LAMBERT;// NO_REFL;//LAMBERT;
+    settings->matchingMode = 1; // LIMA;//LIDEM
+    settings->reflectanceType = 3; //LUNAR_LAMBERT;// NO_REFL;//LAMBERT;
     settings->analyseFlag = 0;
     settings->useReflectanceFeatures = 0;
     settings->topPercentFeatures = 10;
@@ -122,26 +119,11 @@ int ReadConfigFile(char *config_filename, struct CoregistrationParams *settings)
     settings->noDataVal = -10000;
     settings->minConvThresh = 0.01;
 
-    return(0);
+	return false;
   }
 }
 
-void PrintGlobalParams(struct CoregistrationParams *settings)
-{
-
-  printf("MATCHING_MODE %d\n", settings->matchingMode);
-  printf("REFLECTANCE_TYPE %d\n", settings->reflectanceType);
-  printf("ANALYSE_FLAG %d\n", settings->analyseFlag);
-  printf("USE_REFLECTANCE_FEATURES %d\n", settings->useReflectanceFeatures);
-  printf("TOP_PERCENT_FEATURES %d\n", settings->topPercentFeatures);
-  cout<<"SAMPLING_STEP "<<settings->samplingStep<<endl;
-  cout<<"MATCH_WINDOW_HALF_SIZE "<<settings->matchWindowHalfSize<<endl;
-  printf("MAX_NUM_ITER  %d\n", settings->maxNumIter);
-  printf("MAX_NUM_STARTS %d\n", settings->maxNumStarts);
-  printf("DISPLAY_RESULTS %d\n", settings->displayResults);
-  printf("NO_DATA_VAL %f\n", settings->noDataVal);
-  printf("MIN_CONV_THRESH %f\n", settings->minConvThresh);
-}
+/*
 //this function will be removed
 int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
 {
@@ -177,6 +159,7 @@ int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
 
   return(1);
 }
+*/
 
 void PrintModelParams(struct ModelParams *params)
 {

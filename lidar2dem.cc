@@ -105,8 +105,16 @@ int main( int argc, char *argv[] ) {
   }
  
   struct CoregistrationParams settings;
-  ReadConfigFile((char*)configFilename.c_str(), &settings);
-  PrintGlobalParams(&settings);
+  if( ReadConfigFile(configFilename, &settings) )
+	{
+	std::cerr << "Config file " << configFilename << " found." << endl;
+	}
+  else
+	{
+	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	}
+  //PrintGlobalParams(&settings);
+  std::cerr << settings << endl;
 
   //read LOLA tracks
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
@@ -118,14 +126,14 @@ int main( int argc, char *argv[] ) {
       cout<<"inputDEMFilename"<<inputDEMFilename<<endl;
 
       //create the results directory and prepare the output filenames - START
-      system("mkdir ../results");
+      system( resDir.insert(0,"mkdir ").c_str());
 
       string DEMFilenameNoPath = sufix_from_filename(inputDEMFilename);
       
-      string altitudePtsFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "alt.txt";
-      string demPtsFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "dem.txt";
-      string lolaTracksFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "_lola.tif";  
-      string lolaFeaturesFilename = "../results" + prefix_less3_from_filename(DEMFilenameNoPath) + "_features_lola.txt";  
+      string altitudePtsFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "alt.txt";
+      string demPtsFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "dem.txt";
+      string lolaTracksFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_lola.tif";  
+      string lolaFeaturesFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_features_lola.txt";  
       //create the results directory and prepare the output filenames - END
 
   

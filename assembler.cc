@@ -153,8 +153,16 @@ int main( int argc, char *argv[] ) {
  
   
   struct CoregistrationParams settings;
-  ReadConfigFile((char*)configFilename.c_str(), &settings);
-  PrintGlobalParams(&settings);
+  if( ReadConfigFile(configFilename, &settings) )
+	{
+	std::cerr << "Config file " << configFilename << " found." << endl;
+	}
+  else
+	{
+	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	}
+  //PrintGlobalParams(&settings);
+  std::cerr << settings << endl;
   
   Vector3 translation;
   Matrix<float, 3,3 > rotation;

@@ -111,8 +111,16 @@ int main( int argc, char *argv[] ) {
 
   //#if 0
   struct CoregistrationParams settings;
-  ReadConfigFile((char*)configFilename.c_str(), &settings);
-  PrintGlobalParams(&settings);
+  if( ReadConfigFile(configFilename, &settings) )
+	{
+	std::cerr << "Config file " << configFilename << " found." << endl;
+	}
+  else
+	{
+	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	}
+  //PrintGlobalParams(&settings);
+  std::cerr << settings << endl;
 
 
   int numCubFiles = cubFiles.size();
