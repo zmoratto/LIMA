@@ -207,7 +207,6 @@ int main( int argc, char *argv[] ) {
     string reflectancePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "refl.txt";  
     string syntImgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "synth.txt";  
     string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";
-    string demPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "dem.txt";
     string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_lola.tif";  
     string outFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_results.tif";  
     string lolaFeaturesFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_features_lola.txt";  
@@ -216,21 +215,30 @@ int main( int argc, char *argv[] ) {
 
     //create the results directory and prepare the output filenames - END
 
-    vector<Vector<float, 6> >initTransfArray;
-    vector<Vector<float, 6> >bestInitTransfArray; 
-    vector<Vector<float, 6> > finalTransfArray;
-    vector<float> initMatchingErrorArray;
-    vector<float> finalMatchingErrorArray;
-
-    GenerateInitTransforms(initTransfArray, settings);
-
-   
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
     for (int i = 0; i < trackPts.size(); i++){
       trackIndices[i] = i;
     }
     
+    if (settings.analyseFlag == 1){
+      float scaleFactor = ComputeScaleFactor(trackPts);
+      SaveImagePoints(trackPts, 3, imgPtsFilename);
+      SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
+      SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
+      SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
+      int numVerPts = 6000;
+      int numHorPts = 6000;
+      MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
+    }
+   
+    vector<Vector<float, 6> >initTransfArray;
+    vector<Vector<float, 6> >bestInitTransfArray; 
+    vector<Vector<float, 6> > finalTransfArray;
+    vector<float> initMatchingErrorArray;
+    vector<float> finalMatchingErrorArray;
+    
+    GenerateInitTransforms(initTransfArray, settings);
 
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub"<<endl; 
@@ -240,21 +248,7 @@ int main( int argc, char *argv[] ) {
     ComputeAllReflectance(trackPts, modelParamsArray[k], settings);
     //initialization step for LIMA - END  
 
-    /*
-    if (settings.analyseFlag == 1){
-      float scaleFactor = ComputeScaleFactor(trackPts);
-      SaveImagePoints(trackPts, 3, imgPtsFilename);
-      SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
-      SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-      SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
-      SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
-
-      int numVerPts = 6000;
-      int numHorPts = 6000;
-      MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
-    }
-    */
- 
+     
     if (settings.useReflectanceFeatures){
       cout << "Computing LOLA reflectance features and weights ... ";
       int halfWindow = 10; //this should go into settings
@@ -306,7 +300,7 @@ int main( int argc, char *argv[] ) {
     if (settings.displayResults){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
-			       trackIndices, cubFiles[k], outFilename);
+			        trackIndices, cubFiles[k], outFilename);
     }    
 
   }
@@ -325,10 +319,7 @@ int main( int argc, char *argv[] ) {
   }
   cout<<"writting the GC file..."<<endl;
   SaveGCPoints(gcpArray,  gcpFilenameRoot);
-  /*
-  SaveGCPoints(trackPts, cubFiles,  overlapIndices, 
-               optimalTransfArray, optimalErrorArray, gcpFilenameRoot);
-  */
+
   //this will be controlled by DISPLAY_FLAG
   cout<<"writting the GCP images..."<<endl;
   int gc_index = 0;
@@ -347,7 +338,7 @@ int main( int argc, char *argv[] ) {
 	  cout<<"gcpFilename="<<gcpFilename<<endl;
           cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
           SaveGCPImages(gcpArray[gc_index], assembledImgFilename);
-          //SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
+
 	}
         gc_index++;
       }
