@@ -230,8 +230,8 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
   }
 
 
-  for(int ti = 0; ti < trackPts.size(); ti++){
-    for(int si = 0; si < trackPts[ti].size(); si++){
+  for(unsigned int ti = 0; ti < trackPts.size(); ti++){
+    for(unsigned int si = 0; si < trackPts[ti].size(); si++){
    
       LOLAPts = trackPts[ti][si].LOLAPt;
       int numLOLAPts = LOLAPts.size();
@@ -241,7 +241,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
 
 	trackPts[ti][si].DEMPt.resize(LOLAPts.size());
 
-	for (int li = 0; li < LOLAPts.size(); li++){
+	for (unsigned int li = 0; li < LOLAPts.size(); li++){
           
 	    float lon = LOLAPts[li].coords[0];
 	    float lat = LOLAPts[li].coords[1];

@@ -182,7 +182,7 @@ void SaveVectorToFile(vector<float> v, string filename)
 
   fp = fopen(filename.c_str(), "w");
 
-  for (int i = 0; i < v.size()-1; i++){
+  for (unsigned int i = 0; i < v.size()-1; i++){
     fprintf(fp, "%f\n", v[i]);
   }
   fprintf(fp, "%f", v[v.size()-1]);

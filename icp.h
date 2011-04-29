@@ -193,12 +193,12 @@ FindMatchesFromDEM(vector<Vector3> lidar_xyz,  ImageViewBase<ViewT> const& DEM, 
 
  
   Vector3 matchCenter;
-  for (int i = 0; i < matchArray.size(); i++){  
+  for (unsigned int i = 0; i < matchArray.size(); i++){  
       matchCenter = matchCenter + matchArray[i];
   }
   matchCenter = matchCenter/matchArray.size();
 
-  for (int index = 0; index < lidar_xyz.size(); index++){
+  for (unsigned int index = 0; index < lidar_xyz.size(); index++){
   
     Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
     //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
@@ -349,7 +349,7 @@ ICP_LIDAR_2_DEM(vector<Vector3> featureArray,  ImageViewBase<ViewT> const& DEM,
 	    
             rotation = rotationArray[0];
 	    translation = translationArray[0];
-	    for (int i = 1; i < rotationArray.size(); i++){
+	    for (unsigned int i = 1; i < rotationArray.size(); i++){
 	      rotation = rotation*rotationArray[i];
 	      translation = translation + translationArray[i];
 	    }

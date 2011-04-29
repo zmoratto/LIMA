@@ -6,7 +6,7 @@
 void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float topPercent, string filename ){
   
   int numValid;
-  for (int ti = 0; ti < trackPts.size() ; ti++ ){ //index track
+  for (unsigned int ti = 0; ti < trackPts.size() ; ti++ ){ //index track
     //cout<<"track="<<ti<<endl;
     InterpolateInvalidPoint(trackPts[ti]); 
     FindValidPoints(trackPts[ti], halfWindow, numValid);
@@ -36,11 +36,11 @@ int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow)
   printf("windowSize_f = %f, halfWindow_f = %f\n", windowSize_f, halfWindow_f);
 
     //zero the track before begining 
-    for(int si = 0; si < trackPts.size(); si++){
+    for(unsigned int si = 0; si < trackPts.size(); si++){
       trackPts[si].weightRefl = 0; // just to begin
     }
 
-    for( int si = 0; si < trackPts.size() ; si++){
+    for(unsigned int si = 0; si < trackPts.size() ; si++){
       if( trackPts[si].featurePtRefl == 1 ){
 
         //write out using edge - calculate normalization later
@@ -67,7 +67,7 @@ int SaveWeights(vector< LOLAShot>& trackPts, string filename)
  FILE* sFile;
  sFile = fopen(filename.c_str(), "w");
 
-   for (int si = 0; si < trackPts.size(); si++ ){
+   for (unsigned int si = 0; si < trackPts.size(); si++ ){
      fprintf( sFile, "si= %d reflectance= %f calc_acp= %d filter_response= %f weight_lsq= %f weightLOLA= %f \n", 
                      si, trackPts[si].reflectance, trackPts[si].calc_acp, 
                      trackPts[si].filter_response, trackPts[si].featurePtRefl, trackPts[si].weightRefl );

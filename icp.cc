@@ -68,7 +68,7 @@ void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchAr
   translation[1] = 0;
   translation[2] = 0;
   
-  for (int i = 0; i < featureArray.size(); i++){
+  for (unsigned int i = 0; i < featureArray.size(); i++){
        Vector3 fore = featureArray[i];
        Vector3 back = matchArray[i];
        translation[0] = translation[0] + back(0) - fore(0);
@@ -98,7 +98,7 @@ float ComputeMatchingError(vector<Vector3> featureArray, vector<Vector3> matchAr
 
 
    float matchError = 0.0;
-   for (int i = 0; i < featureArray.size(); i++){
+   for (unsigned int i = 0; i < featureArray.size(); i++){
        float overallDist = 0.0;
        float dist;
        for (int j = 0; j < 3; j++){
@@ -136,7 +136,7 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
   //compute the centroids
   Vector3 featureCenter;
   Vector3 matchCenter;
-  for (int i = 0; i < featureArray.size(); i++){  
+  for (unsigned int i = 0; i < featureArray.size(); i++){  
       featureCenter = featureCenter + featureArray[i];
       matchCenter = matchCenter + matchArray[i];
   }
@@ -146,7 +146,7 @@ void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray
   cout<<"F_center"<<featureCenter<<endl;
   cout<<"M_center"<<matchCenter<<endl;
   
-  for (int i = 0; i < featureArray.size(); i++){     
+  for (unsigned int i = 0; i < featureArray.size(); i++){     
        
        Vector3 feature = featureArray[i];
        Vector3 match = matchArray[i];
@@ -180,12 +180,12 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
 
 
   Vector3 featureCenter;
-  for (int i = 0; i < featureArray.size(); i++){  
+  for (unsigned int i = 0; i < featureArray.size(); i++){  
       featureCenter = featureCenter + featureArray[i];
   }
   featureCenter = featureCenter/featureArray.size();
 
-  for (int i=0; i < featureArray.size(); i++){
+  for (unsigned int i=0; i < featureArray.size(); i++){
     featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
   }
 

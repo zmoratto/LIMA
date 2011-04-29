@@ -8,7 +8,7 @@
 //above non-valid was defined as reflectance = -1 
 int InterpolateInvalidPoint(vector< LOLAShot>& trackPts)
 {
-   for (int si = 1; si < trackPts.size()-1; si++ ){
+   for (unsigned int si = 1; si < trackPts.size()-1; si++ ){
    
       if(trackPts[si].reflectance < 0){
         if ((trackPts[si-1].reflectance > 0 ) && (trackPts[si+1].reflectance > 0)){
@@ -137,7 +137,7 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   cout<<"numValid= "<<numValid<<endl;
   list_all_response.resize(numValid);
 
-  for( int si = 0; si < trackPts.size(); si++ ){
+  for(unsigned int si = 0; si < trackPts.size(); si++ ){
  
       if(trackPts[si].calc_acp){
         list_all_response[numRead] = abs(trackPts[si].filter_response);
@@ -161,7 +161,7 @@ int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int
   int numSalientFeatures = 0;
   int others = 0;
  
-  for(int si = 0; si < trackPts.size(); si ++ ){
+  for(unsigned int si = 0; si < trackPts.size(); si ++ ){
     
     if(( abs(trackPts[si].filter_response) >= salientFeatureThresh ) && (trackPts[si].calc_acp)){
         trackPts[si].featurePtRefl = 1;  
@@ -237,7 +237,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
 
     if (salientFeatureThresh > 0){    
       //compute the salient features
-      for(int si = 0; si < trackPts.size(); si ++ ){
+      for(unsigned int si = 0; si < trackPts.size(); si ++ ){
 	if(( abs(trackPts[si].filresLOLA) >= salientFeatureThresh ) /*&& (trackPts[si].valid)*/){
 	  trackPts[si].featurePtLOLA = 1;  
 	  numSalientFeatures ++;

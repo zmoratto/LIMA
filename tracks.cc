@@ -243,15 +243,15 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 							  ConstantEdgeExtension()),
 					      BilinearInterpolation()) );
   
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
+  for(unsigned int k = 0; k < trackPts.size();k++){
+    for(unsigned int i = 0; i < trackPts[k].size(); i++){
       
       trackPts[k][i].valid = 1; 
 
       LOLAPts = trackPts[k][i].LOLAPt;
       trackPts[k][i].imgPt.resize(LOLAPts.size());
 
-      for (int j = 0; j < LOLAPts.size(); j++){
+      for (unsigned int j = 0; j < LOLAPts.size(); j++){
           
 	    float lon = LOLAPts[j].coords[0];
 	    float lat = LOLAPts[j].coords[1];
@@ -295,8 +295,8 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
 {
   vector<float> pts;
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int k = 0; k < trackPts[i].LOLAPt.size(); k++){
+  for (unsigned int i = 0; i < trackPts.size(); i++){
+    for (unsigned int k = 0; k < trackPts[i].LOLAPt.size(); k++){
 
       float rad = trackPts[i].LOLAPt[k].coords[2];
       int id = trackPts[i].LOLAPt[k].s;
@@ -318,12 +318,12 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   int numValidPts = 0;
   float scaleFactor = 1;
 
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
+  for(unsigned int k = 0; k < trackPts.size();k++){
+    for(unsigned int i = 0; i < trackPts[k].size(); i++){
       if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
 
         //update the nominator for the center point
-        for (int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
+        for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
           if (trackPts[k][i].LOLAPt[j].s == 3){ 
             nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
           }
@@ -354,8 +354,8 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
   globalParams.exposureInitType = 1;
 
 
-  for (int k = 0; k < allTracks.size(); k++ ){
-    for (int i = 0; i < allTracks[k].size(); i++){
+  for (unsigned int k = 0; k < allTracks.size(); k++ ){
+    for (unsigned int i = 0; i < allTracks[k].size(); i++){
       LOLAPts = allTracks[k][i].LOLAPt;
       pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
       pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
@@ -388,7 +388,7 @@ pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 {
   pointCloud pt;
   pt.s = -1;//invalid pointCloud
-  for(int i = 0;i < LOLAPts.size(); i++){
+  for(unsigned int i = 0;i < LOLAPts.size(); i++){
     if (LOLAPts[i].s == index){
       return LOLAPts[i];
     }
@@ -414,9 +414,9 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
       BilinearInterpolation());
 
   int index = 0;
-  for (int i = 0; i < trackPts.size(); i++){
+  for (unsigned int i = 0; i < trackPts.size(); i++){
     demPts[index] = -1;
-    for(int j = 0; j < trackPts[i].LOLAPt.size(); j++){
+    for(unsigned int j = 0; j < trackPts[i].LOLAPt.size(); j++){
 
       float lon = trackPts[i].LOLAPt[j].coords[0];
       float lat = trackPts[i].LOLAPt[j].coords[1];
@@ -445,7 +445,7 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
 void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, string filename)
 
 {    
-  for (int k = 0; k < trackPts.size(); k++){
+  for (unsigned int k = 0; k < trackPts.size(); k++){
     vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
     string prefixTrackFilename =  prefix_from_filename(filename);  
     char* trackFilename = new char[500];
@@ -461,7 +461,7 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFa
   FILE *fp;
 
 
-  for (int k = 0; k < allTracks.size(); k++ ){
+  for (unsigned int k = 0; k < allTracks.size(); k++ ){
 
 
     string prefixTrackFilename =  prefix_from_filename(filename);  
@@ -470,7 +470,7 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFa
     fp = fopen(trackFilename, "w");
 
 
-    for (int i = 0; i < allTracks[k].size(); i++){
+    for (unsigned int i = 0; i < allTracks[k].size(); i++){
       if (allTracks[k][i].valid == 1){
         fprintf(fp, "%f\n", scaleFactor*allTracks[k][i].reflectance);
       }
@@ -491,18 +491,18 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 
   FILE *fp;
 
-  for (int k = 0; k < allTracks.size(); k++ ){
+  for (unsigned int k = 0; k < allTracks.size(); k++ ){
 
     string prefixTrackFilename = prefix_from_filename(filename); 
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
     fp = fopen(trackFilename, "w");
 
-    for (int i = 0; i < allTracks[k].size()-1; i++){
+    for (unsigned int i = 0; i < allTracks[k].size()-1; i++){
 
 
       int found = 0;
-      for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+      for (unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
         if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
           found = 1;
           fprintf(fp, "%f\n", allTracks[k][i].imgPt[j].val);
@@ -526,17 +526,17 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 
   FILE *fp;
 
-  for (int k = 0; k < allTracks.size(); k++ ){
+  for (unsigned int k = 0; k < allTracks.size(); k++ ){
 
     string prefixTrackFilename = prefix_from_filename(filename); 
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
     fp = fopen(trackFilename, "w");
 
-    for (int i = 0; i < allTracks[k].size(); i++){
+    for (unsigned int i = 0; i < allTracks[k].size(); i++){
 
       int found = 0;
-      for (int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
+      for (unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
         if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
           found = 1;
           fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].coords[2]);
@@ -559,7 +559,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 {
 
-  for (int i = 0; i < gcpArray.size(); i++){
+  for (unsigned int i = 0; i < gcpArray.size(); i++){
        stringstream ss;
        ss<<i;
        string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
@@ -594,9 +594,9 @@ Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
   float minLon = 180;
   float maxLon = -180;
 
-  for (int i = 0; i < trackPts.size(); i++){
-    for (int j = 0; j < trackPts[i].size(); j++){
-      for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
+  for (unsigned int i = 0; i < trackPts.size(); i++){
+    for (unsigned int j = 0; j < trackPts[i].size(); j++){
+      for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
         float lon = trackPts[i][j].LOLAPt[k].coords[0];
         float lat = trackPts[i][j].LOLAPt[k].coords[1];
 
@@ -665,8 +665,8 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   int index = 0;
 
   //for all features in the LOLA data
-  for (int t=0; t<trackPts.size(); t++){
-    for (int s=0; s<trackPts[t].size(); s++){
+  for (unsigned int t=0; t<trackPts.size(); t++){
+    for (unsigned int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){
 
 	float lon = trackPts[t][s].LOLAPt[2].coords[0];
@@ -690,7 +690,7 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
 	
 	fprintf(fp, "%f %f %f %f %f %f\n", lon, lat, rad, sigma_x, sigma_y, sigma_z);
 	
-        for (int k = 0; k < overlapIndices.size(); k++){
+        for (unsigned int k = 0; k < overlapIndices.size(); k++){
           
           //boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
 	  //double nodata_value = rsrc->nodata_read();

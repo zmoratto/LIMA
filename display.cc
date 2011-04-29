@@ -71,9 +71,9 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
   int point_size = 7;
 
   //for (int i = 0; i < trackPts.size(); i++){//for each track
- for (int i = 0; i < trackIndices.size(); i++){//for each selected track 
-    for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
-      for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
+ for (unsigned int i = 0; i < trackIndices.size(); i++){//for each selected track 
+    for(unsigned int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
+      for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
  
 	  pointCloud pt = trackPts[i][j].LOLAPt[k]; 
 	  float lon = pt.coords[0];
@@ -139,9 +139,9 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
    ImageView<PixelRGB<uint8> > DRG_crop = crop(DRG, int32(minX), int32(minY), maxX-minX+1, maxY-minY+1);
    
    //#if 0
-   for (int i = 0; i < trackPts.size(); i++){//for each track
-    for(int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
-      for(int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
+   for (unsigned int i = 0; i < trackPts.size(); i++){//for each track
+    for(unsigned int j = 0; j < trackPts[i].size(); j++){ //for each shot in a track
+      for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
        
 	if ((trackPts[i][j].valid == 1) && (trackPts[i][j].featurePtLOLA == 1)){ 
             int xl, yt, w, h;
@@ -250,7 +250,7 @@ void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFil
 
   ImageView<PixelRGB<uint8> > assembledImg(numHorBlocks*blockWidth, numVerBlocks*blockHeight);
 
-  for (int i = 0; i < cubFilenameArray.size(); i++){
+  for (unsigned int i = 0; i < cubFilenameArray.size(); i++){
     
     string cubFilename = cubDirname+string("/")+cubFilenameArray[i];
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
@@ -348,7 +348,7 @@ void SaveGCPImages(struct gcp this_gcp, string assembledImgFilename)
   numVerBlocks = (this_gcp.filename.size()/numHorBlocks)+1;
   ImageView<PixelRGB<uint8> > assembledImg(numHorBlocks*blockWidth, numVerBlocks*blockHeight);
 
-  for (int i = 0; i < this_gcp.filename.size(); i++){
+  for (unsigned int i = 0; i < this_gcp.filename.size(); i++){
     
     string cubFilename = this_gcp.filename[i];
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
@@ -458,11 +458,11 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
   //fill the DEM
 
   printf("MakeGrid: numTracks = %d\n", (int)(trackIndices.size()));
-  for (int k = 0; k < trackIndices.size();k++){
+  for (unsigned int k = 0; k < trackIndices.size();k++){
     int trackIndex = trackIndices[k];
     printf("MakeGrid: trackIndex = %d\n", trackIndex);
-    for (n = 0; n < trackPts[trackIndex].size(); n++){ 
-      for (int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
+    for (unsigned n = 0; n < trackPts[trackIndex].size(); n++){ 
+      for (unsigned int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
 
         float lon_index = (trackPts[trackIndex][n].LOLAPt[s].coords[0] - minLon)/lonDelta;
         float lat_index = (trackPts[trackIndex][n].LOLAPt[s].coords[1] - minLat)/latDelta;

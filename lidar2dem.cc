@@ -130,7 +130,7 @@ int main( int argc, char *argv[] ) {
 	}
 
 
-  for (int index = 0; index <  DEMFiles.size(); index++){
+  for (unsigned int index = 0; index <  DEMFiles.size(); index++){
 
       string inputDEMFilename = DEMFiles[index];
       cout <<"DEM filename: " << inputDEMFilename << endl;
@@ -193,8 +193,8 @@ int main( int argc, char *argv[] ) {
       Vector3 center;
 
       //copy info to featureArray and modelArray
-      for(int k = 0; k < trackPts.size();k++){
-	for(int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
+      for(unsigned int k = 0; k < trackPts.size();k++){
+	for(unsigned int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
        
 	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
 	    Vector3 model;
