@@ -117,7 +117,7 @@ Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
-
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, vector<gcp> &gcpArray);
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);

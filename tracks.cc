@@ -554,32 +554,60 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 
 }
 
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
+               string cubFile, vector<gcp> &gcpArray)
+{
+    int index = 0;
+    for (unsigned int t=0; t<trackPts.size(); t++){
+      for (unsigned int s=0; s<(int)trackPts[t].size(); s++){
+	if (trackPts[t][s].featurePtLOLA==1){
+          if (trackPts[t][s].valid ==1){          
+	    gcpArray[index].filename.push_back(cubFile);
+         
+	    float i = (optimalTransfArray[0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[2]);
+	    float j = (optimalTransfArray[3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[5]);
+	    gcpArray[index].x.push_back(i);
+	    gcpArray[index].y.push_back(j);
 
+	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
+	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
+            cout<<"UpdateGCP: "<<index<<"numElements: "<<gcpArray[index].filename.size()<<endl;
+          }
+          index++;
+	}
+      }
+    }
+    
+}
 
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 {
 
   for (unsigned int i = 0; i < gcpArray.size(); i++){
-       stringstream ss;
-       ss<<i;
-       string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
     
-       FILE *fp = fopen(this_gcpFilename.c_str(), "w");
-	
-       fprintf(fp, "%f %f %f %f %f %f\n", 
-                    gcpArray[i].lon, gcpArray[i].lat, gcpArray[i].rad, 
-                    gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
+       //check if this GCP is valid
        int numFiles = gcpArray[i].filename.size();
-     
-       for (int j = 0; j < numFiles-1; j++){
-	 fprintf(fp,"%s %f %f\n", 
-		    (char*)(gcpArray[i].filename[j].c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
-       }
        if (numFiles > 0){
-	 fprintf(fp, "%s %f %f", 
-		 (char*)(gcpArray[i].filename[numFiles-1].c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
+	   stringstream ss;
+	   ss<<i;
+	   string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
+	 
+	   FILE *fp = fopen(this_gcpFilename.c_str(), "w");
+	 
+	   fprintf(fp, "%f %f %f %f %f %f\n", 
+		   gcpArray[i].lon, gcpArray[i].lat, gcpArray[i].rad, 
+		   gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
+	 
+	   for (int j = 0; j < numFiles-1; j++){
+	      fprintf(fp,"%s %f %f\n", 
+		      (char*)(gcpArray[i].filename[j].c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
+	   }
+	   if (numFiles > 0){
+	      fprintf(fp, "%s %f %f", 
+		      (char*)(gcpArray[i].filename[numFiles-1].c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
+	   }
+	   fclose(fp);
        }
-       fclose(fp);
   }
    
 
@@ -655,8 +683,14 @@ int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
      return (0);
   }
 }
+ 
+
+
+
+
 
 //=============================================================================================================================
+//ALL FUNCTIONS BELOW THIS LINE ARE OBSOLETEAND WILL BE LATER REMOVED
 //this function can be removed - START
 void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
                   vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)

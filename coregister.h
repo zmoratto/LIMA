@@ -55,7 +55,7 @@ typedef struct CoregistrationParams{
   Vector2 matchWindowHalfSize;
   int maxNumIter;
   int maxNumStarts; 
-  int displayResults;
+  //int displayResults;
   double noDataVal;
   float minConvThresh;
 };
@@ -78,8 +78,8 @@ inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& 
 		<< boost::lexical_cast<std::string>(cp.maxNumIter)				<< endl
 		<< "  MAX_NUM_STARTS: " 
 		<< boost::lexical_cast<std::string>(cp.maxNumStarts)			<< endl
-		<< "  DISPLAY_RESULTS: " 
-		<< boost::lexical_cast<std::string>(cp.displayResults)			<< endl
+	  //<< "  DISPLAY_RESULTS: " 
+	  //<< boost::lexical_cast<std::string>(cp.displayResults)			<< endl
 		<< "  NO_DATA_VAL: " 
 		<< boost::lexical_cast<std::string>(cp.noDataVal)				<< endl
 		<< "  MIN_CONV_THRESH: " 

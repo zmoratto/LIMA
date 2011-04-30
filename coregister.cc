@@ -90,8 +90,8 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "MAX_NUM_STARTS %d\n", &(settings->maxNumStarts)); 
 
-    configFile.getline(line, MAX_LENGTH);
-    sscanf(line, "DISPLAY_RESULTS %d\n", &(settings->displayResults)); 
+    //configFile.getline(line, MAX_LENGTH);
+    //sscanf(line, "DISPLAY_RESULTS %d\n", &(settings->displayResults)); 
 
     configFile.getline(line, MAX_LENGTH);
     sscanf(line, "NO_DATA_VAL %lf\n", &(settings->noDataVal)); 
@@ -115,7 +115,7 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
     settings->matchWindowHalfSize(1) = 5;
     settings->maxNumIter = 3;
     settings->maxNumStarts = 160;
-    settings->displayResults = 0; 
+    //settings->displayResults = 0; 
     settings->noDataVal = -10000;
     settings->minConvThresh = 0.01;
 

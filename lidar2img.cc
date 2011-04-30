@@ -167,15 +167,15 @@ int main( int argc, char *argv[] ) {
   //determine the LOLA features
   int halfWindow = 10;
   printf("numTracks = %d\n", (int)trackPts.size());
-  for (int ti = 0; ti < trackPts.size(); ti++){
+  for (int ti = 0; ti < (int)trackPts.size(); ti++){
     printf("trackIndex = %d\n", ti);
     ComputeSalientLOLAFeature(trackPts[ti], halfWindow, (float)(settings.topPercentFeatures)/1000.0);
   }
 
   //this should be returned by ComputeSalientLOLAFeature
   vector<gcp> gcpArray;
-  for (int t=0; t<trackPts.size(); t++){
-    for (int s=0; s<trackPts[t].size(); s++){
+  for (unsigned int t=0; t<trackPts.size(); t++){
+    for (unsigned int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){
         gcp this_gcp;
 	this_gcp.lon = trackPts[t][s].LOLAPt[2].coords[0];
@@ -207,12 +207,13 @@ int main( int argc, char *argv[] ) {
     string reflectancePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "refl.txt";  
     string syntImgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "synth.txt";  
     string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";
-    string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_lola.tif";  
-    string outFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_results.tif";  
     string lolaFeaturesFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_features_lola.txt";  
     string transformFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "transform_results"  +".txt";  
     string matchResultsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "match_results"  +".txt";  
-
+    string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "lola.tif";  
+    string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img_lola.tif";  
+    string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "results_img_lola.tif";  
+  
     //create the results directory and prepare the output filenames - END
 
     vector<int> trackIndices;
@@ -230,19 +231,26 @@ int main( int argc, char *argv[] ) {
       int numVerPts = 6000;
       int numHorPts = 6000;
       MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
+      
     }
    
-    vector<Vector<float, 6> >initTransfArray;
-    vector<Vector<float, 6> >bestInitTransfArray; 
-    vector<Vector<float, 6> > finalTransfArray;
-    vector<float> initMatchingErrorArray;
-    vector<float> finalMatchingErrorArray;
-    
-    GenerateInitTransforms(initTransfArray, settings);
-
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub"<<endl; 
     GetAllPtsFromCub(trackPts, cubFiles[k]);
+    
+    
+    if (settings.analyseFlag == 1){
+        Vector<float, 6> unitTransfArray;
+        unitTransfArray[0]=1;
+        unitTransfArray[1]=0;
+	unitTransfArray[2]=0;
+	unitTransfArray[3]=0;
+	unitTransfArray[4]=1;
+	unitTransfArray[5]=0;
+        ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
+			         trackIndices, cubFiles[k], lolaInitTracksOnImageFilename);
+    }
+    
 
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParamsArray[k], settings);
@@ -256,12 +264,21 @@ int main( int argc, char *argv[] ) {
       cout<<"done."<<endl;
     }
    
+
+    //start matching
+    vector<Vector<float, 6> >initTransfArray;
+    vector<Vector<float, 6> >bestInitTransfArray; 
+    vector<Vector<float, 6> > finalTransfArray;
+    vector<float> initMatchingErrorArray;
+    vector<float> finalMatchingErrorArray;
+    
+    GenerateInitTransforms(initTransfArray, settings);
+
     cout<<"Initializing the affine tranformation ..."<<endl;
     //initMatchingErrorArray retains the matching error for each bestInitTransfArray
     InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings,  
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     cout<<"done."<<endl;
-
    
     cout<<"Computing the affine tranformation ..."<<endl;
     //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
@@ -274,75 +291,59 @@ int main( int argc, char *argv[] ) {
 
     GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
 
-
     //save to GCP structure.
-   
-    int index = 0;
-    for (int t=0; t<trackPts.size(); t++){
-      for (int s=0; s<trackPts[t].size(); s++){
-	if (trackPts[t][s].featurePtLOLA==1){
-          if (trackPts[t][s].valid ==1){          
-	    gcpArray[index].filename.push_back(cubFiles[k]);
-         
-	    float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
-	    float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
-	    gcpArray[index].x.push_back(i);
-	    gcpArray[index].y.push_back(j);
+    UpdateGCP(trackPts, optimalTransfArray[k], cubFiles[k], gcpArray);
 
-	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
-	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
-          }
-          index++;
-	}
-      }
-    }
-
-    if (settings.displayResults){
+    
+    if (settings.analyseFlag){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
-			        trackIndices, cubFiles[k], outFilename);
+			        trackIndices, cubFiles[k], lolaFinalTracksOnImageFilename);
     }    
-
+    
   }
+   
+  //end matching
  
- 
-
-
   //save the GCP
   string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));
-
+  /*
   for (int k = 0; k < numOverlappingImages; k++){
     printf("k=%d, [0]:%f  [1]:%f [2]:%f [3]:%f [4]:%f [5]:%f\n",
 	   k, optimalTransfArray[k][0], optimalTransfArray[k][1],
               optimalTransfArray[k][2], optimalTransfArray[k][3],
               optimalTransfArray[k][4], optimalTransfArray[k][5]);
   }
+  */
   cout<<"writting the GC file..."<<endl;
   SaveGCPoints(gcpArray,  gcpFilenameRoot);
 
-  //this will be controlled by DISPLAY_FLAG
-  cout<<"writting the GCP images..."<<endl;
-  int gc_index = 0;
 
-  //TO DO: this should not be hard coded
-  //string cubDirname = string("../data/Apollo15-CUB");
-  for (int t=0; t<trackPts.size(); t++){
-    for (int s=0; s<trackPts[t].size(); s++){
-      if (trackPts[t][s].featurePtLOLA==1){ 
-        if (25*(gc_index/25)==gc_index){
-         
-	  stringstream ss;
-	  ss<<gc_index;
-	  string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";
-	  string assembledImgFilename = gcpFilenameRoot+"_img_"+ss.str()+".tif";
-	  cout<<"gcpFilename="<<gcpFilename<<endl;
-          cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
-          SaveGCPImages(gcpArray[gc_index], assembledImgFilename);
-
+  if (settings.analyseFlag){
+ 
+    //TO DO: this should become all one function - START  
+    cout<<"writting the GCP images..."<<endl;
+    int gc_index = 0;
+  
+    for (unsigned int t=0; t<trackPts.size(); t++){
+      for (unsigned int s=0; s<trackPts[t].size(); s++){
+	if (trackPts[t][s].featurePtLOLA==1){ 
+	  if ((25*(gc_index/25)==gc_index) && (gcpArray[gc_index].filename.size() > 0)){ //non-empty GCP
+	    stringstream ss;
+	    ss<<gc_index;
+	    string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";
+	    string assembledImgFilename = gcpFilenameRoot+"_img_"+ss.str()+".tif";
+	    cout<<"gcpFilename="<<gcpFilename<<endl;
+	    cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
+	    SaveGCPImages(gcpArray[gc_index], assembledImgFilename);
+	    
+	  }
+	  gc_index++;
 	}
-        gc_index++;
       }
     }
+    //TO DO: this should become all one function - END  
+
   }
   //#endif
   /*
