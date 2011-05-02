@@ -13,7 +13,7 @@ void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float
     cout<<"track="<<ti<<"numValid points = "<<numValid<<endl;
     if (numValid > 0){
       ComputeGradient(trackPts[ti], halfWindow);
-      ComputeSalientFeatures(trackPts[ti],  topPercent, numValid);
+      ComputeSalientReflectanceFeatures(trackPts[ti],  topPercent, numValid);
       MakeLinearWeights(trackPts[ti], halfWindow);
 
       //stringstream ss;

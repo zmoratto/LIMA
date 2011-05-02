@@ -30,6 +30,6 @@ int InterpolateInvalidPoint(vector< LOLAShot>& trackPts);
 //calculates the gradient of reflectance using a filter of shape: [ -1x--edge-- 0  +1x--edge--]
 int ComputeGradient(vector<LOLAShot >& trackPts, int halfWindow);
 
-int ComputeSalientFeatures( vector< LOLAShot > & trackPts, float topPercent, int numValid);
+int ComputeSalientReflectanceFeatures( vector< LOLAShot > & trackPts, float topPercent, int numValid);
 int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent);
 #endif

@@ -57,7 +57,7 @@ using namespace std;
 int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
-  std::string configFilename="coregister_settings.txt";
+  std::string configFilename="lidar2img_settings.txt";
   
   std::vector<std::string> DEMFiles;
   std::vector<std::string> cubFiles;
@@ -68,7 +68,7 @@ int main( int argc, char *argv[] ) {
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("cubFiles,c", po::value<std::vector<std::string> >(&cubFiles))
     ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
-    ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("coregister_settings.txt"), "settings filename.")
+    ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
   
 
@@ -301,8 +301,7 @@ int main( int argc, char *argv[] ) {
 			        trackIndices, cubFiles[k], lolaFinalTracksOnImageFilename);
     }    
     
-  }
-   
+  }  
   //end matching
  
   //save the GCP
@@ -328,7 +327,7 @@ int main( int argc, char *argv[] ) {
     for (unsigned int t=0; t<trackPts.size(); t++){
       for (unsigned int s=0; s<trackPts[t].size(); s++){
 	if (trackPts[t][s].featurePtLOLA==1){ 
-	  if ((25*(gc_index/25)==gc_index) && (gcpArray[gc_index].filename.size() > 0)){ //non-empty GCP
+	  if (/*(25*(gc_index/25)==gc_index) &&*/ (gcpArray[gc_index].filename.size() > 0)){ //non-empty GCP
 	    stringstream ss;
 	    ss<<gc_index;
 	    string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";

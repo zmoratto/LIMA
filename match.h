@@ -89,7 +89,9 @@ float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);
 
 void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6> >finalTransfArray,  
                     vector<float> errorArray, string matchResultsFilename);
+
+/*
 void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  
                   string matchResultsFilename);
-
+*/
 #endif//MATCH_H

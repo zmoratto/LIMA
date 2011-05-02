@@ -691,6 +691,7 @@ int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 
 //=============================================================================================================================
 //ALL FUNCTIONS BELOW THIS LINE ARE OBSOLETEAND WILL BE LATER REMOVED
+#if 0
 //this function can be removed - START
 void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
                   vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
@@ -771,3 +772,4 @@ void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> 
   
 }
 //this function can be removed - END
+#endif

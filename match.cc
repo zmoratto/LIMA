@@ -98,35 +98,8 @@ void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6>
    fclose(fp);
 }
 
-//saves the 3D and image points in a local control network
-//will be renamed to save control network
-void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
-{
 
-   printf("saving the control network ...\n");
-   FILE * fp = fopen(matchResultsFilename.c_str(),"w");
 
-   for (int ti = 0; ti < trackPts.size(); ti++){
-
-      for (int si = 0; si < trackPts[ti].size(); si++){
-	if ((trackPts[ti][si].featurePtRefl == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
-           for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
-              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
-		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
-		int j = (int) floor(finalTransfArray[3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[5]);
-		fprintf(fp,"x: %f, y: %f, z: %f, i: %d,  j: %d\n", 
-                        trackPts[ti][si].LOLAPt[li].coords[0], 
-			trackPts[ti][si].LOLAPt[li].coords[1], 
-                        trackPts[ti][si].LOLAPt[li].coords[2], i, j);
-	      } 
-	   }
-        } 
-      }
-   }
-
-   fclose(fp);
-   printf("done.\n");
-}
 
 /*
 bool deriv_cached(string & input_name, string & cached_table){
@@ -190,7 +163,7 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
     for (int i = 0; i < settings.maxNumStarts; i++){
       initTransfArray[i][0] = 1.0;
       initTransfArray[i][1] = 0.0;
-      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*5;
+      initTransfArray[i][2] = (i-settings.maxNumStarts/2)*2;
       initTransfArray[i][3] = 0.0;
       initTransfArray[i][4] = 1.0;
       initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
@@ -1605,3 +1578,36 @@ void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DE
 #endif
 
 } 
+
+
+/*
+//saves the 3D and image points in a local control network
+//will be renamed to save control network
+void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  string matchResultsFilename)
+{
+
+   printf("saving the control network ...\n");
+   FILE * fp = fopen(matchResultsFilename.c_str(),"w");
+
+   for (int ti = 0; ti < trackPts.size(); ti++){
+
+      for (int si = 0; si < trackPts[ti].size(); si++){
+	if ((trackPts[ti][si].featurePtRefl == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
+           for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
+              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+		int i = (int) floor(finalTransfArray[0]*trackPts[ti][si].imgPt[li].x + finalTransfArray[1]*trackPts[ti][si].imgPt[li].y + finalTransfArray[2]);
+		int j = (int) floor(finalTransfArray[3]*trackPts[ti][si].imgPt[li].x + finalTransfArray[4]*trackPts[ti][si].imgPt[li].y + finalTransfArray[5]);
+		fprintf(fp,"x: %f, y: %f, z: %f, i: %d,  j: %d\n", 
+                        trackPts[ti][si].LOLAPt[li].coords[0], 
+			trackPts[ti][si].LOLAPt[li].coords[1], 
+                        trackPts[ti][si].LOLAPt[li].coords[2], i, j);
+	      } 
+	   }
+        } 
+      }
+   }
+
+   fclose(fp);
+   printf("done.\n");
+}
+*/
