@@ -136,7 +136,7 @@ int main( int argc, char *argv[] ) {
       cout <<"DEM filename: " << inputDEMFilename << endl;
 
       //create the results directory and prepare the output filenames - START
-      system( resDir.insert(0,"mkdir ").c_str());
+      system( resDir.insert(0,"mkdir ").c_str() );
 
       string DEMFilenameNoPath = sufix_from_filename(inputDEMFilename);
       
@@ -150,15 +150,14 @@ int main( int argc, char *argv[] ) {
       //read DEM file
       
       boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(inputDEMFilename) );
-      double nodata_value;
       if (rsrc->has_nodata_read()){
-	nodata_value = rsrc->nodata_read();
-        settings.noDataVal = nodata_value;
+        settings.noDataVal = rsrc->nodata_read();
+		cout << "Found nodata value, " << settings.noDataVal << " in " 
+				<< inputDEMFilename << endl;
       }
       else{
-	nodata_value = settings.noDataVal;
+		cout << "Using default nodata value: " << settings.noDataVal << endl;
       }
-      cout<<"nodata value="<<nodata_value<<endl;
  
       DiskImageView<PixelGray<float> > DEM( rsrc );
      
@@ -170,7 +169,7 @@ int main( int argc, char *argv[] ) {
 								BilinearInterpolation());
 
       //select DEM points closes to LOLA tracks
-      GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo, nodata_value);
+      GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo, settings.noDataVal);
 
       //initialization step for LIDEM - END
       /*
