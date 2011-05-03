@@ -20,6 +20,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <istream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -55,6 +57,47 @@ Vector4 ComputeGeoBoundary(string cubFilename);
 //it takes into consideration any set of overlapping images.
 std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners);
 
+
+/* Stream manipulator to ignore until the end of line
+ * Use like: std::cin >> ignoreLine;
+ */
+template <class charT, class traits>
+inline
+std::basic_istream<charT, traits>&
+ignoreLine (std::basic_istream<charT,traits>& stream)
+	{
+	// skip until end of line
+	stream.ignore( std::numeric_limits<int>::max(), stream.widen('\n') );
+
+	return stream;
+	}
+
+/* Stream manipulator to ignore one character
+ * Use like: std::cin >> ignoreOne;
+ */
+template <class charT, class traits>
+inline
+std::basic_istream<charT, traits>&
+ignoreOne(std::basic_istream<charT,traits>& stream)
+	{
+	stream.ignore();
+
+	return stream;
+	}
+
+/* Stream manipulator to ignore until the next space
+ * Use like: std::cin >> ignoreToSpace;
+ */
+template <class charT, class traits>
+inline
+std::basic_istream<charT, traits>&
+ignoreToSpace (std::basic_istream<charT,traits>& stream)
+	{
+	// skip until next 
+	stream.ignore( std::numeric_limits<int>::max(), stream.widen(' ') );
+
+	return stream;
+	}
 
 #endif
 

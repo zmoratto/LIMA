@@ -47,151 +47,104 @@ using namespace std;
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
+#include "util.h"
 
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
-{
-  string line;
-  ifstream myfile (CSVFilename.c_str());
-  int lineIndex = 0;
-  //int shotIndex = 0;
+	{
+	// This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
+	ifstream myfile (CSVFilename.c_str());
  
-  int trackIndex;
-  vector<vector<LOLAShot> >trackPts;
-  LOLAShot shot;
+	int trackIndex = 0;
+	vector<vector<LOLAShot> > trackPts(1);
+	LOLAShot shot;
  
-  pointCloud currPt;
-  pointCloud prevPt;
+	pointCloud currPt;
+	pointCloud prevPt;
 
-  if (myfile.is_open())
-  {
-    while (! myfile.eof() )
-    {
-      getline (myfile,line);
-      if(!myfile.eof()){ 
-      if (lineIndex > 0){//skip header
-     
-        //float lon, lat, rad;
-        char *temp = new char[160]; 
-        char *lon = new char[160]; 
-        char *lat = new char[160]; 
-        char *rad = new char[160];
-        char *detID = new char[5];
-        char *tmpf = new char[200];
-	
-        //printf("line = %s\n", line.c_str()); 
-	sscanf(line.c_str(), "%s %s %s %s %s %s %s %s %s %s  %s", 
-	       temp, lon, lat, rad, tmpf, tmpf, tmpf, tmpf, tmpf, tmpf, detID);
+	if (!myfile)
+		{
+		vw_throw( vw::IOErr() << "Unable to open track file \"" << CSVFilename << "\"" );
+		}
 
-        string time = temp;
-        char year[5]; 
-        char month[3]; 
-        char day[3];
-        char hour[3];
-        char min[3];
-        char sec[12];
-        char s[2];
-	
-	string detIDs = detID;
-     
-        //NOTE: all of the following atoi where originally atof but where changed to remove compiler warnings - dtj, 2010_07_21     
-        if (time.length() > 1){
-	  size_t length;
-	  length = time.copy(year, 4, 0);
-          //printf("length = %d\n", length);
-	  year[length] = '\0';
-          currPt.year = atoi(year); 
-       
-	  length = time.copy(month, 2, 5);
-          //printf("length = %d\n", length);
-	  month[length] = '\0';
-          currPt.month = atoi(month); 
+	myfile >> ignoreLine; // Skip header line
 
-	  length = time.copy(day, 2, 8);
-	  day[length] = '\0';  
-          currPt.day = atoi(day);
+    while ( !myfile.eof() )
+		{
+		myfile >> setw(4) >> currPt.year;
+		myfile >> ignoreOne; // -
+		myfile >> setw(2) >> currPt.month;
+		myfile >> ignoreOne; // -
+		myfile >> setw(2) >> currPt.day;
+		myfile >> ignoreOne; // T
+		myfile >> setw(2) >> currPt.hour;
+		myfile >> ignoreOne; // :
+		myfile >> setw(2) >> currPt.min;
+		myfile >> ignoreOne; // :
+		myfile >> currPt.sec;
+		myfile >> ignoreOne; // ,
+		myfile >> currPt.coords(0); //lon
+		myfile >> ignoreOne; // ,
+		myfile >> currPt.coords(1); //lat
+		myfile >> ignoreOne; // ,
+		myfile >> currPt.coords(2); //radius
+		myfile	>> ignoreToSpace >> ignoreToSpace >> ignoreToSpace 
+				>> ignoreToSpace >> ignoreToSpace >> ignoreToSpace 
+				>> ignoreToSpace;
+		myfile >> currPt.s;
+		myfile >> ignoreLine;
 
-	  length = time.copy(hour, 2, 11);
-	  hour[length] = '\0';
-          currPt.hour = atoi(hour);
+        if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) )
+			{ //valid lidar point
+    
+			if( shot.LOLAPt.empty() )
+				{
+				shot.LOLAPt.push_back(currPt);
+				}
+			else
+				{
+				if( GetTimeDiff(prevPt, currPt, 3000) )
+					{ //new track
+					trackPts[trackIndex].push_back(shot);//add last shot to the previous track
+					shot.LOLAPt.clear();
+					trackIndex++;
+					trackPts.resize(trackIndex+1); //start new track
+					shot.LOLAPt.push_back(currPt);
+	    		 	}
+				else
+					{ //same track
+					if( GetTimeDiff(prevPt, currPt, 0) )
+						{//new shot
+						trackPts[trackIndex].push_back(shot);
+						shot.LOLAPt.clear();
+						shot.LOLAPt.push_back(currPt);
+						}
+					else
+						{ //same shot
+						shot.LOLAPt.push_back(currPt);
+						}
+					}
+				}
+    
+			//copy current pc into prevPt
+			prevPt.coords(0) = currPt.coords(0);
+			prevPt.coords(1) = currPt.coords(1);
+			prevPt.coords(2) = currPt.coords(2);
+			prevPt.year = currPt.year;
+			prevPt.month = currPt.month;
+			prevPt.day = currPt.day;
+			prevPt.hour = currPt.hour;
+			prevPt.min = currPt.min;
+			prevPt.sec = currPt.sec;   
+			prevPt.s = currPt.s;
+			}
 
-	  length = time.copy(min, 2, 14);
-	  min[length] = '\0';
-	  length = time.copy(sec, 11, 17);
-	  sec[length] = '\0';
-          currPt.sec = atof(sec);
+		} 
 
-          length = detIDs.copy(s, 1, 2);
-          s[length] = '\0';
-          currPt.s = atoi(s);
-	  //printf("%s %s %s %s %s %s detID = %s\n", year, month, day, hour, min, sec, s);
-	}
-	
-        Vector3 coords;         
-        currPt.coords(0) = atof(lon);
-        currPt.coords(1) = atof(lat);
-	currPt.coords(2) = atof(rad);
-        //cout<<"LOLAPt: "<<currPt.coords<<endl;
-        
-        if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) ){ //valid lidar point
-     
-	  if (lineIndex == 1){ //initialize first track
-	      trackIndex = 0;
-	      trackPts.resize(trackIndex+1);
-             // printf("lineIndex = %d\n", lineIndex);
-          }
-          else{
-            
-	     if (GetTimeDiff(prevPt, currPt, 3000)){ //new track
-	         trackPts[trackIndex].push_back(shot);//add last shot to the previous track
-                 shot.LOLAPt.clear();
-                 trackIndex++;
- 	         trackPts.resize(trackIndex+1); //start new track
-                 shot.LOLAPt.push_back(currPt);
-	     }
-	     else{ //same track
-                 if (GetTimeDiff(prevPt, currPt, 0)){//new shot
-	             trackPts[trackIndex].push_back(shot);
-                     shot.LOLAPt.clear();
-                     shot.LOLAPt.push_back(currPt);
-                 }
-	         else{ //same shot
-                    shot.LOLAPt.push_back(currPt);
-                 }
-             }
-	   }
+	myfile.close();
 
-      
-           //copy current pc into prevPt
-           prevPt.coords(0) = currPt.coords(0);
-           prevPt.coords(1) = currPt.coords(1);
-           prevPt.coords(2) = currPt.coords(2);
-           prevPt.year = currPt.year;
-           prevPt.month = currPt.month;
-           prevPt.day = currPt.day;
-           prevPt.hour = currPt.hour;
-           prevPt.min = currPt.min;
-           prevPt.sec = currPt.sec;   
-           prevPt.s = currPt.s;
+	return trackPts; 
 	}
 
-        delete temp;
-        delete lon;
-	delete lat;
-	delete rad;
-	delete detID;
-      } 
-      lineIndex++; 
-    }
-    }
-    myfile.close();
-  }
-  else
-  {
-  vw_throw( vw::IOErr() << "Unable to open track file \"" << CSVFilename << "\"" );
-  }	
-  
-  return trackPts; 
-}
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
 {
   Vector2 minmax;
@@ -559,7 +512,7 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 {
     int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
-      for (unsigned int s=0; s<(int)trackPts[t].size(); s++){
+      for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
 	if (trackPts[t][s].featurePtLOLA==1){
           if (trackPts[t][s].valid ==1){          
 	    gcpArray[index].filename.push_back(cubFile);
