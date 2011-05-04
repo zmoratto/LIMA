@@ -15,6 +15,7 @@
 #include <fstream>
 #include <string>
 #include <fstream>
+#include <valarray>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -93,26 +94,26 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
 }
 
 //compute the matching error vector and overall average error 
-float ComputeMatchingError(vector<Vector3> featureArray, vector<Vector3> matchArray, vector<float> &errorArray)
+valarray<float> 
+ComputeMatchingError(
+	const vector<Vector3> featureArray, 
+	const vector<Vector3> matchArray)
 {
-
-
-   float matchError = 0.0;
-   for (unsigned int i = 0; i < featureArray.size(); i++){
-       float overallDist = 0.0;
-       float dist;
-       for (int j = 0; j < 3; j++){
-         dist = featureArray[i](j) - matchArray[i](j);
-         //cout<<j<<" "<<featureArray[i](j)<<" "<<matchArray[i](j)<<" "<<dist<<endl;
-	 overallDist = overallDist + dist*dist; 
-       }
-       //cout<<endl;
-       errorArray[i]=sqrt(overallDist);
-       matchError = matchError + errorArray[i];
-       //cout<<"error= "<<errorArray[i]<<endl;
-   }
-   return matchError/featureArray.size();
-  
+valarray<float> errorArray( featureArray.size() );
+for (unsigned int i = 0; i < featureArray.size(); i++)
+	{
+	float overallDist(0.0);
+	float dist(0.0);
+	for (int j = 0; j < 3; j++)
+		{
+		dist = featureArray[i](j) - matchArray[i](j);
+		//cout<<j<<" "<<featureArray[i](j)<<" "<<matchArray[i](j)<<" "<<dist<<endl;
+		overallDist += dist*dist; 
+		}
+	errorArray[i]=sqrt(overallDist);
+	//cout<<"error= "<<errorArray[i]<<endl;
+	}
+return errorArray;
 }
 
 void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray, 

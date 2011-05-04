@@ -53,17 +53,25 @@ int main( int argc, char *argv[] ) {
 
 
   string inputCSVFilename; 
-  std::string configFilename="lidar2dem_settings.txt";
+  int verbose;
+  std::string configFilename;
   std::vector<std::string> DEMFiles;
   std::vector<std::string> cubFiles;
-  std::string resDir = "../results";
+  std::string resDir;
  
   po::options_description general_options("Options");
   general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("DEMFiles,d", po::value<std::vector<std::string> >(&DEMFiles))
-    ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
-    ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2dem_settings.txt"), "settings filename.")
+    ("results-directory,r", 
+		po::value<std::string>(&resDir)->default_value("../results"), 
+		"results directory.")
+    ("settings-filename,s", 
+		po::value<std::string>(&configFilename)->default_value("lidar2dem_settings.txt"), 
+		"settings filename.")
+    ("verbose,v", 
+		po::value<int>(&verbose)->default_value(1), 
+		"Verbosity level, zero emits no messages.")
     ("help,h", "Display this help message");
   
 
@@ -105,23 +113,23 @@ int main( int argc, char *argv[] ) {
   }
  
   struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) )
+  if( ReadConfigFile(configFilename, &settings) && verbose > 0 )
 	{
 	cerr << "Config file " << configFilename << " found." << endl;
 	}
-  else
+  else if( verbose > 0 )
 	{
 	cerr << "Config file " << configFilename << " not found, using defaults." << endl;
 	}
   //PrintGlobalParams(&settings);
-  cerr << settings << endl;
+  if( verbose > 0 ){ cerr << settings << endl; }
 
   //read LOLA tracks
   vector<vector<LOLAShot> > trackPts;
   try
 	{
 	trackPts =  CSVFileRead(inputCSVFilename);
-	cerr << "Tracks file: " << inputCSVFilename << endl;
+	if( verbose > 0 ){ cerr << "Tracks file: " << inputCSVFilename << endl; }
 	}
   catch (const vw::IOErr& error)
 	{
@@ -133,7 +141,7 @@ int main( int argc, char *argv[] ) {
   for (unsigned int index = 0; index <  DEMFiles.size(); index++){
 
       string inputDEMFilename = DEMFiles[index];
-      cout <<"DEM filename: " << inputDEMFilename << endl;
+      if( verbose > 0 ){ cout <<"DEM filename: " << inputDEMFilename << endl; }
 
       //create the results directory and prepare the output filenames - START
       system( resDir.insert(0,"mkdir ").c_str() );
@@ -152,10 +160,13 @@ int main( int argc, char *argv[] ) {
       boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(inputDEMFilename) );
       if (rsrc->has_nodata_read()){
         settings.noDataVal = rsrc->nodata_read();
-		cout << "Found nodata value, " << settings.noDataVal << " in " 
-				<< inputDEMFilename << endl;
+		if( verbose > 0 )
+			{
+			cout 	<< "Found nodata value, " << settings.noDataVal 
+					<< ", in " << inputDEMFilename << endl;
+			}
       }
-      else{
+      else if( verbose > 0 ){
 		cout << "Using default nodata value: " << settings.noDataVal << endl;
       }
  
@@ -207,7 +218,7 @@ int main( int argc, char *argv[] ) {
           
 
 	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){
-              cout<<"altitude="<<model[2]<<endl;
+			if( verbose > 1 ){ cout<<"altitude="<<model[2]<<endl; }
 	      /*
               feature[0] = trackPts[k][i].LOLAPt[2].coords(0); 
 	      feature[1] = trackPts[k][i].LOLAPt[2].coords(1); 
@@ -225,15 +236,21 @@ int main( int argc, char *argv[] ) {
       }
 
       featureArray.resize(modelArray.size());
-      cout<<modelArray.size()<<" "<<featureArray.size()<<endl;
+      if( verbose > 0 )
+		{
+		cout << "Array Sizes: " << modelArray.size() <<" and "<< featureArray.size() << endl;
+		}
 
       //run ICP-matching
       ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, settings, 
                       currTranslation, currRotation, center, errorArray);
-      
-      cout<<"Translation="<<currTranslation<<endl;
-      cout<<"Rotation="<<currRotation<<endl;
-      cout<<"Center="<<center;
+     
+      if( verbose >= 0 )
+		{ 
+			cout<<"Translation="<<currTranslation<<endl;
+			cout<<"Rotation="<<currRotation<<endl;
+			cout<<"Center="<<center<<endl;
+		}
   }
 
   return 0;
