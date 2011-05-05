@@ -73,7 +73,7 @@ Vector4 ComputeGeoBoundary(string cubFilename)
   float maxLon = camera_boundary.max()[0];
   float maxLat = camera_boundary.max()[1];
 
-  printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
+  //printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
   if (maxLat<minLat){
       float temp = minLat;
       minLat = maxLat;
@@ -105,25 +105,36 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
        int latOverlap = 0; 
      
        Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
+       
+       printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
+       printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
 
-       printf("corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
-
-       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon in interval 
-	    ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1)))) //maxlon in interval
+       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
+	  ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1))) //maxlon corners in interval of currCorners
+          ||((currCorners(0)>corners(0)) && (currCorners(0)<corners(1)))
+          ||((currCorners(1)>corners(0)) && (currCorners(1)<corners(1)))) 
+            
        {
          lonOverlap = 1;
        }
-       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat in interval 
-	    ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3)))) //maxlat in interval
+       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat corners in interval of currCorners
+	  ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3))) //maxlat corners in interval of currCorners
+          ||((currCorners(2)>corners(2)) && (currCorners(2)<corners(3))) //minlat corners in interval of currCorners
+	  ||((currCorners(3)>corners(2)) && (currCorners(3)<corners(3)))) //maxlat corners in interval of currCorners
+	
        {
          latOverlap = 1;
        }
-     
+    
+       cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
+       cout<<"-----------------------------------------"<<endl;
+
        if ((lonOverlap == 1) && (latOverlap == 1)){
            overlapIndices.push_back(i);
        }
   }
 
+  //cout<<overlapIndices<<endl;
   return overlapIndices;
 }
 

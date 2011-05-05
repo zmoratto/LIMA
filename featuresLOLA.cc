@@ -227,7 +227,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
       }
 
     }
-    //here we have a nasty bug...filres must be less than 1.
+   
     if (invalidSegment == 0){
        trackPts[si].filresLOLA = abs(filres)/(2*halfWindow+1);
     }

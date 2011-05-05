@@ -91,6 +91,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 				>> ignoreToSpace >> ignoreToSpace >> ignoreToSpace 
 				>> ignoreToSpace;
 		myfile >> currPt.s;
+                cout<<"s="<< currPt.s <<endl;
 		myfile >> ignoreLine;
 
         if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) )
@@ -202,6 +203,7 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
       trackPts[k][i].valid = 1; 
 
       LOLAPts = trackPts[k][i].LOLAPt;
+      //cout<<"*****DEBUG: shotSize="<<LOLAPts.size()<<endl;
       trackPts[k][i].imgPt.resize(LOLAPts.size());
 
       for (unsigned int j = 0; j < LOLAPts.size(); j++){
@@ -236,9 +238,11 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
       pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
       pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
       pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
+      //cout<<"before "<<trackPts[k][i].valid<<endl;
       if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() >5)){//invalid LOLA shot
           trackPts[k][i].valid = 0; 
       }
+      //cout<<"center "<<centerPt.s<<"top "<<topPt.s<<"left "<<leftPt.s<<endl;
 
     }//i  
   }//k
