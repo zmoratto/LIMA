@@ -85,19 +85,6 @@ ignoreOne(std::basic_istream<charT,traits>& stream)
 	return stream;
 	}
 
-/* Stream manipulator to ignore until the next space
- * Use like: std::cin >> ignoreToSpace;
- */
-template <class charT, class traits>
-inline
-std::basic_istream<charT, traits>&
-ignoreToSpace (std::basic_istream<charT,traits>& stream)
-	{
-	// skip until next 
-	stream.ignore( std::numeric_limits<int>::max(), stream.widen(' ') );
-
-	return stream;
-	}
 
 #endif
 

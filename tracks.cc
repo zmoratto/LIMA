@@ -26,6 +26,7 @@ namespace po = boost::program_options;
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
+#include <boost/tokenizer.hpp>
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -52,6 +53,8 @@ using namespace std;
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	{
 	// This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
+	// It will ignore lines which do not start with year (or a value that can be converted
+	// into an integer greater than zero, specfically).
 	ifstream myfile (CSVFilename.c_str());
  
 	int trackIndex = 0;
@@ -66,33 +69,67 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 		vw_throw( vw::IOErr() << "Unable to open track file \"" << CSVFilename << "\"" );
 		}
 
-	myfile >> ignoreLine; // Skip header line
+	// Prepare the tokenizer stuff.
+	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+	boost::char_separator<char> sep(" ,");
 
-    while ( !myfile.eof() )
+	// myfile >> ignoreLine; // Skip header line
+
+	string line;
+    while ( getline( myfile, line, '\n' ) )
 		{
-		myfile >> setw(4) >> currPt.year;
-		myfile >> ignoreOne; // -
-		myfile >> setw(2) >> currPt.month;
-		myfile >> ignoreOne; // -
-		myfile >> setw(2) >> currPt.day;
-		myfile >> ignoreOne; // T
-		myfile >> setw(2) >> currPt.hour;
-		myfile >> ignoreOne; // :
-		myfile >> setw(2) >> currPt.min;
-		myfile >> ignoreOne; // :
-		myfile >> currPt.sec;
-		myfile >> ignoreOne; // ,
-		myfile >> currPt.coords(0); //lon
-		myfile >> ignoreOne; // ,
-		myfile >> currPt.coords(1); //lat
-		myfile >> ignoreOne; // ,
-		myfile >> currPt.coords(2); //radius
-		myfile	>> ignoreToSpace >> ignoreToSpace >> ignoreToSpace 
-				>> ignoreToSpace >> ignoreToSpace >> ignoreToSpace 
-				>> ignoreToSpace;
-		myfile >> currPt.s;
-                cout<<"s="<< currPt.s <<endl;
-		myfile >> ignoreLine;
+
+		/*
+		// For Debugging: this reads the first line, parses, numbers, and prints
+		tokenizer tokens( line, sep );
+		int counter(0);
+		for( tokenizer::iterator token = tokens.begin();
+				token != tokens.end();
+				++token, counter++)
+			{
+			cerr	<< boost::lexical_cast<std::string>(counter) 
+					<< ". " << *token << endl;
+			}
+		exit(1);
+		*/
+
+		tokenizer tokens( line, sep );
+		tokenizer::iterator token = tokens.begin();
+
+		istringstream date_s( *token );
+		date_s >>  setw(4) >> currPt.year
+				>> ignoreOne // -
+				>> setw(2) >> currPt.month
+				>> ignoreOne // -
+				>> setw(2) >> currPt.day
+				>> ignoreOne // T
+				>> setw(2) >> currPt.hour
+				>> ignoreOne // :
+				>> setw(2) >> currPt.min
+				>> ignoreOne // :
+				>> currPt.sec;
+		//cout<<"year "<< currPt.year << endl;
+		if( currPt.year <= 0 ) { continue; }
+		//cout << currPt.year <<' '<< currPt.month <<' '<< currPt.day 
+		//	<<' '<< currPt.hour <<' '<< currPt.min <<' '<< currPt.sec << endl;
+
+		++token;
+		istringstream lon_s( *token );
+		lon_s >> currPt.coords(0); // Pt_Longitude
+		// cout<<"lon "<< currPt.coords(0) << endl;
+
+		++token;
+		istringstream lat_s( *token );
+		lat_s >> currPt.coords(1); // Pt_Latitude
+
+		++token;
+		istringstream rad_s( *token );
+		rad_s >> currPt.coords(2); // Pt_Radius
+		// cout<<"radius "<< currPt.coords(2) << endl;
+
+		advance( token, 8 );
+		istringstream s_s( *token );
+		s_s >> currPt.s; // S
 
         if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) )
 			{ //valid lidar point
@@ -377,7 +414,7 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
 
       float lon = trackPts[i].LOLAPt[j].coords[0];
       float lat = trackPts[i].LOLAPt[j].coords[1];
-      float rad = trackPts[i].LOLAPt[j].coords[2];
+      //float rad = trackPts[i].LOLAPt[j].coords[2];
       int id = trackPts[i].LOLAPt[j].s;
 
       Vector2 DEM_lonlat(lon, lat);
