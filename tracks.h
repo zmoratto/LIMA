@@ -245,7 +245,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
           
 	    float lon = LOLAPts[li].coords[0];
 	    float lat = LOLAPts[li].coords[1];
-	    float rad = LOLAPts[li].coords[2];
+	    // float rad = LOLAPts[li].coords[2];
      
 	    Vector2 DEM_lonlat(lon, lat);
 	    Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);

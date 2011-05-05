@@ -44,18 +44,25 @@ Vector2 back_2_fore_lonlat(Vector2 back_lon_lat);
 Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat);
 
 //computes the translation between the foreground and background pixels
-void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchArray, Vector3 &translation );
+Vector3
+ComputeDEMTranslation(
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray);
 
 void PrintMatrix(Matrix<float, 3, 3> &A);
 
 //compute the matching error vector and overall average error 
 valarray<float> 
 ComputeMatchingError(
-		const vector<Vector3> featureArray, 
-		const vector<Vector3> matchArray);
+		const vector<Vector3>& featureArray, 
+		const vector<Vector3>& matchArray);
 
-void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray, 
-                        Vector3 translation, Matrix<float, 3, 3> &rotation);
+Matrix<float, 3, 3>
+ComputeDEMRotation(
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray
+	/*Vector3 translation*/);
+
 
 //applies a 3D rotation and transform to a DEM
 void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matrix<float,3,3> rotation);
@@ -172,7 +179,7 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
 //determines best DEM points that match to LOLA track points
 //used in ICP
 template <class ViewT>
-void 
+void
 FindMatchesFromDEM(
 	const vector<Vector3>&		lidar_xyz,  
 	const ImageViewBase<ViewT>&	DEM, 
@@ -226,12 +233,12 @@ for (unsigned int index = 0; index < lidar_xyz.size(); index++)
 	  
     float minDistance = 1000000.0;
     //search in a neigborhood around x,y and determine the best match to LOLA
-    for(int k = DEM_pix.y()-matchWindowHalfSize.y(); 
-			k < DEM_pix.y() + matchWindowHalfSize.y()+1; 
+    for(int k = DEM_pix.y() - matchWindowHalfSize.y(); 
+			k < DEM_pix.y() + matchWindowHalfSize.y() +1; 
 			k++)
 		{
 		for(int l = DEM_pix.x() - matchWindowHalfSize.x(); 
-				l < DEM_pix.x() + matchWindowHalfSize.x()+1; 
+				l < DEM_pix.x() + matchWindowHalfSize.x() +1; 
 				l++)
 			{
 			if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows()))
@@ -307,11 +314,11 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 	cout<<"match error="<<matchError<<endl;
 	  
 	    cout<<"computing DEM translation ..."<<endl;
-	    ComputeDEMTranslation(featureArray, matchArray, translation);
+	    translation = ComputeDEMTranslation(featureArray, matchArray);
 	    //cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
              
 	    cout<<"computing DEM rotation ..."<<endl;
-	    ComputeDEMRotation(featureArray, matchArray, translation, rotation);
+	    rotation = ComputeDEMRotation(featureArray, matchArray/*, translation*/);
 	    //PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  
@@ -360,22 +367,23 @@ translationArray.clear();
 
 while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	{
+	vw_out(vw::InfoMessage, "icp") << "Iteration " << numIter << endl;
       	
 	FindMatchesFromDEM(modelArray, DEM, DEMGeo, featureArray, 
 						translation, rotation, settings.noDataVal, 
 						settings.matchWindowHalfSize);
 
-	cout<<"computing the matching error ..."<<endl;
+	vw_out(vw::InfoMessage, "icp") << "computing the matching error ..." << endl;
 	valarray<float> errorArray = ComputeMatchingError(featureArray, modelArray);
 	matchError = errorArray.sum()/errorArray.size();
-	cout<<"match error="<<matchError<<endl;
-	  
-	cout<<"computing DEM translation ..."<<endl;
-	ComputeDEMTranslation(featureArray, modelArray, translation);
+	vw_out(vw::InfoMessage, "icp")<<"match error="<<matchError<<endl;
+
+	vw_out(vw::InfoMessage, "icp") << "computing DEM translation ..." << endl;
+	translation = ComputeDEMTranslation(featureArray, modelArray);
 	//cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
              
-	cout<<"computing DEM rotation ..."<<endl;
-	ComputeDEMRotation(featureArray, modelArray, translation, rotation);
+	vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ..." << endl;
+	rotation = ComputeDEMRotation(featureArray, modelArray/*, translation*/);
 	//PrintMatrix(rotation);
 
 	//apply the computed rotation and translation to the featureArray  
@@ -389,11 +397,10 @@ while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	for (unsigned int i = 1; i < rotationArray.size(); i++)
 		{
 		rotation = rotation*rotationArray[i];
-		translation = translation + translationArray[i];
+		translation += translationArray[i];
 	    }
 	    
 	numIter++;
-	cout<<"numIter="<<numIter<<endl;
 	}
  
 }

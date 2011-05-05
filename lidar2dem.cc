@@ -49,23 +49,22 @@ using namespace std;
 #include "weights.h"
 #include "icp.h"
 
-int main( int argc, char *argv[] ) {
-
-
-  string inputCSVFilename; 
-  int verbose;
-  std::string configFilename;
-  std::vector<std::string> DEMFiles;
-  std::vector<std::string> cubFiles;
-  std::string resDir;
+int main( int argc, char *argv[] )
+{
+string inputCSVFilename; 
+int verbose;
+std::string configFilename;
+std::vector<std::string> DEMFiles;
+std::vector<std::string> cubFiles;
+std::string resDir;
  
-  po::options_description general_options("Options");
-  general_options.add_options()
-    ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
+po::options_description general_options("Options");
+general_options.add_options()
+	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("DEMFiles,d", po::value<std::vector<std::string> >(&DEMFiles))
     ("results-directory,r", 
 		po::value<std::string>(&resDir)->default_value("../results"), 
-		"results directory.")
+		"results directory.") // Currently a no-op until we implement it below.
     ("settings-filename,s", 
 		po::value<std::string>(&configFilename)->default_value("lidar2dem_settings.txt"), 
 		"settings filename.")
@@ -75,54 +74,62 @@ int main( int argc, char *argv[] ) {
     ("help,h", "Display this help message");
   
 
-  po::options_description hidden_options("");
+po::options_description hidden_options("");
 
-  hidden_options.add_options()
-    ("cubFiles,c", po::value<std::vector<std::string> >(&DEMFiles));
+hidden_options.add_options()
+	("cubFiles,c", po::value<std::vector<std::string> >(&DEMFiles));
  
-  po::options_description options("Allowed Options");
-  options.add(general_options).add(hidden_options);
+po::options_description options("Allowed Options");
+options.add(general_options).add(hidden_options);
 
-  po::positional_options_description p;
-  p.add("DEMFiles", -1);
+po::positional_options_description p;
+p.add("DEMFiles", -1);
 
-  std::ostringstream usage;
-  usage << "Description: main code for Lidar to DEM co-registration" << std::endl << std::endl;
-  usage << general_options << std::endl;
+std::ostringstream usage;
+usage << "Description: main code for Lidar to DEM co-registration" << std::endl << std::endl;
+usage << general_options << std::endl;
 
-  po::variables_map vm;
-  try {
+po::variables_map vm;
+try
+	{
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch ( po::error &e ) {
+	}
+catch ( po::error &e )
+	{
     std::cout << "An error occured while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
     std::cout << usage.str();
     return 1;
-  }
+	}
 
-  if( vm.count("help") ) {
+if( vm.count("help") )
+	{
     std::cerr << usage.str() << std::endl;
     return 1;
-  }
+	}
 
-  if(( vm.count("DEMFiles") < 1 )) {
+if(( vm.count("DEMFiles") < 1 )) {
     std::cerr << "Error: Must specify at least  one DEM file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
-  }
+}
+
+// Set up VW logging
+vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
+
  
-  struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) && verbose > 0 )
+struct CoregistrationParams settings;
+if( ReadConfigFile(configFilename, &settings) && verbose > 0 )
 	{
 	cerr << "Config file " << configFilename << " found." << endl;
 	}
-  else if( verbose > 0 )
+else if( verbose > 0 )
 	{
 	cerr << "Config file " << configFilename << " not found, using defaults." << endl;
 	}
-  //PrintGlobalParams(&settings);
-  if( verbose > 0 ){ cerr << settings << endl; }
+//PrintGlobalParams(&settings);
+if( verbose > 0 ){ cerr << settings << endl; }
 
   //read LOLA tracks
   vector<vector<LOLAShot> > trackPts;
@@ -143,6 +150,7 @@ int main( int argc, char *argv[] ) {
       string inputDEMFilename = DEMFiles[index];
       if( verbose > 0 ){ cout <<"DEM filename: " << inputDEMFilename << endl; }
 
+	/* Re-implement this once we figure out what needs to be written out.
       //create the results directory and prepare the output filenames - START
       system( resDir.insert(0,"mkdir ").c_str() );
 
@@ -153,6 +161,7 @@ int main( int argc, char *argv[] ) {
       string lolaTracksFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_lola.tif";  
       string lolaFeaturesFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_features_lola.txt";  
       //create the results directory and prepare the output filenames - END
+	*/ 
 
   
       //read DEM file
@@ -211,7 +220,7 @@ int main( int argc, char *argv[] ) {
 	    Vector3 feature;
          
 	    //this is the LOLA data
-            float radius = DEMGeo.datum().semi_major_axis();
+        //    float radius = DEMGeo.datum().semi_major_axis();
 	    model[0] = trackPts[k][i].LOLAPt[2].coords(0); 
 	    model[1] = trackPts[k][i].LOLAPt[2].coords(1);   
 	    model[2] = trackPts[k][i].LOLAPt[2].coords(2);

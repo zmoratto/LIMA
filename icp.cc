@@ -61,27 +61,21 @@ Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
 }
 
 //computes the translation between the foreground and background pixels
-void ComputeDEMTranslation(vector<Vector3> featureArray, vector<Vector3> matchArray, Vector3 &translation )
+Vector3
+ComputeDEMTranslation(
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray)
 {
-
-  //Vector3 translation;
-  translation[0] = 0;
-  translation[1] = 0;
-  translation[2] = 0;
+Vector3 translation(0,0,0);
   
-  for (unsigned int i = 0; i < featureArray.size(); i++){
-       Vector3 fore = featureArray[i];
-       Vector3 back = matchArray[i];
-       translation[0] = translation[0] + back(0) - fore(0);
-       translation[1] = translation[1] + back(1) - fore(1);
-       translation[2] = translation[2] + back(2) - fore(2);
-  }
+for (unsigned int i = 0; i < featureArray.size(); i++)
+	{
+	translation += matchArray[i] - featureArray[i];
+	}
 
-  translation[0] = translation[0]/featureArray.size();
-  translation[1] = translation[1]/featureArray.size();
-  translation[2] = translation[2]/featureArray.size();
-
+return translation / featureArray.size();
 }
+
 
 void PrintMatrix(Matrix<float, 3, 3> &A)
 {
@@ -96,8 +90,8 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
 //compute the matching error vector and overall average error 
 valarray<float> 
 ComputeMatchingError(
-	const vector<Vector3> featureArray, 
-	const vector<Vector3> matchArray)
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray)
 {
 valarray<float> errorArray( featureArray.size() );
 for (unsigned int i = 0; i < featureArray.size(); i++)
@@ -116,63 +110,76 @@ for (unsigned int i = 0; i < featureArray.size(); i++)
 return errorArray;
 }
 
-void ComputeDEMRotation(vector<Vector3> featureArray, vector<Vector3> matchArray, 
-                        Vector3 translation, Matrix<float, 3, 3> &rotation)
+Matrix<float, 3, 3>
+ComputeDEMRotation(
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray)
+	// Vector3 translation, <-- This used to be passed in, but not used???
 {
 
+Matrix<float, 3, 3> rotation;
   
-  //Matrix<float, 3, 3> rotation;
-  Matrix<float,3,3> A;
-  Matrix<float,3,3> U;
-  Vector<float,3>   s;
-  Matrix<float,3,3> V;
+Matrix<float,3,3> A;
+Matrix<float,3,3> U;
+Vector<float,3>   s;
+Matrix<float,3,3> V;
 
-  
-  for (int i = 0; i < 3; i++){
-    for (int j = 0; j < 3; j++){
-      A[0][0] = 0.0;
-    }
-  }
+A.set_zero(); // Fill with zeros, maybe what the below meant?
+/* I'm not sure what this code was supposed to do, it doesn't actually use the indices.
+for (int i = 0; i < 3; i++)
+	{
+	for (int j = 0; j < 3; j++)
+		{
+		A[0][0] = 0.0;
+    	}
+	}
+*/
 
-  //compute the centroids
-  Vector3 featureCenter;
-  Vector3 matchCenter;
-  for (unsigned int i = 0; i < featureArray.size(); i++){  
-      featureCenter = featureCenter + featureArray[i];
-      matchCenter = matchCenter + matchArray[i];
-  }
-  featureCenter = featureCenter/featureArray.size();
-  matchCenter = matchCenter/matchArray.size();
+//compute the centroids
+Vector3 featureCenter;
+Vector3 matchCenter;
+for (unsigned int i = 0; i < featureArray.size(); i++)
+	{ 
+	featureCenter += featureArray[i];
+	matchCenter += matchArray[i];
+	}
+featureCenter /= featureArray.size();
+matchCenter   /= matchArray.size();
+
+vw_out(vw::InfoMessage, "icp") << "F_center " << featureCenter << endl;
+vw_out(vw::InfoMessage, "icp") << "M_center " << matchCenter   << endl;
   
-  cout<<"F_center"<<featureCenter<<endl;
-  cout<<"M_center"<<matchCenter<<endl;
-  
-  for (unsigned int i = 0; i < featureArray.size(); i++){     
-       
-       Vector3 feature = featureArray[i];
-       Vector3 match = matchArray[i];
+for (unsigned int i = 0; i < featureArray.size(); i++)
+	{     
+	Vector3 feature = featureArray[i];
+	Vector3 match = matchArray[i];
    
-       A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
-       A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
-       A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
+	A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
+	A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
+	A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
        
-       A[0][1] = A[0][1] + (match[0]-matchCenter[0])*(feature[1] - featureCenter[1]);
-       A[1][1] = A[1][1] + (match[1]-matchCenter[1])*(feature[1] - featureCenter[1]);
-       A[2][1] = A[2][1] + (match[2]-matchCenter[2])*(feature[1] - featureCenter[1]);
+	A[0][1] = A[0][1] + (match[0]-matchCenter[0])*(feature[1] - featureCenter[1]);
+	A[1][1] = A[1][1] + (match[1]-matchCenter[1])*(feature[1] - featureCenter[1]);
+	A[2][1] = A[2][1] + (match[2]-matchCenter[2])*(feature[1] - featureCenter[1]);
        
-       A[0][2] = A[0][2] + (match[0]-matchCenter[0])*(feature[2] - featureCenter[2]);
-       A[1][2] = A[1][2] + (match[1]-matchCenter[1])*(feature[2] - featureCenter[2]);
-       A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
-  }
+	A[0][2] = A[0][2] + (match[0]-matchCenter[0])*(feature[2] - featureCenter[2]);
+	A[1][2] = A[1][2] + (match[1]-matchCenter[1])*(feature[2] - featureCenter[2]);
+	A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
+	}
   
-  svd(A, U, s, V);
-  
-  Matrix<float,3,3> VT = transpose(V);
+svd(A, U, s, V);
+ 
+/* Never used? 
+Matrix<float,3,3> VT = transpose(V);
+*/
 
-  rotation = U*V;
+rotation = U*V;
 
-  Matrix<float,3,3> id = rotation*transpose(rotation); 
+/* Never used?
+Matrix<float,3,3> id = rotation*transpose(rotation); 
+*/
 
+return rotation;
 }
 
 //applies a 3D rotation and transform to a DEM
