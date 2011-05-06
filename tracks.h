@@ -210,7 +210,10 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 //determines LOLA corresponding points in a DEM
 template <class ViewT>
 void 
-GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo, double noDEMVal)
+GetAllPtsFromDEM(      vector<vector<LOLAShot> >& trackPts,
+                 const ImageViewBase<ViewT>&      DEM,
+                 const GeoReference&              DEMGeo,
+                 const double                     noDEMVal)
 {
   vector<pointCloud> LOLAPts;
 
@@ -219,14 +222,14 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
   ImageViewRef<float> interpDEM;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
 
     //cout << "NOT masked" <<endl;
   } else {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
     //cout << "MASKED" <<endl;
   }
 
@@ -238,36 +241,31 @@ GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> con
   
       trackPts[ti][si].valid = 0;
       if (LOLAPts.size() > 0){ 
+        trackPts[ti][si].valid = 1;
+	    trackPts[ti][si].DEMPt.resize(LOLAPts.size());
 
-	trackPts[ti][si].DEMPt.resize(LOLAPts.size());
-
-	for (unsigned int li = 0; li < LOLAPts.size(); li++){
-          
-	    float lon = LOLAPts[li].coords[0];
-	    float lat = LOLAPts[li].coords[1];
-	    // float rad = LOLAPts[li].coords[2];
+	    for (unsigned int li = 0; li < LOLAPts.size(); li++){
+	      float lon = LOLAPts[li].coords[0];
+	      float lat = LOLAPts[li].coords[1];
+	      // float rad = LOLAPts[li].coords[2];
      
-	    Vector2 DEM_lonlat(lon, lat);
-	    Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
+	      Vector2 DEM_lonlat(lon, lat);
+	      Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
 	  
-	    float x = DEM_pix[0];
-	    float y = DEM_pix[1];
+	      float x = DEM_pix[0];
+	      float y = DEM_pix[1];
       
-            trackPts[ti][si].DEMPt[li].valid = 0; 
-            if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	      if (interpDEM(x,y)!=noDEMVal){
-		trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
-		trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
-		trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
-                trackPts[ti][si].DEMPt[li].valid=1; 
+          trackPts[ti][si].DEMPt[li].valid = 0; 
+          if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
+	        if (interpDEM(x,y)!=noDEMVal){
+		      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
+		      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
+		      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
+              trackPts[ti][si].DEMPt[li].valid=1; 
+	        }
 	      }
 	    }
-	   
-	}
-
-	trackPts[ti][si].valid = 1;
       } 
-     
     }//i  
   }//k
 }
