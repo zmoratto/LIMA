@@ -147,7 +147,7 @@ int main( int argc, char *argv[] ) {
 
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results");
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
+  vector<vector<LOLAShot> > trackPts =  CSVFileRead_LIMA(inputCSVFilename);
  
   //select the overlapping images
   printf("Selecting the overlapping images ...\n");

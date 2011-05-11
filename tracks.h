@@ -111,6 +111,7 @@ struct LOLAShot
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
+vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
 //computes the scale factor for all tracks at once
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 

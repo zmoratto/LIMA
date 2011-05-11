@@ -237,41 +237,48 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
     filResList.push_back(trackPts[si].filresLOLA);
   }
   
+  float salientFeatureThresh = 0.18;
 
-  int numSalientFeatures = 0;
-  int others = filResList.size();
-  float salientFeatureThresh = 0.0;
-
-  if (filResList.size() > 0){
-    /*
-    for(int si = 0; si < trackPts.size(); si ++ ){
-      printf("filRes[%d] = %f\n",  si, filResList[si]);
-    }
-    */
-    sort(filResList.begin(),filResList.end() );
-    
-    int takePoint = 0;
-    //takePoint = (int)ceil( (1-topPercent) * filResList.size());
-    takePoint = filResList.size()-2; //keep the best feature for each track
-    salientFeatureThresh = filResList[takePoint];
-   
-
-    if (salientFeatureThresh > 0){    
-      //compute the salient features
-      for(unsigned int si = 0; si < trackPts.size(); si ++ ){
+  if (filResList.size() > 0){ 
+    //compute the salient features
+    for(unsigned int si = 0; si < trackPts.size(); si ++ ){
 	if(( abs(trackPts[si].filresLOLA) > salientFeatureThresh ) /*&& (trackPts[si].valid)*/){
 	  trackPts[si].featurePtLOLA = 1;  
-	  numSalientFeatures ++;
+
 	}
 	else{
 	  trackPts[si].featurePtLOLA = 0;
-	  others ++;
+
 	}
+    } 
+  }
+ 
+  //reject neigboring features around a local maxima
+  for (unsigned int si = 0; si < trackPts.size(); si ++ ){
+    if (trackPts[si].featurePtLOLA == 1){
+      for (int j = -halfWindow; j < halfWindow; j++){
+	if (trackPts[si+j].filresLOLA > trackPts[si].filresLOLA){
+	  trackPts[si].featurePtLOLA = 0;
+        }
       }
     }
   }
-  
-  printf("salientFeatThresh = %f, numLOLASalientFeatures = %d, others = %d\n", salientFeatureThresh, numSalientFeatures, others);
+ 
+
+  //print results - START
+  int numSalientFeatures = 0;
+  int numNonSalientFeatures = 0;
+  for (unsigned int si = 0; si < trackPts.size(); si ++ ){
+      if (trackPts[si].featurePtLOLA == 1){
+	printf("%d ", si);
+        numSalientFeatures++;
+      }   
+  }
+  if (numSalientFeatures > 0){
+      printf("\n");
+  }
+  printf("salientFeatThresh = %f, numLOLASalientFeatures = %d, numNonSalientFeatures = %d\n", salientFeatureThresh, numSalientFeatures, trackPts.size()-numSalientFeatures);
+  //print results - END
 }
 
 
