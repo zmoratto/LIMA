@@ -217,13 +217,13 @@ if( verbose > 0 ){ cerr << settings << endl; }
        
 	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
 	    Vector3 model;
-	    Vector3 feature;
+	    // Vector3 feature;
          
 	    //this is the LOLA data
         //    float radius = DEMGeo.datum().semi_major_axis();
-	    model[0] = trackPts[k][i].LOLAPt[2].coords(0); 
-	    model[1] = trackPts[k][i].LOLAPt[2].coords(1);   
-	    model[2] = trackPts[k][i].LOLAPt[2].coords(2);
+	    model = trackPts[k][i].LOLAPt[2].coords;
+
+		model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           
 
 	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){
@@ -235,6 +235,7 @@ if( verbose > 0 ){ cerr << settings << endl; }
 	      */
 	      //copy the model and features into cartesian coordinates
 	      //feature = DEMGeo.datum().geodetic_to_cartesian(feature);
+
 	      model = DEMGeo.datum().geodetic_to_cartesian(model);
          	 
 	      //featureArray.push_back(feature);
@@ -264,21 +265,3 @@ if( verbose > 0 ){ cerr << settings << endl; }
 
   return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

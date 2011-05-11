@@ -248,14 +248,14 @@ for (unsigned int index = 0; index < lidar_xyz.size(); index++)
 					//compute the distance to the lidar point
 					const Vector2 pix(l,k);
 					const Vector2 lonlat = DEMGeo.pixel_to_lonlat(pix);
-                    
+
 					//revert to lon lat rad system
 					Vector3 lonlatrad 
 						(
 						lonlat.x(),
 						lonlat.y(),
-						0.001*(DEMGeo.datum().semi_major_axis() + interpDEM(l,k))
-						); //km
+						DEMGeo.datum().radius(lonlat.x(),lonlat.y()) + interpDEM(l,k)
+						); // This z value is in meters, since DEMGeo.datum() is.
 
 					//transform into xyz coordinates of the foregound image.
 					Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
