@@ -24,6 +24,16 @@ void ComputeWeights( vector< vector<LOLAShot> >& trackPts, int halfWindow, float
   }
   
 }
+//computes and saves the weights of a LOLA track
+void ResetWeights( vector< vector<LOLAShot> >& trackPts )
+{  
+  for (unsigned int ti = 0; ti < trackPts.size() ; ti++ ){ //index track
+    for (unsigned int si = 0; si < trackPts[ti].size(); si++){
+      trackPts[ti][si].weightRefl = 1;
+    } 
+  } 
+}
+
 
 //assign linear weights (shapped like a pyramid) to all points around one of the interest point selected by make_weights
 int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow)

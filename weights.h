@@ -19,6 +19,6 @@ using namespace std;
 int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow);
 int SaveWeights(vector< LOLAShot>& trackPts, string filename);
 void ComputeWeights( vector< vector<LOLAShot> > & track_pts, int halfWindow, float topPercent,  string filename);
-
+void ResetWeights( vector< vector<LOLAShot> >& trackPts );
 
 #endif 

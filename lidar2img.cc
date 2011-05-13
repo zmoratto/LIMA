@@ -146,8 +146,9 @@ int main( int argc, char *argv[] ) {
   }
 
   //create the results directory and prepare the output filenames - START
-  system("mkdir ../results");
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead_LIMA(inputCSVFilename);
+  system("mkdir ../results"); 
+  //vector<vector<LOLAShot> > trackPts =  CSVFileRead_LIMA(inputCSVFilename);
+  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
  
   //select the overlapping images
   printf("Selecting the overlapping images ...\n");
@@ -230,8 +231,7 @@ int main( int argc, char *argv[] ) {
       SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
       int numVerPts = 6000;
       int numHorPts = 6000;
-      MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
-      
+      MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices); 
     }
    
     //initialization step for LIMA - START  
@@ -262,6 +262,9 @@ int main( int argc, char *argv[] ) {
       int halfWindow = 10; //this should go into settings
       ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename);
       cout<<"done."<<endl;
+    }
+    else{
+      ResetWeights(trackPts);
     }
    
 

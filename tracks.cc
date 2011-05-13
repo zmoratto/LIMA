@@ -118,6 +118,8 @@ vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename)
 
 	  length = time.copy(min, 2, 14);
 	  min[length] = '\0';
+          currPt.min = atoi(min);
+
 	  length = time.copy(sec, 11, 17);
 	  sec[length] = '\0';
           currPt.sec = atof(sec);
@@ -260,7 +262,7 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
 		++token;
 		istringstream lon_s( *token );
 		lon_s >> currPt.coords(0); // Pt_Longitude
-		// cout<<"lon "<< currPt.coords(0) << endl;
+		// cout<<"lon "<< currPt.coords	s_s >> "s_s"<<currPt.s; // S(0) << endl;
 
 		++token;
 		istringstream lat_s( *token );
@@ -273,7 +275,7 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
 
 		advance( token, 8 );
 		istringstream s_s( *token );
-		s_s >> currPt.s; // S
+		s_s >>currPt.s; // S
                 //cout<<"s_s "<<currPt.s<<endl;
 
         if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) )
