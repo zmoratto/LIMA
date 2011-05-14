@@ -55,18 +55,61 @@ struct ShotTime
   float sec;
 };
 
-struct pointCloud
+namespace vw
 {
-  int year;
-  int month;
-  int day;
-  int hour; //24hr format
-  int min;
-  float sec;
-  int s; //detector id
-  Vector3 coords;
+namespace math
+{
+  class pointCloud : public Vector<double,3>
+  {
+  public:
   
-};
+    pointCloud
+      (
+  	Vector3 = Vector3(), //coords
+    int   = 0, // year
+  	int   = 0, // month
+  	int   = 0, // day
+  	int   = 0, // hour
+  	int   = 0, // min
+  	float = 0, // sec
+  	int   = 0  // s
+      );
+  
+    ~pointCloud(){}; 
+  
+    int year;
+    int month;
+    int day;
+    int hour; //24hr format
+    int min;
+    float sec;
+    int s; //detector id
+  };
+  
+  inline
+  std::ostream& operator<< ( std::ostream& stream, pointCloud p )
+    {
+    stream 
+      << p.year
+      << "-"
+      << p.month
+      << "-"
+      << p.day
+      << "T"
+      << p.hour
+      << ":"
+      << p.min
+      << ":"
+      << p.sec
+      << " S: "
+      << p.s
+      << "  Vector( " << p.x() << ", " << p.y() << ", " << p.z() << " )" ;
+  
+    return stream;
+    }
+  
+}
+}
 
 struct imgPoint
 {
@@ -87,8 +130,15 @@ struct DEMPoint
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
 
-struct LOLAShot
+class LOLAShot
 {
+  public:
+
+  explicit LOLAShot( vector<pointCloud> );
+  explicit LOLAShot( pointCloud );
+
+  ~LOLAShot(){};
+
   int valid;
   int centerPtIndex;
   float reflectance;
@@ -107,6 +157,24 @@ struct LOLAShot
   vector<pointCloud> LOLAPt;
   vector<imgPoint> imgPt;
   vector<DEMPoint> DEMPt; 
+
+  private:
+  void init
+    (
+    vector<pointCloud>,
+    vector<imgPoint> = vector<imgPoint>(), // explicitly make empty
+    vector<DEMPoint> = vector<DEMPoint>(), // explicitly make empty
+    int              = 0, // valid
+    int              = 0, // centerPtIndex
+    float            = 0, // reflectance
+    float            = 0, // synthImage
+	int              = 0, // calc_acp
+	float            = 0, // filter_response
+	float            = 0, // featurePtRefl
+	float            = 1, // weightRefl
+	float            = 0, // featurePtLOLA
+	float            = 0  // filresLOLA
+    );
 };
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
@@ -168,9 +236,9 @@ GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> c
 
       for (int j = 0; j < LOLAPts.size(); j++){
           
-	    float lon = LOLAPts[j].coords[0];
-	    float lat = LOLAPts[j].coords[1];
-	    float rad = LOLAPts[j].coords[2];
+	    float lon = LOLAPts[j].x();
+	    float lat = LOLAPts[j].y();
+	    float rad = LOLAPts[j].z();
      
 	    Vector2 DEM_lonlat(lon, lat);
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
@@ -246,8 +314,8 @@ GetAllPtsFromDEM(      vector<vector<LOLAShot> >& trackPts,
 	    trackPts[ti][si].DEMPt.resize(LOLAPts.size());
 
 	    for (unsigned int li = 0; li < LOLAPts.size(); li++){
-	      float lon = LOLAPts[li].coords[0];
-	      float lat = LOLAPts[li].coords[1];
+	      float lon = LOLAPts[li].x();
+	      float lat = LOLAPts[li].y();
 	      // float rad = LOLAPts[li].coords[2];
      
 	      Vector2 DEM_lonlat(lon, lat);

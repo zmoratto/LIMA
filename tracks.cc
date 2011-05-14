@@ -5,52 +5,87 @@
 // __END_LICENSE__
 
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
-
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
 #include <boost/tokenizer.hpp>
-
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-#include <vw/Photometry.h>
-#include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-using namespace vw::photometry;
-
-using namespace std;
-#include <math.h>
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
 #include "util.h"
+#include "tracks.h"
 
+/* Constructor for pointCloud which is really just a Vector3 
+ * with some extra data fields.
+ */
+pointCloud::pointCloud
+  (
+  Vector3 coords,
+  int     y,
+  int     mo,
+  int     d,
+  int     h,
+  int     mi,
+  float   s,
+  int     detector 
+  )
+  :
+  Vector<double,3>( coords )
+  {
+  year = y;
+  month = mo;
+  day = d;
+  hour = h;
+  min = mi;
+  sec = s;
+  s = detector;
+  }
 
+void
+LOLAShot::init
+  (
+  vector<pointCloud> pc,
+  vector<imgPoint>   ip,
+  vector<DEMPoint>   dp,
+  int                v,
+  int                cpi,
+  float              r,
+  float              si,
+  int                ca,
+  float              fr,
+  float              fpr,
+  float              wr,
+  float              fpL,
+  float              fL
+  )
+  {
+  LOLAPt = pc;
+  imgPt = ip;
+  DEMPt = dp;
+  valid = v;
+  centerPtIndex = cpi;
+  reflectance = r;
+  synthImage = si;
+  calc_acp = ca;
+  filter_response = fr;
+  featurePtRefl = fpr;
+  weightRefl = wr;
+  featurePtLOLA = fpL;
+  filresLOLA = fL;
+  }
+
+LOLAShot::LOLAShot( vector<pointCloud> pcv )
+  {
+  LOLAShot::init( pcv );
+  }
+LOLAShot::LOLAShot( pointCloud pt )
+  {
+  vector<pointCloud> pcv( 1, pt );
+  LOLAShot::init( pcv );
+  }
+
+/*
 vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename)
 {
   string line;
@@ -131,9 +166,9 @@ vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename)
 	}
 	
         Vector3 coords;         
-        currPt.coords(0) = atof(lon);
-        currPt.coords(1) = atof(lat);
-	currPt.coords(2) = atof(rad);
+        currPt.x( atof(lon) );
+        currPt.y( atof(lat) );
+        currPt.z( atof(rad) );
         
         
         if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) ){ //valid lidar point
@@ -195,8 +230,9 @@ vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename)
   
   return trackPts; 
 }
+*/
 
-vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
+vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	{
 	// This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
 	// It will ignore lines which do not start with year (or a value that can be converted
@@ -205,7 +241,6 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
  
 	int trackIndex = 0;
 	vector<vector<LOLAShot> > trackPts(1);
-	LOLAShot shot;
  
 	pointCloud currPt;
 	pointCloud prevPt;
@@ -261,16 +296,16 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
 
 		++token;
 		istringstream lon_s( *token );
-		lon_s >> currPt.coords(0); // Pt_Longitude
+		lon_s >> currPt.x(); // Pt_Longitude
 		// cout<<"lon "<< currPt.coords	s_s >> "s_s"<<currPt.s; // S(0) << endl;
 
 		++token;
 		istringstream lat_s( *token );
-		lat_s >> currPt.coords(1); // Pt_Latitude
+		lat_s >> currPt.y(); // Pt_Latitude
 
 		++token;
 		istringstream rad_s( *token );
-		rad_s >> currPt.coords(2); // Pt_Radius
+		rad_s >> currPt.z(); // Pt_Radius
 		// cout<<"radius "<< currPt.coords(2) << endl;
 
 		advance( token, 8 );
@@ -278,42 +313,47 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
 		s_s >>currPt.s; // S
                 //cout<<"s_s "<<currPt.s<<endl;
 
-        if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) )
+        if ((currPt.x()!=0.0) && (currPt.y()!=0.0) )
 			{ //valid lidar point
-    
-			if( shot.LOLAPt.empty() )
-				{
-				shot.LOLAPt.push_back(currPt);
-				}
+
+			if( trackPts[trackIndex].empty() ) {
+			  trackPts[trackIndex].push_back( LOLAShot(currPt) );
+            }
 			else
 				{
 				if( GetTimeDiff(prevPt, currPt, 3000) )
 					{ //new track
-					trackPts[trackIndex].push_back(shot);//add last shot to the previous track
-					shot.LOLAPt.clear();
 					trackIndex++;
 					trackPts.resize(trackIndex+1); //start new track
-					shot.LOLAPt.push_back(currPt);
+					trackPts[trackIndex].push_back( LOLAShot(currPt) ); //put the new shot in it
+//add last shot to the previous track
+					//shot.LOLAPt.clear();
+					//trackIndex++;
+					//trackPts.resize(trackIndex+1); //start new track
+					//shot.LOLAPt.push_back(currPt);
 	    		 	}
 				else
 					{ //same track
 					if( GetTimeDiff(prevPt, currPt, 0) )
 						{//new shot
-						trackPts[trackIndex].push_back(shot);
-						shot.LOLAPt.clear();
-						shot.LOLAPt.push_back(currPt);
+						trackPts[trackIndex].push_back( LOLAShot(currPt) );
+						//shot.LOLAPt.clear();
+						//shot.LOLAPt.push_back(currPt);
 						}
 					else
 						{ //same shot
-						shot.LOLAPt.push_back(currPt);
+						// shot.LOLAPt.push_back(currPt);
+						trackPts[trackIndex].back().LOLAPt.push_back( currPt );
 						}
 					}
 				}
     
 			//copy current pc into prevPt
-			prevPt.coords(0) = currPt.coords(0);
-			prevPt.coords(1) = currPt.coords(1);
-			prevPt.coords(2) = currPt.coords(2);
+			prevPt = currPt;
+            /*
+			prevPt.x() = currPt.x();
+			prevPt.y() = currPt.y();
+			prevPt.z() = currPt.z();
 			prevPt.year = currPt.year;
 			prevPt.month = currPt.month;
 			prevPt.day = currPt.day;
@@ -321,6 +361,7 @@ vector<vector<LOLAShot> >CSVFileRead (string CSVFilename)
 			prevPt.min = currPt.min;
 			prevPt.sec = currPt.sec;   
 			prevPt.s = currPt.s;
+			*/
 			}
 
 		} 
@@ -392,9 +433,9 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 
       for (unsigned int j = 0; j < LOLAPts.size(); j++){
           
-	    float lon = LOLAPts[j].coords[0];
-	    float lat = LOLAPts[j].coords[1];
-	    float rad = LOLAPts[j].coords[2];
+	    float lon = LOLAPts[j].x();
+	    float lat = LOLAPts[j].y();
+	    float rad = LOLAPts[j].z();
             
             Vector3 lon_lat_rad (lon,lat,rad*1000);
             Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
@@ -439,7 +480,7 @@ vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
   for (unsigned int i = 0; i < trackPts.size(); i++){
     for (unsigned int k = 0; k < trackPts[i].LOLAPt.size(); k++){
 
-      float rad = trackPts[i].LOLAPt[k].coords[2];
+      float rad = trackPts[i].LOLAPt[k].z();
       int id = trackPts[i].LOLAPt[k].s;
 
       if (id == ID){
@@ -506,13 +547,13 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
         Datum moon;
         moon.set_well_known_datum("D_MOON");
 
-        centerPt.coords[2] = (centerPt.coords[2]-1737.4)*1000;
-        topPt.coords[2] = (topPt.coords[2]-1737.4)*1000;
-        leftPt.coords[2] = (leftPt.coords[2]-1737.4)*1000;
+        centerPt.z() = (centerPt.z()-1737.4)*1000;
+        topPt.z() = (topPt.z()-1737.4)*1000;
+        leftPt.z() = (leftPt.z()-1737.4)*1000;
 
-        Vector3 xyz = moon.geodetic_to_cartesian(centerPt.coords);
-        Vector3 xyzTop = moon.geodetic_to_cartesian(topPt.coords);
-        Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt.coords);
+        Vector3 xyz = moon.geodetic_to_cartesian(centerPt);
+        Vector3 xyzTop = moon.geodetic_to_cartesian(topPt);
+        Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt);
         Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
 
         allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
@@ -559,8 +600,8 @@ vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, 
     demPts[index] = -1;
     for(unsigned int j = 0; j < trackPts[i].LOLAPt.size(); j++){
 
-      float lon = trackPts[i].LOLAPt[j].coords[0];
-      float lat = trackPts[i].LOLAPt[j].coords[1];
+      float lon = trackPts[i].LOLAPt[j].x();
+      float lat = trackPts[i].LOLAPt[j].y();
       //float rad = trackPts[i].LOLAPt[j].coords[2];
       int id = trackPts[i].LOLAPt[j].s;
 
@@ -680,7 +721,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
       for (unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
         if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
           found = 1;
-          fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].coords[2]);
+          fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].z());
         }
       }
       if (found == 0){
@@ -766,8 +807,8 @@ Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
   for (unsigned int i = 0; i < trackPts.size(); i++){
     for (unsigned int j = 0; j < trackPts[i].size(); j++){
       for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
-        float lon = trackPts[i][j].LOLAPt[k].coords[0];
-        float lat = trackPts[i][j].LOLAPt[k].coords[1];
+        float lon = trackPts[i][j].LOLAPt[k].x();
+        float lat = trackPts[i][j].LOLAPt[k].y();
 
         if (lat < minLat){
           minLat = lat;

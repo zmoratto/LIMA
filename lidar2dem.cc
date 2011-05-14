@@ -221,7 +221,7 @@ if( verbose > 0 ){ cerr << settings << endl; }
          
 	    //this is the LOLA data
         //    float radius = DEMGeo.datum().semi_major_axis();
-	    model = trackPts[k][i].LOLAPt[2].coords;
+	    model = trackPts[k][i].LOLAPt[2];
 
 		model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           

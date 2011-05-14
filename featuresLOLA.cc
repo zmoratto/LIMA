@@ -215,8 +215,8 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
     int invalidSegment = 0;
     for(int j = -halfWindow; j < halfWindow+1; j++){
       if (trackPts[si+j].LOLAPt.size() > 2){
-        if ((trackPts[si+j].LOLAPt[2].coords(2)<1800) &&(trackPts[si+j].LOLAPt[2].coords(2)>1700)){
-	  filres = filres + f[j+halfWindow]*trackPts[si+j].LOLAPt[2].coords(2);
+        if ((trackPts[si+j].LOLAPt[2].z()<1800) &&(trackPts[si+j].LOLAPt[2].z()>1700)){
+	  filres = filres + f[j+halfWindow]*trackPts[si+j].LOLAPt[2].z();
 	}
         else{
 	  invalidSegment = 1;

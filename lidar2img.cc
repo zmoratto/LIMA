@@ -149,7 +149,7 @@ int main( int argc, char *argv[] ) {
   system("mkdir ../results"); 
   //vector<vector<LOLAShot> > trackPts =  CSVFileRead_LIMA(inputCSVFilename);
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
- 
+
   //select the overlapping images
   printf("Selecting the overlapping images ...\n");
   Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
@@ -179,9 +179,9 @@ int main( int argc, char *argv[] ) {
     for (unsigned int s=0; s<trackPts[t].size(); s++){
       if (trackPts[t][s].featurePtLOLA==1){
         gcp this_gcp;
-	this_gcp.lon = trackPts[t][s].LOLAPt[2].coords[0];
-	this_gcp.lat = trackPts[t][s].LOLAPt[2].coords[1]; 
-	this_gcp.rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
+	this_gcp.lon = trackPts[t][s].LOLAPt[2].x();
+	this_gcp.lat = trackPts[t][s].LOLAPt[2].y(); 
+	this_gcp.rad = trackPts[t][s].LOLAPt[2].z()*1000;
         this_gcp.sigma_lon = 1.0;
         this_gcp.sigma_lat = 1.0;
         this_gcp.sigma_rad = 1.0;

@@ -76,9 +76,9 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
       for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){ //for each pt in a shot 
  
 	  pointCloud pt = trackPts[i][j].LOLAPt[k]; 
-	  float lon = pt.coords[0];
-	  float lat = pt.coords[1];
-	  float rad = pt.coords[2];
+	  float lon = pt.x();
+	  float lat = pt.y();
+	  float rad = pt.z();
        
           Vector3 lon_lat_rad (lon,lat,rad*1000);
           Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
@@ -147,9 +147,9 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
             int xl, yt, w, h;
 
 	    pointCloud pt = trackPts[i][j].LOLAPt[k]; 
-	    float lon = pt.coords[0];
-	    float lat = pt.coords[1];
-	    float rad = pt.coords[2];
+	    float lon = pt.x();
+	    float lat = pt.y();
+	    float rad = pt.z();
 	  
             Vector3 lon_lat_rad (lon,lat,rad*1000);
             Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
@@ -464,13 +464,13 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
     for (unsigned n = 0; n < trackPts[trackIndex].size(); n++){ 
       for (unsigned int s = 0; s < trackPts[trackIndex][n].LOLAPt.size(); s++){
 
-        float lon_index = (trackPts[trackIndex][n].LOLAPt[s].coords[0] - minLon)/lonDelta;
-        float lat_index = (trackPts[trackIndex][n].LOLAPt[s].coords[1] - minLat)/latDelta;
+        float lon_index = (trackPts[trackIndex][n].LOLAPt[s].x() - minLon)/lonDelta;
+        float lat_index = (trackPts[trackIndex][n].LOLAPt[s].y() - minLat)/latDelta;
         l = (int)floor(lon_index);
         m = (int)floor(lat_index);
 
         if ((m < numVerPts) && (l< numHorPts)){ 
-          DEMImage(l, m) = trackPts[trackIndex][n].LOLAPt[s].coords[2]; 
+          DEMImage(l, m) = trackPts[trackIndex][n].LOLAPt[s].z(); 
         }
         else{
           printf("Make Grid: Error\n");
