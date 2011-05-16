@@ -777,7 +777,6 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
       rhs(5,3) = rhs(3,5);
       rhs(5,4) = rhs(4,5);
 
-   
       printRHS(rhs, index, iter);
      
       try {

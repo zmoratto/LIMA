@@ -55,7 +55,6 @@ typedef struct CoregistrationParams{
   Vector2 matchWindowHalfSize;
   int maxNumIter;
   int maxNumStarts; 
-  //int displayResults;
   double noDataVal;
   float minConvThresh;
 };

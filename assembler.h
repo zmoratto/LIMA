@@ -46,6 +46,10 @@ using namespace vw::cartography;
 using namespace std;
 
 
+
+//overlays the foreground image on the top of the background image
+//if needed it downsamples and crops the background image
+//or pads it with non-data values to allow for partial ovelap between background and fore image.
 template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
@@ -54,10 +58,14 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
                       Vector3 center, Vector2 bestDeltaLonLat)
 {
  
-  float maxUpsampleRatioBackImg = 4.0;
+  float maxUpsampleRatioBackImg = 40.0;
+  int maxAssembledImgWidth = 4096;
+  int maxAssembledImgHeight = 4096;
 
+  cout<<"Background"<<endl;
   float numPixPerDegreeBackImg = ComputePixPerDegree(backGeo, orig_backImg.impl().cols(), orig_backImg.impl().rows(), 1);
   //printf("numPixPerDegreeBackmg = %f\n", numPixPerDegreeBackImg);
+   cout<<"Foreground"<<endl;
   float numPixPerDegreeForeImg = ComputePixPerDegree(foreGeo, orig_foreImg.impl().cols(), orig_foreImg.impl().rows(), 0);
   //printf("numPixPerDegreeForeImg = %f\n", numPixPerDegreeForeImg);
   
@@ -73,7 +81,15 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
 
   int assembledWidth = (int)floor(upsampleRatioBackImg*orig_backImg.impl().cols());
   int assembledHeight = (int)floor(upsampleRatioBackImg*orig_backImg.impl().rows());
-  printf("W = %d, H = %d, aW = %d, aH = %d\n", orig_foreImg.impl().cols(), orig_foreImg.impl().rows(), assembledWidth, assembledHeight);
+
+  if (assembledWidth > maxAssembledImgWidth){
+      assembledWidth = maxAssembledImgWidth;
+  }
+  if (assembledHeight > maxAssembledImgHeight){
+      assembledHeight = maxAssembledImgHeight;
+  }
+  printf("W = %d, H = %d, aW = %d, aH = %d\n", 
+         orig_foreImg.impl().cols(), orig_foreImg.impl().rows(), assembledWidth, assembledHeight);
   
 
   Matrix<double> H;
@@ -87,41 +103,11 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
                                                                            ConstantEdgeExtension()),
                                                                            BilinearInterpolation());
  
-  H = backGeo.transform();
-  H(0,0) /=upsampleRatioBackImg;
-  H(1,1) /=upsampleRatioBackImg;
-  GeoReference assembledGeo; 
-  assembledGeo.set_transform(H);
-
-  typedef typename PixelChannelType<typename ViewT2::pixel_type>::type channel_type;
-
-  int num_channels = PixelNumChannels<typename ViewT1::pixel_type>::value;
-  cout << "num_channels = "<< num_channels << "\n";
-
-  //copy the background image to the assembled image.
-
-  for (int j = 0; j < assembledHeight-1; j++){
-    for (int i = 0; i < assembledWidth-1; i++){
-      
-       float y = j/upsampleRatioBackImg;
-       float x = i/upsampleRatioBackImg;     
-
-       //copy the background image
-       if (mode == 0){ //DEM
-          assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
-       }
-       else{ //DRG
-	 assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
-	 assembledImg.impl()(i,j)[1] = backImg.impl()(x,y)[0];
-	 assembledImg.impl()(i,j)[2] = backImg.impl()(x,y)[0];
-       }
-    }
-   }
-  cout<<"t[0]"<<translation[0]<<", t[1]"<<translation(1)<<", t[2]"<<translation(2)<<endl;
   
 
-  //TO DO:compute the foreground centroid
+   //TO DO:compute the foreground centroid
   Vector3 foreCenter_xyz;
+  Vector3 foreCenter_lon_lat_rad;
   int count = 0;
   for (int j = 0; j < foreImg.impl().rows()-1; j++){
     for (int i = 0; i < foreImg.impl().cols()-1; i++){ 
@@ -142,14 +128,76 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
              fore_lon_lat_rad(2) = foreImg.impl()(i,j)[0];
              Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lon_lat_rad); 
              foreCenter_xyz = foreCenter_xyz + fore_xyz;
+             foreCenter_lon_lat_rad = foreCenter_lon_lat_rad + fore_lon_lat_rad;
              count++;
 	}
       }
     }
   }
   foreCenter_xyz = foreCenter_xyz/count;
+  foreCenter_lon_lat_rad=foreCenter_lon_lat_rad/count;
   //cout<<"foreCenter_xyz"<<foreCenter_xyz<<endl;
+  cout<<"foreCenter_lon_lat_rad"<<foreCenter_lon_lat_rad<<endl;
 
+  //TO DO: determine the bounding box on the orbital image
+  Vector2 foreCenter_lon_lat;
+  foreCenter_lon_lat(0) = foreCenter_lon_lat_rad(0);
+  foreCenter_lon_lat(1) = foreCenter_lon_lat_rad(1);
+  Vector2 backPix = backGeo.lonlat_to_pixel(foreCenter_lon_lat);
+  cout<<"backPix="<<backPix<<endl;
+  cout <<"upsampleRatioBackImg"<<upsampleRatioBackImg<<endl;
+
+  int leftTop_x = backPix(0) - assembledWidth/(2*upsampleRatioBackImg);
+  int leftTop_y = backPix(1) - assembledHeight/(2*upsampleRatioBackImg);
+  Vector2 leftTop_xy;
+  leftTop_xy(0) = leftTop_x;   
+  leftTop_xy(1) = leftTop_y;
+  Vector2 leftTop_lonlat =  backGeo.pixel_to_lonlat(leftTop_xy); 
+
+  H = backGeo.transform();
+  //lon = H(0,0)*i+0*j + H(0,2)
+  //lat = 0*i+H(1,1)*j + H(1,2)
+
+  H(0,0) /=upsampleRatioBackImg;
+  H(1,1) /=upsampleRatioBackImg;
+  cout<<"H(0,0)"<<H(0,0)<<endl;
+  cout<<"H(1,1)"<<H(1,1)<<endl;
+  cout<<"H(0,1)"<<H(0,1)<<endl;
+  cout<<"H(1,0)"<<H(1,0)<<endl;
+  H(0,1) = H(0,1) - leftTop_lonlat(0);
+  H(1,0) = H(1,0) - leftTop_lonlat(1);
+
+  GeoReference assembledGeo; 
+  assembledGeo.set_transform(H);
+
+  typedef typename PixelChannelType<typename ViewT2::pixel_type>::type channel_type;
+
+  int num_channels = PixelNumChannels<typename ViewT1::pixel_type>::value;
+  cout << "num_channels = "<< num_channels << "\n";
+
+
+  //copy the background image to the assembled image.
+
+  for (int j = 0; j < assembledHeight-1; j++){
+    for (int i = 0; i < assembledWidth-1; i++){
+      
+      float y = leftTop_y + j/upsampleRatioBackImg;
+      float x = leftTop_x + i/upsampleRatioBackImg;     
+
+       //copy the background image
+       if (mode == 0){ //DEM
+          assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
+       }
+       else{ //DRG
+	 assembledImg.impl()(i,j)[0] = backImg.impl()(x,y)[0];
+	 assembledImg.impl()(i,j)[1] = backImg.impl()(x,y)[0];
+	 assembledImg.impl()(i,j)[2] = backImg.impl()(x,y)[0];
+       }
+    }
+  }
+
+  cout<<"translation"<<translation<<endl;
+  
   //transform the foreground image and copy it over the background image
   for (int j = 0; j < foreImg.impl().rows()-1; j++){
     for (int i = 0; i < foreImg.impl().cols()-1; i++){
@@ -181,13 +229,21 @@ ComputeAssembledImage(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference co
             
              //change into USGS coords  
              Vector2 back_lon_lat;
-	     back_lon_lat = fore_2_back_lonlat(transf_fore_lon_lat);
+	     //back_lon_lat = fore_2_back_lonlat(transf_fore_lon_lat);
+	     back_lon_lat = transf_fore_lon_lat;            
 
              //determine their location on the assembled image
+             /*
              Vector2 backPix= assembledGeo.lonlat_to_pixel(back_lon_lat);
              int x = backPix(0);
              int y = backPix(1);
-
+	     */
+              
+             Vector2 backPix= backGeo.lonlat_to_pixel(back_lon_lat);
+             int x = (backPix(0) - leftTop_x)*upsampleRatioBackImg;
+	     int y = (backPix(1) - leftTop_y)*upsampleRatioBackImg;
+             
+             //cout<<"x "<<x<<",y "<<y<<endl;
              
              //overwrite the assembled image 
              if ((x>0) && (y>0) && (x<assembledImg.impl().cols()) && (y<assembledImg.impl().rows())){ 

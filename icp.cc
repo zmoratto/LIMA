@@ -61,19 +61,20 @@ Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
 }
 
 //computes the translation between the foreground and background pixels
-Vector3
-ComputeDEMTranslation(
-	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray)
+Vector3 ComputeDEMTranslation(const vector<Vector3>& featureArray, 
+	                      const vector<Vector3>& matchArray)
 {
-Vector3 translation(0,0,0);
+  Vector3 translation(0,0,0);
   
-for (unsigned int i = 0; i < featureArray.size(); i++)
-	{
-	translation += matchArray[i] - featureArray[i];
-	}
+  int numValidMatches;
+  for (unsigned int i = 0; i < featureArray.size(); i++){
+    if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){
+       translation += matchArray[i] - featureArray[i];
+       numValidMatches++;
+    }
+  }
 
-return translation / featureArray.size();
+  return translation / numValidMatches;//featureArray.size();
 }
 
 
@@ -110,62 +111,56 @@ for (unsigned int i = 0; i < featureArray.size(); i++)
 return errorArray;
 }
 
-Matrix<float, 3, 3>
-ComputeDEMRotation(
-	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray)
+Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
+	                               const vector<Vector3>& matchArray)
 	// Vector3 translation, <-- This used to be passed in, but not used???
 {
 
-Matrix<float, 3, 3> rotation;
+  Matrix<float, 3, 3> rotation;
   
-Matrix<float,3,3> A;
-Matrix<float,3,3> U;
-Vector<float,3>   s;
-Matrix<float,3,3> V;
-
-A.set_zero(); // Fill with zeros, maybe what the below meant?
-/* I'm not sure what this code was supposed to do, it doesn't actually use the indices.
-for (int i = 0; i < 3; i++)
-	{
-	for (int j = 0; j < 3; j++)
-		{
-		A[0][0] = 0.0;
-    	}
-	}
-*/
-
-//compute the centroids
-Vector3 featureCenter;
-Vector3 matchCenter;
-for (unsigned int i = 0; i < featureArray.size(); i++)
-	{ 
-	featureCenter += featureArray[i];
-	matchCenter += matchArray[i];
-	}
-featureCenter /= featureArray.size();
-matchCenter   /= matchArray.size();
-
-vw_out(vw::InfoMessage, "icp") << "F_center " << featureCenter << endl;
-vw_out(vw::InfoMessage, "icp") << "M_center " << matchCenter   << endl;
+  Matrix<float,3,3> A;
+  Matrix<float,3,3> U;
+  Vector<float,3>   s;
+  Matrix<float,3,3> V;
   
-for (unsigned int i = 0; i < featureArray.size(); i++)
-	{     
-	Vector3 feature = featureArray[i];
-	Vector3 match = matchArray[i];
-   
-	A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
-	A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
-	A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
-       
-	A[0][1] = A[0][1] + (match[0]-matchCenter[0])*(feature[1] - featureCenter[1]);
-	A[1][1] = A[1][1] + (match[1]-matchCenter[1])*(feature[1] - featureCenter[1]);
-	A[2][1] = A[2][1] + (match[2]-matchCenter[2])*(feature[1] - featureCenter[1]);
-       
-	A[0][2] = A[0][2] + (match[0]-matchCenter[0])*(feature[2] - featureCenter[2]);
-	A[1][2] = A[1][2] + (match[1]-matchCenter[1])*(feature[2] - featureCenter[2]);
-	A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
-	}
+  A.set_zero(); // Fill with zeros, maybe what the below meant?
+
+  //compute the centroids
+  Vector3 featureCenter;
+  Vector3 matchCenter;
+  int numValidMatches = 0;
+  for (unsigned int i = 0; i < featureArray.size(); i++){ 
+    if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){//ignore invalid matches
+       featureCenter += featureArray[i];
+       matchCenter += matchArray[i];
+       numValidMatches++;
+    }
+  }
+  featureCenter /= numValidMatches;
+  matchCenter   /= numValidMatches;
+  
+  vw_out(vw::InfoMessage, "icp") << "F_center " << featureCenter << endl;
+  vw_out(vw::InfoMessage, "icp") << "M_center " << matchCenter   << endl;
+  
+  for (unsigned int i = 0; i < featureArray.size(); i++){     
+    Vector3 feature = featureArray[i];
+    Vector3 match = matchArray[i];
+    
+    if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){//ignore invalid matches
+    
+      A[0][0] = A[0][0] + (match[0]-matchCenter[0])*(feature[0] - featureCenter[0]);
+      A[1][0] = A[1][0] + (match[1]-matchCenter[1])*(feature[0] - featureCenter[0]);
+      A[2][0] = A[2][0] + (match[2]-matchCenter[2])*(feature[0] - featureCenter[0]);
+      
+      A[0][1] = A[0][1] + (match[0]-matchCenter[0])*(feature[1] - featureCenter[1]);
+      A[1][1] = A[1][1] + (match[1]-matchCenter[1])*(feature[1] - featureCenter[1]);
+      A[2][1] = A[2][1] + (match[2]-matchCenter[2])*(feature[1] - featureCenter[1]);
+      
+      A[0][2] = A[0][2] + (match[0]-matchCenter[0])*(feature[2] - featureCenter[2]);
+      A[1][2] = A[1][2] + (match[1]-matchCenter[1])*(feature[2] - featureCenter[2]);
+      A[2][2] = A[2][2] + (match[2]-matchCenter[2])*(feature[2] - featureCenter[2]);
+    }
+  }
   
 svd(A, U, s, V);
  

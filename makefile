@@ -29,12 +29,18 @@ lidar2img: lidar2img.cc
 assembler: assembler.cc
 	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  coregister.cc icp.cc  assembler.cc -o assembler 
 
+#dem2dem
+dem2dem: dem2dem.cc
+	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  coregister.cc icp.cc  dem2dem.cc -o dem2dem 
+
 #lidar2dem
 lidar2dem: lidar2dem.cc
 	g++ -arch i386 $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  coregister.cc tracks.cc  display.cc weights.cc featuresLOLA.cc lidar2dem.cc -o lidar2dem 
+
+
 clean:
 	rm lidar2img
 	rm assembler
 	rm lidar2dem
-        
+	rm dem2dem
 

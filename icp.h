@@ -75,23 +75,25 @@ template <class ViewT>
 vector<Vector3> 
 GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
             ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            Vector2 samplingStep, Vector2 delta_lonlat)
+            Vector2 samplingStep, Vector2 delta_lonlat, float noDataVal)
 {
  
+  cout<<"Get Features..."<<endl;
+
   int verStep = samplingStep(0);
   int horStep = samplingStep(1);
- vector<Vector3> featureArray;
- //determine if this is ppd or mpp.
- //determine the modata value as well
- ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
+  vector<Vector3> featureArray;
+  //determine if this is ppd or mpp.
+  //determine the nodata value as well
+  ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
                                                                            ConstantEdgeExtension()),
                                                                            BilinearInterpolation());
   
- for (int j = 0; j < foreImg.impl().rows(); j=j+verStep){
+  for (int j = 0; j < foreImg.impl().rows(); j=j+verStep){
      for (int i = 0; i < foreImg.impl().cols(); i=i+horStep){
-       //determine the location of the corresponding background point
 
-       if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != 0)  { 
+       //determine the location of the corresponding background point for each valid fore point
+       if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != -noDataVal/*0*/)  { 
 
 	 Vector2 forePix(i,j);
 	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
@@ -106,7 +108,8 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
      }
   }
 
- return featureArray;
+  cout<<"numFeatures="<<featureArray.size()<<endl;
+  return featureArray;
 
 };
 
@@ -114,9 +117,11 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
 template <class ViewT>
 void
 FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            GeoReference const &foreGeo, vector<Vector3>& matchArray, Vector2 matchWindowHalfSize)
+            GeoReference const &foreGeo, vector<Vector3>& matchArray, Vector2 matchWindowHalfSize, float noValData)
 {
  
+  cout<<"FIND MATCHES..."<<endl;
+
  int matchWindowHalfWidth = matchWindowHalfSize(0);
  int matchWindowHalfHeight = matchWindowHalfSize(1);
 
@@ -126,6 +131,7 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  
  for (int i = 0; i < featureArray.size(); i++){
 
+   
      //revert fore from cartesian to spherical coordinates
      Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic(featureArray[i]);
      Vector2 fore_lonlat;
@@ -133,15 +139,16 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
      fore_lonlat(0) = fore_lonlat3(0);
      fore_lonlat(1) = fore_lonlat3(1);
 
-     Vector2 back_lonlat = fore_2_back_lonlat(fore_lonlat);
+     //Vector2 back_lonlat = fore_2_back_lonlat(fore_lonlat);
+     Vector2 back_lonlat = fore_lonlat;
 
      Vector2 backPix = backGeo.lonlat_to_pixel(back_lonlat);	 
      float x = backPix(0);
      float y = backPix(1);
 
-     Vector3 back_xyz;
-    
+     Vector3 back_xyz;//invalid point
      float minDistance = 10000000000.0;
+
      for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
         for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
  
@@ -149,23 +156,28 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
 	  Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
            
           //revert to fore lon lat system
-          Vector2 t_back_lonlat2 = back_2_fore_lonlat(back_lonlat);
+          //Vector2 t_back_lonlat2 = back_2_fore_lonlat(back_lonlat);
+          Vector2 t_back_lonlat2 = back_lonlat;
+
           Vector3 t_back_lonlat3;
           t_back_lonlat3(0) = t_back_lonlat2(0);
           t_back_lonlat3(1) = t_back_lonlat2(1); 
           t_back_lonlat3(2) = interpBackImg(l,k);
+          //cout<<"t_back="<< t_back_lonlat3(2)<<endl;
+
+          if (t_back_lonlat3(2) !=/*-10000*/noValData){
+	    //transform into xyz coordinates of the foregound image.
+	    Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
       
-          //transform into xyz coordinates of the foregound image.
-          Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
-      
-          float distance1 = t_back_xyz(0) - featureArray[i](0);
-          float distance2 = t_back_xyz(1) - featureArray[i](1);
-          float distance3 = t_back_xyz(2) - featureArray[i](2);
-          float distance = sqrt(distance1*distance1 + distance2*distance2 + distance3*distance3);   
-          if (distance < minDistance){
-	    minDistance = distance;
-            back_xyz = t_back_xyz;
-          }
+	    float distance1 = t_back_xyz(0) - featureArray[i](0);
+	    float distance2 = t_back_xyz(1) - featureArray[i](1);
+	    float distance3 = t_back_xyz(2) - featureArray[i](2);
+	    float distance = sqrt(distance1*distance1 + distance2*distance2 + distance3*distance3);   
+	    if (distance < minDistance){
+	      minDistance = distance;
+              back_xyz = t_back_xyz;
+	    }
+	  }//endif (t_back_lonlat3(2) !=-10000)
   
 	}
      }
@@ -306,20 +318,21 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
       
 	    printf("feature matching ...\n");
      
-	    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, settings.matchWindowHalfSize);
+	    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, 
+                        settings.matchWindowHalfSize, settings.noDataVal);
       
-	cout<<"computing the matching error ..."<<endl;
-	valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
-	matchError = errorArray.sum()/errorArray.size();
-	cout<<"match error="<<matchError<<endl;
+	    cout<<"computing the matching error ..."<<endl;
+	    valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
+	    matchError = errorArray.sum()/errorArray.size();
+	    cout<<"match error="<<matchError<<endl;
 	  
 	    cout<<"computing DEM translation ..."<<endl;
 	    translation = ComputeDEMTranslation(featureArray, matchArray);
-	    //cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+	    cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
              
 	    cout<<"computing DEM rotation ..."<<endl;
 	    rotation = ComputeDEMRotation(featureArray, matchArray/*, translation*/);
-	    //PrintMatrix(rotation);
+	    PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  
 	    TransformFeatures(featureArray, translation, rotation);
@@ -387,7 +400,7 @@ while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	//PrintMatrix(rotation);
 
 	//apply the computed rotation and translation to the featureArray  
-    //TransformFeatures(featureArray, translation, rotation);
+        //TransformFeatures(featureArray, translation, rotation);
 
 	translationArray.push_back(translation);
 	rotationArray.push_back(rotation);

@@ -38,7 +38,6 @@ namespace fs = boost::filesystem;
 #include <vw/Math.h>
 
 #include "coregister.h"
-//#include "coregister.h"
 #include "icp.h"
 #include "assembler.h"
 
@@ -53,8 +52,11 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   //cout << Geo <<"\n";
   float radius = Geo.datum().semi_major_axis();
   cout<<"radius="<<radius<<endl;
-
+  //float meridianOffset = Geo.datum().meridian_offset();
+  //cout<<"meridianOffset="<<meridianOffset<<endl;
+ 
   printf("width = %d, height = %d\n", width, height);
+ 
   Vector2 leftTopPixel(0,0);
   Vector2 leftTopLonLat = Geo.pixel_to_lonlat(leftTopPixel);
 
@@ -66,9 +68,13 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   float minLat = leftTopLonLat(1);
   float maxLon = rightBottomLonLat(0);
   float maxLat = rightBottomLonLat(1);
-
+  
+  printf("BEFORE: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n", 
+                  minLon, maxLon, minLat, maxLat);  
+ 
+  /*
   if (useUSGS_lonlat == 1){
-    float usgs_2_lonlat = 180/(3.14159265*3396190);
+     float usgs_2_lonlat = 180/(3.14159265*3396190);
      minLon = minLon*usgs_2_lonlat; 
      maxLon = maxLon*usgs_2_lonlat; 
      minLat = minLat*usgs_2_lonlat; 
@@ -79,9 +85,9 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   if (minLon < 0) minLon = minLon+180;
   if (maxLat < 0) maxLat = maxLat+180;
   if (maxLon < 0) maxLon = maxLon+180;
-
-  printf("minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n",
-  	  minLon, maxLon, minLat, maxLat);
+  */
+  printf("AFTER: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n",
+  	         minLon, maxLon, minLat, maxLat);
 
   float numPixPerDegree;
   numPixPerDegree = width/fabs(maxLon-minLon);
@@ -187,7 +193,7 @@ int main( int argc, char *argv[] ) {
     GeoReference backDEMGeo;
     read_georeference(backDEMGeo, backDEMFilename);
     float back_radius = backDEMGeo.datum().semi_major_axis();
-    cout<<"radius="<<back_radius<<endl;
+    cout<<"back_radius="<<back_radius<<endl;
     cout<<"done"<<endl;
    
     //small image high res - foreground
@@ -196,11 +202,9 @@ int main( int argc, char *argv[] ) {
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
     float fore_radius = foreDEMGeo.datum().semi_major_axis();
-    cout<<"radius="<<fore_radius<<endl;
+    cout<<"fore_radius="<<fore_radius<<endl;
     cout<<"done"<<endl;
    
- 
-
     float minMatchError = 100000000.0;
 
     if (settings.matchingMode != 0){
@@ -214,7 +218,7 @@ int main( int argc, char *argv[] ) {
 	       printf("feature extraction ...\n");
 	    
 	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, 
-                                                          settings.samplingStep, delta_lonlat);
+                                                          settings.samplingStep, delta_lonlat, settings.noDataVal);
 	       vector<float> errorArray;
 	       errorArray.resize(featureArray.size());
                

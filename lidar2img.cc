@@ -224,6 +224,7 @@ int main( int argc, char *argv[] ) {
     }
     
     if (settings.analyseFlag == 1){
+      /*
       float scaleFactor = ComputeScaleFactor(trackPts);
       SaveImagePoints(trackPts, 3, imgPtsFilename);
       SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
@@ -232,6 +233,7 @@ int main( int argc, char *argv[] ) {
       int numVerPts = 6000;
       int numHorPts = 6000;
       MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices); 
+      */
     }
    
     //initialization step for LIMA - START  
