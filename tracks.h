@@ -177,6 +177,48 @@ class LOLAShot
     );
 };
 
+inline
+std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
+  {
+  stream 
+    << "valid: " << s.valid
+    << " centerPtIndex: " << s.centerPtIndex
+    << " reflectance: "   << s.reflectance
+    << " synthiImage: "   << s.synthImage
+    << " calc_acp: "      << s.calc_acp
+    << endl
+    << "featurePtRefl: " << s.featurePtRefl
+    << " weightRefl: "    << s.weightRefl
+    << " featurePtLOLA: " << s.featurePtLOLA
+	<< " filresLOLA: "    << s.filresLOLA
+    << endl
+    << "Number of LOLA points in this shot: " << s.LOLAPt.size();
+  for( unsigned int point = 0; point < s.LOLAPt.size(); ++point )
+    { stream << endl << "  " << s.LOLAPt[point]; }
+
+  stream << endl << "Number of img points in this shot: " << s.imgPt.size();
+  for( unsigned int point = 0; point < s.imgPt.size(); ++point )
+    {
+    stream << endl
+           << "  x: " << s.imgPt[point].x 
+           << " y: "   << s.imgPt[point].y 
+           << " val: " << s.imgPt[point].val;
+    }
+
+  stream << endl << "Number of DEM points in this shot: " << s.DEMPt.size();
+  for( unsigned int point = 0; point < s.DEMPt.size(); ++point )
+    {
+    stream << endl
+           << " valid: " << s.DEMPt[point].valid 
+           << " x: "     << s.DEMPt[point].x
+           << " y: "     << s.DEMPt[point].y
+           << " val: "   << s.DEMPt[point].val;
+    }
+
+  return stream;
+  }
+
+
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
