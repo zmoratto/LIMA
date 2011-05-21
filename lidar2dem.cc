@@ -122,21 +122,21 @@ vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
 struct CoregistrationParams settings;
 if( ReadConfigFile(configFilename, &settings) && verbose > 0 )
 	{
-	cerr << "Config file " << configFilename << " found." << endl;
+	cout << "Config file " << configFilename << " found." << endl;
 	}
 else if( verbose > 0 )
 	{
-	cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	cout << "Config file " << configFilename << " not found, using defaults." << endl;
 	}
 //PrintGlobalParams(&settings);
-if( verbose > 0 ){ cerr << settings << endl; }
+if( verbose > 0 ){ cout << settings << endl; }
 
   //read LOLA tracks
   vector<vector<LOLAShot> > trackPts;
   try
 	{
 	trackPts =  CSVFileRead(inputCSVFilename);
-	if( verbose > 0 ){ cerr << "Tracks file: " << inputCSVFilename << endl; }
+	if( verbose > 0 ){ cout << "Tracks file: " << inputCSVFilename << endl; }
 	}
   catch (const vw::IOErr& error)
 	{
@@ -248,7 +248,7 @@ if( verbose > 0 ){ cerr << settings << endl; }
       featureArray.resize(modelArray.size());
       if( verbose > 0 )
 		{
-		cout << "Array Sizes: " << modelArray.size() <<" and "<< featureArray.size() << endl;
+		cout << "Number of points to be compared: " << modelArray.size() << endl;
 		}
 
       //run ICP-matching
@@ -257,9 +257,10 @@ if( verbose > 0 ){ cerr << settings << endl; }
      
       if( verbose >= 0 )
 		{ 
-			cout<<"Translation="<<currTranslation<<endl;
-			cout<<"Rotation="<<currRotation<<endl;
-			cout<<"Center="<<center<<endl;
+			cout << endl
+                 << "Translation = " << currTranslation << endl
+                 << "Rotation = " << currRotation << endl
+                 << "Center = " << center << endl;
 		}
   }
 

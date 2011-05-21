@@ -139,8 +139,8 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
   featureCenter /= numValidMatches;
   matchCenter   /= numValidMatches;
   
-  vw_out(vw::InfoMessage, "icp") << "F_center " << featureCenter << endl;
-  vw_out(vw::InfoMessage, "icp") << "M_center " << matchCenter   << endl;
+  vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
+  vw_out(vw::InfoMessage, "icp") << "  M_center: " << matchCenter   << endl;
   
   for (unsigned int i = 0; i < featureArray.size(); i++){     
     Vector3 feature = featureArray[i];

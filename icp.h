@@ -380,24 +380,26 @@ translationArray.clear();
 
 while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	{
-	vw_out(vw::InfoMessage, "icp") << "Iteration " << numIter << endl;
+	vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
       	
 	FindMatchesFromDEM(modelArray, DEM, DEMGeo, featureArray, 
 						translation, rotation, settings.noDataVal, 
 						settings.matchWindowHalfSize);
 
-	vw_out(vw::InfoMessage, "icp") << "computing the matching error ..." << endl;
+	vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
 	valarray<float> errorArray = ComputeMatchingError(featureArray, modelArray);
 	matchError = errorArray.sum()/errorArray.size();
-	vw_out(vw::InfoMessage, "icp")<<"match error="<<matchError<<endl;
+	vw_out(vw::InfoMessage, "icp") << matchError << endl;
 
-	vw_out(vw::InfoMessage, "icp") << "computing DEM translation ..." << endl;
+	vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
 	translation = ComputeDEMTranslation(featureArray, modelArray);
 	//cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+	vw_out(vw::InfoMessage, "icp") << translation << endl;
              
-	vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ..." << endl;
+	vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
 	rotation = ComputeDEMRotation(featureArray, modelArray/*, translation*/);
 	//PrintMatrix(rotation);
+	vw_out(vw::InfoMessage, "icp") << rotation << endl;
 
 	//apply the computed rotation and translation to the featureArray  
         //TransformFeatures(featureArray, translation, rotation);
