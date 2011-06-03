@@ -66,7 +66,7 @@ Vector3 ComputeDEMTranslation(const vector<Vector3>& featureArray,
 {
   Vector3 translation(0,0,0);
   
-  int numValidMatches;
+  int numValidMatches = 0;
   for (unsigned int i = 0; i < featureArray.size(); i++){
     if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){
        translation += matchArray[i] - featureArray[i];
