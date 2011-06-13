@@ -147,7 +147,6 @@ int main( int argc, char *argv[] ) {
 
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results"); 
-  //vector<vector<LOLAShot> > trackPts =  CSVFileRead_LIMA(inputCSVFilename);
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
 
   //select the overlapping images
@@ -195,6 +194,7 @@ int main( int argc, char *argv[] ) {
   vector<float> optimalErrorArray;
   optimalTransfArray.resize(numOverlappingImages);
   optimalErrorArray.resize(numOverlappingImages);
+
 
   for (int k = 0; k < numOverlappingImages; k++){
 
@@ -276,6 +276,7 @@ int main( int argc, char *argv[] ) {
     vector<Vector<float, 6> > finalTransfArray;
     vector<float> initMatchingErrorArray;
     vector<float> finalMatchingErrorArray;
+    Vector2 transfCentroid;
     
     GenerateInitTransforms(initTransfArray, settings);
 
@@ -285,21 +286,26 @@ int main( int argc, char *argv[] ) {
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     cout<<"done."<<endl;
    
-    cout<<"Computing the affine tranformation ..."<<endl;
-    //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
-    UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings.maxNumIter,  
-     			        bestInitTransfArray, finalTransfArray, finalMatchingErrorArray);
-    cout<<"done."<<endl;
-    
-    //finalTransfArray = bestInitTransfArray;
-    //finalMatchingErrorArray = initMatchingErrorArray;
+    int refinedMatching = 1;
+
+    if (refinedMatching == 1){
+      cout<<"Computing the affine tranformation ..."<<endl;
+      //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
+      UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings.maxNumIter,  
+				  bestInitTransfArray, finalTransfArray, finalMatchingErrorArray, transfCentroid);
+      cout<<"done."<<endl;
+    }
+    else{
+       finalTransfArray = bestInitTransfArray;
+       finalMatchingErrorArray = initMatchingErrorArray;
+    }
 
     GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
 
     //save to GCP structure.
-    UpdateGCP(trackPts, optimalTransfArray[k], cubFiles[k], gcpArray);
+    cout<<"CENTROID"<<transfCentroid<<endl;
+    UpdateGCP(trackPts, optimalTransfArray[k], cubFiles[k], gcpArray, transfCentroid);
 
-    
     if (settings.analyseFlag){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 

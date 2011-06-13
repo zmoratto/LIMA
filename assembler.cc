@@ -210,7 +210,7 @@ int main( int argc, char *argv[] ) {
     if (settings.matchingMode != 0){
        
        Vector2 delta_lonlat; 
-      
+       
        for (int k = -2; k < 3; k++){
 	   delta_lonlat(0) = k*0.001; 
 	   for (int l = -2; l < 3; l++){
@@ -243,6 +243,9 @@ int main( int argc, char *argv[] ) {
 	       
 	 }
        }
+       
+       //bestDeltaLonLat(0) = 0.002;
+       //bestDeltaLonLat(1) = 0.002;
     }
 
     cout<<"minMatchError "<<minMatchError<<endl;

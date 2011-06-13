@@ -62,7 +62,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			         ModelParams modelParams,  int numMaxIter, 
 			         vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-			         vector<float> &errorArray );
+			         vector<float> &errorArray, Vector2 &centroid );
 
 void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			ModelParams modelParams, CoregistrationParams coregistrationParams,  

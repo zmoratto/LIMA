@@ -428,7 +428,7 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
       trackPts[k][i].valid = 1; 
 
       LOLAPts = trackPts[k][i].LOLAPt;
-      //cout<<"*****DEBUG: shotSize="<<LOLAPts.size()<<endl;
+  
       trackPts[k][i].imgPt.resize(LOLAPts.size());
 
       for (unsigned int j = 0; j < LOLAPts.size(); j++){
@@ -498,7 +498,7 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 {
   float nominator = 0.0;
   int numValidPts = 0;
-  float scaleFactor = 1;
+  float scaleFactor;// = 1;
 
   for(unsigned int k = 0; k < trackPts.size();k++){
     for(unsigned int i = 0; i < trackPts[k].size(); i++){
@@ -516,8 +516,13 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
     }
   }
 
+  cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
   if (numValidPts != 0){ 
     scaleFactor = nominator/numValidPts;
+  }
+  else{
+    //invalid scaleFactor, all tracks are invalid
+    scaleFactor = -1;
   }
   return scaleFactor;
 }
@@ -737,7 +742,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 }
 
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
-               string cubFile, vector<gcp> &gcpArray)
+               string cubFile, vector<gcp> &gcpArray, Vector2 centroid)
 {
     int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
@@ -746,8 +751,12 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
           if (trackPts[t][s].valid ==1){          
 	    gcpArray[index].filename.push_back(cubFile);
          
-	    float i = (optimalTransfArray[0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[2]);
-	    float j = (optimalTransfArray[3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[5]);
+	    float i = (optimalTransfArray[0]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
+                       optimalTransfArray[1]*(trackPts[t][s].imgPt[2].y - centroid(1)) + 
+                       optimalTransfArray[2] + centroid(0));
+	    float j = (optimalTransfArray[3]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
+		       optimalTransfArray[4]*(trackPts[t][s].imgPt[2].y - centroid(1)) + 
+                       optimalTransfArray[5] + centroid(1));
 	    gcpArray[index].x.push_back(i);
 	    gcpArray[index].y.push_back(j);
 
