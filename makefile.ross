@@ -70,6 +70,9 @@ lidar2dem: icp.o coregister.o tracks.o display.o weights.o featuresLOLA.o lidar2
 dem_warp: dem_warp.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -laspCore $^ -o $@
 
+dem_alt: dem_alt.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -laspCore $^ -o $@
+
 %.o : %.cc
 	$(CXX) $(CXXFLAGS) $(INCISIS) $(INCPATH) -c $^ -o $@
 

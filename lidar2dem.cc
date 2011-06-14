@@ -257,9 +257,34 @@ if( verbose > 0 ){ cout << settings << endl; }
      
       if( verbose >= 0 )
 		{ 
+          int DEMcenterCol = interpDEM.cols() / 2;
+          int DEMcenterRow = interpDEM.rows() / 2;
+          Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(DEMcenterCol,DEMcenterRow) );
+          double DEMcenterR = DEMGeo.datum().radius(lonlat.x(),lonlat.y());
+          Vector3 DEMcenter_llr
+            (
+            lonlat.x(), 
+            lonlat.y(),
+            DEMcenterR + interpDEM(DEMcenterCol,DEMcenterRow)
+            );
+
+          Vector3 DEMcenter_xyz = DEMGeo.datum().geodetic_to_cartesian(DEMcenter_llr);
+          Vector3 translated_xyz = DEMcenter_xyz + currTranslation;
+          Vector3 translated_llr = DEMGeo.datum().cartesian_to_geodetic(translated_xyz);
+          Vector3 translation_llr = translated_llr - DEMcenter_llr;
+
+          translation_llr.x() = DEMcenterR * tan( translation_llr.x() * M_PI/180.0  );
+          translation_llr.y() = DEMcenterR * tan( translation_llr.y() * M_PI/180.0  );
+
+          // Decompose rotation matrix to Euler Angles (phi, theta, psi about Z, X, and Z axes):
+          Vector3 euler_angles = rotation_matrix_to_euler_xyz( currentRotation );
+          euler_angles *= 180/M_PI;
+
 			cout << endl
-                 << "Translation = " << currTranslation << endl
+                 << "Translation (xyz) = " << currTranslation << endl
+                 << "Translation (llr) = " << translation_llr << endl
                  << "Rotation = " << currRotation << endl
+                 << "Euler Angles (in degrees)  = " << euler_angles << endl
                  << "Center = " << center << endl;
 		}
   }
