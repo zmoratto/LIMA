@@ -238,11 +238,12 @@ matchCenter = matchCenter/matchArray.size();
 for (unsigned int index = 0; index < lidar_xyz.size(); index++)
 	{
   
-	const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
+	//const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
+	const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
     //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
     const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
     const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(lidar_lonlat);
-	  
+
     float minDistance = 1000000.0;
     //search in a neigborhood around x,y and determine the best match to LOLA
     for(int k = DEM_pix.y() - matchWindowHalfSize.y(); 

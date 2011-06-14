@@ -235,9 +235,10 @@ if( verbose > 0 ){ cout << settings << endl; }
 	      */
 	      //copy the model and features into cartesian coordinates
 	      //feature = DEMGeo.datum().geodetic_to_cartesian(feature);
+	      
+	      //model = DEMGeo.datum().geodetic_to_cartesian(model);
+	      model = lon_lat_radius_to_xyz(model);
 
-	      model = DEMGeo.datum().geodetic_to_cartesian(model);
-         	 
 	      //featureArray.push_back(feature);
 	      modelArray.push_back(model);
 	    }
