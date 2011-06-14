@@ -163,13 +163,22 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
   }
   
 svd(A, U, s, V);
- 
+
 /* Never used? 
 Matrix<float,3,3> VT = transpose(V);
 */
 
-rotation = U*V;
+// use Kabsch Algorithm to form the rotation matrix
+if( det(A) < 0 ){
+  Matrix3x3 sign_id;
+  sign_id.set_identity();
+  sign_id(2,2) = -1;
 
+  rotation = U*sign_id*V;
+} else {
+  rotation = U*V;
+}
+ 
 /* Never used?
 Matrix<float,3,3> id = rotation*transpose(rotation); 
 */
