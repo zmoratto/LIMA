@@ -77,10 +77,9 @@ dem_alt: dem_alt.o
 	$(CXX) $(CXXFLAGS) $(INCISIS) $(INCPATH) -c $^ -o $@
 
 clean:
-	rm -f $(programs)
+	rm -f $(programs) *.o
 
 distclean: clean docclean
-	rm -f *.o
 	
   
 docs: doc      

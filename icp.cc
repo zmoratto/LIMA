@@ -112,7 +112,8 @@ return errorArray;
 }
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
-	                               const vector<Vector3>& matchArray)
+									const vector<Vector3>& matchArray,
+									const Vector3& matchCenter)
 	// Vector3 translation, <-- This used to be passed in, but not used???
 {
 
@@ -125,19 +126,16 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
   
   A.set_zero(); // Fill with zeros, maybe what the below meant?
 
-  //compute the centroids
+  //compute the centroid
   Vector3 featureCenter;
-  Vector3 matchCenter;
   int numValidMatches = 0;
   for (unsigned int i = 0; i < featureArray.size(); i++){ 
     if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){//ignore invalid matches
        featureCenter += featureArray[i];
-       matchCenter += matchArray[i];
        numValidMatches++;
     }
   }
   featureCenter /= numValidMatches;
-  matchCenter   /= numValidMatches;
   
   vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
   vw_out(vw::InfoMessage, "icp") << "  M_center: " << matchCenter   << endl;
@@ -170,8 +168,7 @@ Matrix<float,3,3> VT = transpose(V);
 
 // use Kabsch Algorithm to form the rotation matrix
 if( det(A) < 0 ){
-  Matrix3x3 sign_id;
-  sign_id.set_identity();
+  Matrix3x3 sign_id = identity_matrix(3);
   sign_id(2,2) = -1;
 
   rotation = U*sign_id*V;

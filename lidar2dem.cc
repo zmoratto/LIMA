@@ -48,6 +48,7 @@ using namespace std;
 #include "display.h"
 #include "weights.h"
 #include "icp.h"
+#include "util.h"
 
 int main( int argc, char *argv[] )
 {
@@ -205,11 +206,12 @@ if( verbose > 0 ){ cout << settings << endl; }
       Matrix<float, 3,3 > currRotation;
       vector<Vector3> featureArray;//DEM
       vector<Vector3> modelArray;//LOLA
+      vector<Vector3> modelArrayLatLon;//LOLA
       vector<float> errorArray;//error array same size as model and feature
       currRotation[0][0] = 1.0;
       currRotation[1][1] = 1.0;
       currRotation[2][2] = 1.0;
-      Vector3 center;
+      //Vector3 center;
 
       //copy info to featureArray and modelArray
       for(unsigned int k = 0; k < trackPts.size();k++){
@@ -237,10 +239,11 @@ if( verbose > 0 ){ cout << settings << endl; }
 	      //feature = DEMGeo.datum().geodetic_to_cartesian(feature);
 	      
 	      //model = DEMGeo.datum().geodetic_to_cartesian(model);
-	      model = lon_lat_radius_to_xyz(model);
+	      Vector3 modelxyz = lon_lat_radius_to_xyz(model);
 
 	      //featureArray.push_back(feature);
-	      modelArray.push_back(model);
+	      modelArray.push_back( modelxyz );
+	      modelArrayLatLon.push_back(model);
 	    }
 	  }
 	}
@@ -252,9 +255,12 @@ if( verbose > 0 ){ cout << settings << endl; }
 		cout << "Number of points to be compared: " << modelArray.size() << endl;
 		}
 
+      Vector3 modelCentroid = find_centroid( modelArray );
+
       //run ICP-matching
-      ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, settings, 
-                      currTranslation, currRotation, center, errorArray);
+      ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, modelArrayLatLon, settings, 
+                      currTranslation, currRotation, modelCentroid );
+                     // currTranslation, currRotation, modelCentroid, errorArray);
      
       if( verbose >= 0 )
 		{ 
@@ -266,7 +272,7 @@ if( verbose > 0 ){ cout << settings << endl; }
             (
             lonlat.x(), 
             lonlat.y(),
-            DEMcenterR + interpDEM(DEMcenterCol,DEMcenterRow)
+            interpDEM(DEMcenterCol,DEMcenterRow)
             );
 
           Vector3 DEMcenter_xyz = DEMGeo.datum().geodetic_to_cartesian(DEMcenter_llr);
@@ -278,15 +284,37 @@ if( verbose > 0 ){ cout << settings << endl; }
           translation_llr.y() = DEMcenterR * tan( translation_llr.y() * M_PI/180.0  );
 
           // Decompose rotation matrix to Euler Angles (phi, theta, psi about Z, X, and Z axes):
-          Vector3 euler_angles = rotation_matrix_to_euler_xyz( currentRotation );
+          Vector3 euler_angles = rotation_matrix_to_euler_xyz( currRotation );
           euler_angles *= 180/M_PI;
+
+          // Work out estimate of the scale factor
+          Vector3 f_cent = find_centroid( featureArray );
+
+          Matrix<double> f_centered(featureArray.size(),3);
+          Matrix<double> m_centered(featureArray.size(),3);
+
+          for( unsigned int i = 0; i < featureArray.size(); i++ ){
+            select_row(f_centered,i) = featureArray[i] - f_cent;
+            select_row(m_centered,i) = modelArray[i] - modelCentroid;
+          }
+
+          Matrix<double> ratio(featureArray.size(),3);
+          Vector3 scale;
+
+          ratio = elem_quot( f_centered * transpose(currRotation) , m_centered );
+          for( unsigned int i = 0; i<=2; i++ ){
+            scale(i) = sum( select_col(ratio,i) ) / ratio.rows();
+          }
+
 
 			cout << endl
                  << "Translation (xyz) = " << currTranslation << endl
                  << "Translation (llr) = " << translation_llr << endl
                  << "Rotation = " << currRotation << endl
-                 << "Euler Angles (in degrees)  = " << euler_angles << endl
-                 << "Center = " << center << endl;
+                 << "Euler Angles (xyz in degrees)  = " << euler_angles << endl
+                 << "Scale factors = " << scale << endl
+                 //<< "Center = " << center << endl;
+                 << "Centroid = " << modelCentroid << endl;
 		}
   }
 

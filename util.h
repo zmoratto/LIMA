@@ -85,6 +85,16 @@ ignoreOne(std::basic_istream<charT,traits>& stream)
 	return stream;
 	}
 
+inline Vector3 find_centroid( const vector<Vector3>& points )
+  {
+  Vector3 centroid;
+  for (unsigned int i = 0; i < points.size(); i++)
+    {
+    centroid += points[i];
+    }
+  centroid /= points.size();
+  return centroid;
+  }
 
 #endif
 

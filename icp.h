@@ -33,6 +33,7 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 #include "coregister.h"
+#include "util.h"
 
 using namespace vw;
 using namespace vw::math;
@@ -60,8 +61,19 @@ ComputeMatchingError(
 Matrix<float, 3, 3>
 ComputeDEMRotation(
 	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray
+	const vector<Vector3>& matchArray,
+	const Vector3&         matchCenter
 	/*Vector3 translation*/);
+
+inline
+Matrix<float, 3, 3>
+ComputeDEMRotation(
+	const vector<Vector3>& featureArray, 
+	const vector<Vector3>& matchArray)
+{
+const Vector3 matchCenter = find_centroid( matchArray );
+return ComputeDEMRotation( featureArray, matchArray, matchCenter );
+}
 
 
 //applies a 3D rotation and transform to a DEM
@@ -193,7 +205,8 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
 template <class ViewT>
 void
 FindMatchesFromDEM(
-	const vector<Vector3>&		lidar_xyz,  
+	const vector<Vector3>&		lidar_xyz,
+	const vector<Vector3>&		lidar_llr,
 	const ImageViewBase<ViewT>&	DEM, 
 	const GeoReference&			DEMGeo, 
 	      vector<Vector3>&		matchArray, 
@@ -228,21 +241,16 @@ else
 	}
 
  
-Vector3 matchCenter;
-for (unsigned int i = 0; i < matchArray.size(); i++)
-	{  
-	matchCenter = matchCenter + matchArray[i];
-	}
-matchCenter = matchCenter/matchArray.size();
+Vector3 matchCenter = find_centroid( matchArray );
 
 for (unsigned int index = 0; index < lidar_xyz.size(); index++)
 	{
   
 	//const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
-	const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
+	//const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
     //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
-    const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
-    const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(lidar_lonlat);
+    //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
+    const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(lidar_llr[index], 0, 2) );
 
     float minDistance = 1000000.0;
     //search in a neigborhood around x,y and determine the best match to LOLA
@@ -259,27 +267,30 @@ for (unsigned int index = 0; index < lidar_xyz.size(); index++)
 				if (interpDEM(l,k)!=noDEMVal)
 					{
 					//compute the distance to the lidar point
-					const Vector2 pix(l,k);
-					const Vector2 lonlat = DEMGeo.pixel_to_lonlat(pix);
+					//const Vector2 pix(l,k);
+					const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
 
 					//revert to lon lat rad system
 					Vector3 lonlatrad 
 						(
 						lonlat.x(),
 						lonlat.y(),
-						DEMGeo.datum().radius(lonlat.x(),lonlat.y()) + interpDEM(l,k)
+						//DEMGeo.datum().radius(lonlat.x(),lonlat.y()) + interpDEM(l,k)
+						interpDEM(l,k)
 						); // This z value is in meters, since DEMGeo.datum() is.
 
 					//transform into xyz coordinates of the foregound image.
 					Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-					dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation; 
+					dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
 
-					float distance1 = dem_xyz(0) - lidar_xyz[index](0);
-					float distance2 = dem_xyz(1) - lidar_xyz[index](1);
-					float distance3 = dem_xyz(2) - lidar_xyz[index](2);
-					float distance = sqrt(  distance1*distance1 
-											+ distance2*distance2 
-											+ distance3*distance3);   
+					// float distance1 = dem_xyz(0) - lidar_xyz[index](0);
+					// float distance2 = dem_xyz(1) - lidar_xyz[index](1);
+					// float distance3 = dem_xyz(2) - lidar_xyz[index](2);
+					Vector3 distance_vector = dem_xyz - lidar_xyz[index];
+					// float distance = sqrt(  distance_vector.x()*distance_vector.x()
+					// 						+ distance_vector.y()*distance_vector.y()
+					// 						+ distance_vector.z()*distance_vector.z());
+					float distance = norm_2( distance_vector );
 
 					if (distance < minDistance)
 						{
@@ -360,15 +371,16 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 template <class ViewT>
 void 
 ICP_LIDAR_2_DEM(
-	      vector<Vector3> 		featureArray,  
+	      vector<Vector3>& 		featureArray,  
 	const ImageViewBase<ViewT>& DEM,
 	const GeoReference& 		DEMGeo, 
-	      vector<Vector3> 		modelArray, 
+	const vector<Vector3>& 		modelArray, 
+	const vector<Vector3>& 		modelArrayLatLon,
 	const CoregistrationParams 	settings,
 	      Vector3&				translation, 
 	      Matrix<float, 3, 3>&  rotation, 
-	      Vector3& 				center, 
-	const vector<float> 			&errorArray) // probably don't need this anymore
+	const Vector3& 				modelCenter)
+	// const vector<float>&		errorArray) // probably don't need this anymore
 {
    
 vector<Vector3> translationArray;
@@ -383,7 +395,7 @@ while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	{
 	vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
       	
-	FindMatchesFromDEM(modelArray, DEM, DEMGeo, featureArray, 
+	FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
 						translation, rotation, settings.noDataVal, 
 						settings.matchWindowHalfSize);
 
@@ -398,7 +410,7 @@ while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 	vw_out(vw::InfoMessage, "icp") << translation << endl;
              
 	vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-	rotation = ComputeDEMRotation(featureArray, modelArray/*, translation*/);
+	rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter/*, translation*/);
 	//PrintMatrix(rotation);
 	vw_out(vw::InfoMessage, "icp") << rotation << endl;
 
