@@ -178,6 +178,86 @@ int ComputeSalientReflectanceFeatures( vector< LOLAShot > & trackPts, float topP
   return 0;
 }
 
+
+int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh)
+{
+  int numShots = trackPts.size();
+  for (int si = 0; si < numShots; si++){
+     trackPts[si].featurePtLOLA = 0;
+  } 
+
+  //vector<float> filResList;
+  
+  int halfWindow = filter.size()/2;
+  //int halfWindow = filter.size()/2 + 1;
+  int windowSize = filter.size();
+
+  //filter the tracks
+  for (int si = halfWindow; si < numShots-halfWindow; si++){
+
+    float filres = 0;
+    int invalidSegment = 0;
+    for (int j = -halfWindow; j < halfWindow/*+1*/; j++){
+      
+      if (trackPts[si+j].LOLAPt.size() > 2){      
+	filres = filres + filter[j+halfWindow]*trackPts[si+j].LOLAPt[2].z();
+      }
+      else{
+	invalidSegment = 1;
+      }
+    }
+   
+    if (invalidSegment == 0){
+      trackPts[si].filresLOLA = filres/(float)windowSize;//abs(filres)/(float)windowSize;
+      //cout<<"filresLOLA="<<trackPts[si].filresLOLA<<endl;
+    }
+    else{
+       trackPts[si].filresLOLA = 0;
+    }
+  }
+  
+  //compute the salient features
+  for (unsigned int si = 0; si < trackPts.size(); si ++ ){
+      if(( abs(trackPts[si].filresLOLA) > salientFeatureThresh )){
+	  trackPts[si].featurePtLOLA = 1;  
+      }
+      else{
+	  trackPts[si].featurePtLOLA = 0;
+      }
+  } 
+
+ 
+  
+  //reject neigboring features around a local maxima
+  for (unsigned int si = 0; si < trackPts.size(); si ++ ){
+    if (trackPts[si].featurePtLOLA == 1){
+      for (int j = -halfWindow; j < halfWindow; j++){
+	if (trackPts[si+j].filresLOLA > trackPts[si].filresLOLA){
+	  trackPts[si].featurePtLOLA = 0;
+        }
+      }
+    }
+  }
+  
+
+  //print results - START
+  int numSalientFeatures = 0;
+  int numNonSalientFeatures = 0;
+  for (unsigned int si = 0; si < trackPts.size(); si ++ ){
+      if (trackPts[si].featurePtLOLA == 1){
+	printf("%d ", si);
+        numSalientFeatures++;
+      }   
+  }
+  if (numSalientFeatures > 0){
+      printf("\n");
+  }
+
+  printf("salientFeatThresh = %f, numLOLASalientFeatures = %d, numNonSalientFeatures = %d\n", 
+          salientFeatureThresh, numSalientFeatures, trackPts.size()-numSalientFeatures);
+  //print results - END
+}
+
 //returns a number of salient features per track
 int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent)
 {
@@ -215,12 +295,13 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
     int invalidSegment = 0;
     for(int j = -halfWindow; j < halfWindow+1; j++){
       if (trackPts[si+j].LOLAPt.size() > 2){
-        if ((trackPts[si+j].LOLAPt[2].z()<1800) &&(trackPts[si+j].LOLAPt[2].z()>1700)){
+        //if ((trackPts[si+j].LOLAPt[2].z()<1800) &&(trackPts[si+j].LOLAPt[2].z()>1700)){
 	  filres = filres + f[j+halfWindow]*trackPts[si+j].LOLAPt[2].z();
-	}
-        else{
-	  invalidSegment = 1;
-        }
+	  //}
+	  //else{
+          //cout<<"INVALID ALTITUDE!!!!! "<<trackPts[si+j].LOLAPt[2].z()<<endl;
+	  //invalidSegment = 1;
+	  //}
       }
       else{
 	invalidSegment = 1;

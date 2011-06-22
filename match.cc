@@ -154,7 +154,7 @@ void printLHS_Error( Vector<float,6> lhs, float error, int index, int iter)
   printf("LHS = [ %f, %f, %f, %f, %f, %f]\n", lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], lhs[5]);
   printf("--------------------------------------\n\n");
 }
-
+/*
 //This functions needs to be changed to generate multiple starting points for each 
 //element of the affine transform 
 void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
@@ -169,38 +169,72 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
       initTransfArray[i][5] = 0.0;//(i-maxNumStarts/2)*25;
     }  
 }
-/*
+*/
 //This functions needs to be changed to generate multiple starting points for each 
 //element of the affine transform 
-void GenerateInitTransformsNew(vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
+void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
 {
-  vector<int> numParamsArray.resize(6);
-  numParams(0)=3;
-  numParams(1)=3;
-  numParams(2)=3;
-  numParams(3)=3;
-  numParams(4)=3;
-  numParams(5)=3;
-  
+
+  vector<vector<float> > params;
+  params.resize(6);
+ 
+
+  params[0].resize(1);
+  params[0][0] = 1;  
+
+  params[1].resize(1);
+  params[1][0] = 0;
+
+  params[2].resize(11);
+  params[2][0] = -5;
+  params[2][1] = -4;
+  params[2][2] = -3;
+  params[2][3] = -2;
+  params[2][4] = -1;
+  params[2][5] =  0;
+  params[2][6] =  1;
+  params[2][7] =  2;
+  params[2][8] =  3;
+  params[2][9] =  4;
+  params[2][10] = 5;
+
+  params[3].resize(1);
+  params[3][0] = 0;  
+
+  params[4].resize(1);
+  params[4][0] = 1;
+ 
+  params[5].resize(9);
+  params[5][0] = -4;
+  params[5][1] = -3;
+  params[5][2] = -2;
+  params[5][3] = -1;
+  params[5][4] =  0;
+  params[5][5] =  1;
+  params[5][6] =  2;
+  params[5][7] =  3;
+  params[5][8] =  4;
+
+
   int maxNumStarts = 1;
   for( int i = 0; i < 6; i++){
-     maxNumStarts = maxNumStarts*numParams(i);
+    maxNumStarts = maxNumStarts*params[i].size();
   } 
-  
   initTransfArray.resize(maxNumStarts);
+  
   int index = 0;
-  for (int i0 = 0; i0 < numParams(0); i0++){
-    for (int i1 = 0; i1 < numParams(1); i1++){ 
-      for (int i2 = 0; i2 < numParams(2); i2++){
-        for (int i3 = 0; i3 < numParams(3); i3++){
-          for (int i4 = 0; i4 < numParams(4); i4++){
-            for (int i5 = 0; i5 < numParams(5); i5++){
-	      initTransfArray[index][0] = i0*delta(0);
-	      initTransfArray[index][1] = i1*delta(1);
-	      initTransfArray[index][2] = i2*delta(2);
-	      initTransfArray[index][3] = i3*delta(3);
-	      initTransfArray[index][4] = i4*delta(4);
-	      initTransfArray[index][5] = i5*delta(5);
+  for (int i0 = 0; i0 < params[0].size(); i0++){
+    for (int i1 = 0; i1 < params[1].size(); i1++){ 
+      for (int i2 = 0; i2 < params[2].size(); i2++){
+        for (int i3 = 0; i3 < params[3].size(); i3++){
+          for (int i4 = 0; i4 < params[4].size(); i4++){
+            for (int i5 = 0; i5 < params[5].size(); i5++){
+	      initTransfArray[index][0] = params[0][i0];
+	      initTransfArray[index][1] = params[1][i1];
+	      initTransfArray[index][2] = params[2][i2];
+	      initTransfArray[index][3] = params[3][i3];
+	      initTransfArray[index][4] = params[4][i4];
+	      initTransfArray[index][5] = params[5][i5];
               index++;
 	    }
 	  }
@@ -209,7 +243,7 @@ void GenerateInitTransformsNew(vector<Vector<float, 6> > &initTransfArray, Coreg
     }
   }
 }
-*/
+
 void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 
                       Vector<float, 6> &optimalTransf, float &optimalError)
 {
@@ -277,10 +311,15 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     cout<<"width="<<width<<" "<<"height="<<height<<endl;
     camera::IsisCameraModel model(cubFilename);
 
+    /*
     ImageViewRef<float> interpImg;
     interpImg = pixel_cast<float>(interpolate(edge_extend(isis_view, 
     							  ConstantEdgeExtension()),
     					      BilinearInterpolation()) );
+    */
+
+    InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> interpImg
+    = interpolate(edge_extend(isis_view,ConstantEdgeExtension()), BilinearInterpolation());
 
     //DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
     //GeoReference DRGGeo;

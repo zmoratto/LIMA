@@ -85,152 +85,7 @@ LOLAShot::LOLAShot( pointCloud pt )
   LOLAShot::init( pcv );
   }
 
-/*
-vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename)
-{
-  string line;
-  ifstream myfile (CSVFilename.c_str());
-  int lineIndex = 0;
-  //int shotIndex = 0;
- 
-  int trackIndex;
-  vector<vector<LOLAShot> >trackPts;
-  LOLAShot shot;
- 
-  pointCloud currPt;
-  pointCloud prevPt;
 
-  if (myfile.is_open())
-  {
-    while (! myfile.eof() )
-    {
-      getline (myfile,line);
-      if(!myfile.eof()){ 
-      if (lineIndex > 0){//skip header
-     
-        //float lon, lat, rad;
-        char *temp = new char[160]; 
-        char *lon = new char[160]; 
-        char *lat = new char[160]; 
-        char *rad = new char[160];
-        char *detID = new char[5];
-        char *tmpf = new char[200];
-	
-        //printf("line = %s\n", line.c_str()); 
-	sscanf(line.c_str(), "%s %s %s %s %s %s %s %s %s %s  %s", 
-	       temp, lon, lat, rad, tmpf, tmpf, tmpf, tmpf, tmpf, tmpf, detID);
-
-        string time = temp;
-        char year[5]; 
-        char month[3]; 
-        char day[3];
-        char hour[3];
-        char min[3];
-        char sec[12];
-        char s[2];
-	
-	string detIDs = detID;
-    //NOTE: all of the following atoi where orignally atof but where changed to remove compiler warnings - dtj, 2010_07_21
-        if (time.length() > 1){
-	  size_t length;
-	  length = time.copy(year, 4, 0);
-          //printf("length = %d\n", length);
-	  year[length] = '\0';
-          currPt.year = atoi(year); 
-       
-	  length = time.copy(month, 2, 5);
-          //printf("length = %d\n", length);
-	  month[length] = '\0';
-          currPt.month = atoi(month); 
-
-	  length = time.copy(day, 2, 8);
-	  day[length] = '\0';  
-          currPt.day = atoi(day);
-
-	  length = time.copy(hour, 2, 11);
-	  hour[length] = '\0';
-          currPt.hour = atoi(hour);
-
-	  length = time.copy(min, 2, 14);
-	  min[length] = '\0';
-          currPt.min = atoi(min);
-
-	  length = time.copy(sec, 11, 17);
-	  sec[length] = '\0';
-          currPt.sec = atof(sec);
-
-          length = detIDs.copy(s, 1, 2);
-          s[length] = '\0';
-          currPt.s = atoi(s);
-	  //printf("%s %s %s %s %s %s detID = %s\n", year, month, day, hour, min, sec, s);
-	}
-	
-        Vector3 coords;         
-        currPt.x( atof(lon) );
-        currPt.y( atof(lat) );
-        currPt.z( atof(rad) );
-        
-        
-        if ((currPt.coords(0)!=0.0) && (currPt.coords(1)!=0.0) ){ //valid lidar point
-     
-	  if (lineIndex == 1){ //initialize first track
-	      trackIndex = 0;
-	      trackPts.resize(trackIndex+1);
-              printf("lineIndex = %d\n", lineIndex);
-          }
-          else{
-            
-	     if (GetTimeDiff(prevPt, currPt, 3000)){ //new track
-	         trackPts[trackIndex].push_back(shot);//add last shot to the previous track
-                 shot.LOLAPt.clear();
-                 trackIndex++;
- 	         trackPts.resize(trackIndex+1); //start new track
-                 shot.LOLAPt.push_back(currPt);
-	     }
-	     else{ //same track
-                 if (GetTimeDiff(prevPt, currPt, 0)){//new shot
-	             trackPts[trackIndex].push_back(shot);
-                     shot.LOLAPt.clear();
-                     shot.LOLAPt.push_back(currPt);
-                 }
-	         else{ //same shot
-                    shot.LOLAPt.push_back(currPt);
-                 }
-             }
-	   }
-
-      
-           //copy current pc into prevPt
-           prevPt.coords(0) = currPt.coords(0);
-           prevPt.coords(1) = currPt.coords(1);
-           prevPt.coords(2) = currPt.coords(2);
-           prevPt.year = currPt.year;
-           prevPt.month = currPt.month;
-           prevPt.day = currPt.day;
-           prevPt.hour = currPt.hour;
-           prevPt.min = currPt.min;
-           prevPt.sec = currPt.sec;   
-           prevPt.s = currPt.s;
-	}
-
-        delete temp;
-        delete lon;
-	delete lat;
-	delete rad;
-	delete detID;
-      } 
-      lineIndex++; 
-    }
-    }
-    myfile.close();
-  }
-
-  else cout << "Unable to open file";
-
-  
-  return trackPts; 
-}
-*/
 
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	{
@@ -527,6 +382,22 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   return scaleFactor;
 }
 
+Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
+{
+  Vector3 normal;
+  Matrix<float,5,4> rhs;
+  Vector<float,3> lhs;
+  for (int i = 0; i < pointArray.size(); i++){
+    rhs(i,0)=pointArray[i][0];
+    rhs(i,1)=pointArray[i][1]; 
+    rhs(i,2)=pointArray[i][2];
+    rhs(i,3)=1;
+  }
+  
+  solve_symmetric_nocopy(rhs,lhs);
+  return normal;
+
+}
 void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
 {
 
@@ -544,9 +415,14 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
   for (unsigned int k = 0; k < allTracks.size(); k++ ){
     for (unsigned int i = 0; i < allTracks[k].size(); i++){
       LOLAPts = allTracks[k][i].LOLAPt;
+      /*
       pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
       pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
       pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
+      */
+      pointCloud centerPt = GetPointFromIndex(LOLAPts, 1);
+      pointCloud topPt = GetPointFromIndex(LOLAPts, 3);
+      pointCloud leftPt = GetPointFromIndex(LOLAPts, 2);
 
       if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (allTracks[k][i].valid == 1)){
         Datum moon;
@@ -848,6 +724,108 @@ Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
 
 }
 
+void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
+{
+  int numValidPts = 0; 
+  float avgDistance = 0.0;
+  Datum moon;
+  moon.set_well_known_datum("D_MOON");
+
+  for (unsigned int i = 0; i < trackPts.size(); i++){
+    for (unsigned int j = 1; j < trackPts[i].size(); j++){
+      if ((trackPts[i][j].LOLAPt.size()==5) && (trackPts[i][j-1].LOLAPt.size()==5)){
+         
+        float lon, lat, rad;
+        Vector3 lon_lat_rad;
+        lon = trackPts[i][j-1].LOLAPt[0].x();
+	lat = trackPts[i][j-1].LOLAPt[0].y();
+	rad = trackPts[i][j-1].LOLAPt[0].z();
+        lon_lat_rad(0) = lon;
+        lon_lat_rad(1) = lat;
+        //lon_lat_rad(2) = 1000*rad;
+        //Vector3 prev_xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+
+        lon_lat_rad(2) = (rad-1737.4)*1000;
+        Vector3 prev_xyz = moon.geodetic_to_cartesian(lon_lat_rad);
+       
+       
+        lon = trackPts[i][j].LOLAPt[0].x();
+	lat = trackPts[i][j].LOLAPt[0].y();
+	rad = trackPts[i][j].LOLAPt[0].z();
+        lon_lat_rad(0) = lon;
+        lon_lat_rad(1) = lat;
+        //lon_lat_rad(2) = 1000*rad;
+        //Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+        
+        lon_lat_rad(2) = (rad-1737.4)*1000;
+        Vector3 xyz = moon.geodetic_to_cartesian(lon_lat_rad);
+        
+	float dist_x = xyz[0]-prev_xyz[0];
+        float dist_y = xyz[1]-prev_xyz[1];
+        float dist_z = xyz[2]-prev_xyz[2];
+        float dist = sqrt(dist_x*dist_x + dist_y*dist_y + dist_z*dist_z);
+        avgDistance = avgDistance + dist;
+        numValidPts = numValidPts + 1;
+
+      }
+    }
+  }
+
+  cout<<"numValidPts="<<numValidPts<<endl;  
+  avgDistance = avgDistance/numValidPts;
+  cout<<"avgDistance= "<<avgDistance<<endl;
+}
+
+//computes the average distance from the center of the shot to its neighbors in the shot
+void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
+{
+  int numValidPts = 0; 
+  float avgDistance = 0.0;
+  vector<Vector3> xyzArray;
+  xyzArray.resize(5);
+  vector<float> distArray;
+  distArray.resize(5);
+
+  for (unsigned int i = 0; i < trackPts.size(); i++){
+    for (unsigned int j = 0; j < trackPts[i].size(); j++){
+      if (trackPts[i][j].LOLAPt.size()==5){
+        
+        for (unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
+	  float lon, lat, rad;
+	  Vector3 lon_lat_rad;
+	  lon = trackPts[i][j].LOLAPt[k].x();
+	  lat = trackPts[i][j].LOLAPt[k].y();
+	  rad = trackPts[i][j].LOLAPt[k].z();
+	  lon_lat_rad(0) = lon;
+	  lon_lat_rad(1) = lat;
+	  lon_lat_rad(2) = 1000*rad;
+	  xyzArray[k] = lon_lat_radius_to_xyz(lon_lat_rad);
+	}
+     
+        for (unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
+	  float x_dist = xyzArray[0][0]-xyzArray[k][0];
+	  float y_dist = xyzArray[0][1]-xyzArray[k][1];
+	  float z_dist = xyzArray[0][2]-xyzArray[k][2];
+	  distArray[k] = distArray[k] + sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist);
+	}
+
+        numValidPts = numValidPts + 1;
+        
+
+      }
+    }
+  }
+
+  cout<<"numValidPts="<<numValidPts<<endl;  
+  for (unsigned int k = 0; k < distArray.size(); k++){
+    distArray[k] = distArray[k]/numValidPts;
+    cout<<k<<":distArray= "<<distArray[k]<<endl;
+  }
+ 
+}
+
+
+
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 {
 
@@ -878,89 +856,3 @@ int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
 
 
 
-
-
-//=============================================================================================================================
-//ALL FUNCTIONS BELOW THIS LINE ARE OBSOLETEAND WILL BE LATER REMOVED
-#if 0
-//this function can be removed - START
-void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> imgFiles,  std::vector<int> overlapIndices, 
-                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename)
-{
-
-  int index = 0;
-
-  //for all features in the LOLA data
-  for (unsigned int t=0; t<trackPts.size(); t++){
-    for (unsigned int s=0; s<trackPts[t].size(); s++){
-      if (trackPts[t][s].featurePtLOLA==1){
-
-	float lon = trackPts[t][s].LOLAPt[2].coords[0];
-	float lat = trackPts[t][s].LOLAPt[2].coords[1]; 
-	float rad = trackPts[t][s].LOLAPt[2].coords[2]*1000;
-	float sigma_x = 1;
-	float sigma_y = 1; 
-	float sigma_z = 1;
- 
-        //TO DO: compute the original imgPts from xyz - START
-	Vector3 lon_lat_rad (lon,lat,rad);
-	Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
-	
-        //TO DO: compute the original imgPts from xyz - END
-
-	stringstream ss;
-	ss<<index;
-	string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
-    
-	FILE *fp = fopen(this_gcpFilename.c_str(), "w");
-	
-	fprintf(fp, "%f %f %f %f %f %f\n", lon, lat, rad, sigma_x, sigma_y, sigma_z);
-	
-        for (unsigned int k = 0; k < overlapIndices.size(); k++){
-          
-          //boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-	  //double nodata_value = rsrc->nodata_read();
-	  //DiskImageView<PixelGray<float> > isis_view( rsrc );
-	  //int width = isis_view.cols();
-	  //int height = isis_view.rows();
-
-          string cubFilename =  imgFiles[overlapIndices[k]];
-	  camera::IsisCameraModel model(cubFilename);
-          Vector2 cub_pix = model.point_to_pixel(xyz);
-	  float x = cub_pix[0];
-	  float y = cub_pix[1];
-          
-          float i = (optimalTransfArray[k][0]*x + optimalTransfArray[k][1]*y + optimalTransfArray[k][2]);
-	  float j = (optimalTransfArray[k][3]*x + optimalTransfArray[k][4]*y + optimalTransfArray[k][5]);
-
-	  //float i = (optimalTransfArray[k][0]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][1]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][2]);
-	  //float j = (optimalTransfArray[k][3]*trackPts[t][s].imgPt[2].x + optimalTransfArray[k][4]*trackPts[t][s].imgPt[2].y + optimalTransfArray[k][5]);
-          
-	  //print x and y vals before 
-          cout<<"before"<<x<<" "<<y<<endl;
-          //print x and y vals after
-          cout<<"after"<<i<<" "<<j<<endl;
-
-          string filenameNoPath = imgFiles[overlapIndices[k]];
-          int lastSlashPos = filenameNoPath.find_last_of("/");
-          if (lastSlashPos != -1){
-	    filenameNoPath.erase(0, lastSlashPos+1);
-	  }
-          if (k == overlapIndices.size()-1){
-	    fprintf(fp, "%s %f %f", filenameNoPath.c_str(), i, j);
-          }
-	  else{
-	    fprintf(fp, "%s %f %f\n", filenameNoPath.c_str(), i, j);
-	  }
-	}
-  
-	fclose(fp);
-       
-        index++;
-      }
-    }
-  }
-  
-}
-//this function can be removed - END
-#endif

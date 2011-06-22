@@ -164,12 +164,64 @@ int main( int argc, char *argv[] ) {
   printf("done\n");
 
   int numOverlappingImages = (int)overlapIndices.size();
+  ComputeAverageShotDistance(trackPts);
+  ComputeAverageIntraShotDistance(trackPts);
+  /*
   //determine the LOLA features
   int halfWindow = 10;
   printf("numTracks = %d\n", (int)trackPts.size());
   for (int ti = 0; ti < (int)trackPts.size(); ti++){
     printf("trackIndex = %d\n", ti);
     ComputeSalientLOLAFeature(trackPts[ti], halfWindow, (float)(settings.topPercentFeatures)/1000.0);
+    ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh);
+  }
+  */
+  //compute LOLA features
+  printf("numTracks = %d\n", (int)trackPts.size());
+  /* 
+  //build step filter - START
+  vector<float> filter;
+
+  int windowSize = 21;
+  int halfWindowSize = windowSize/2;
+  filter.resize(windowSize);
+  for (int i = 0; i < windowSize ;i++ ){
+    if (i < halfWindowSize){
+      filter[i] = -1.0; 
+    }
+    if(i == halfWindowSize){
+      filter[i] = 0.0;
+    }
+    if (i > halfWindowSize){
+      filter[i] = 1.0;
+    }
+  }
+  //build step filter - END
+  float salientFeatureThresh = 0.18;
+  */
+
+  //build crater filter - START
+  vector<float> filter;
+  int windowSize = 12;//16
+  int halfWindowSize = windowSize/2;
+  int quartWindowSize = windowSize/4;
+  filter.resize(windowSize);
+  for (int i = 0; i < windowSize ;i++ ){
+    if ((i < quartWindowSize) || (i > windowSize-quartWindowSize-1)){
+      filter[i] = 1.0; 
+    }
+    else{
+      filter[i] = -1.0; 
+    }
+    //printf("%d %f\n", i, filter[i]);
+  }
+  
+  //build crater filter -  END
+  float salientFeatureThresh = 0.008;//0.015;
+
+  for (int ti = 0; ti < (int)trackPts.size(); ti++){
+    printf("trackIndex = %d\n", ti);
+    ComputeSalientLOLAFeature(trackPts[ti], filter, salientFeatureThresh);
   }
 
   //this should be returned by ComputeSalientLOLAFeature
@@ -224,16 +276,17 @@ int main( int argc, char *argv[] ) {
     }
     
     if (settings.analyseFlag == 1){
-      /*
-      float scaleFactor = ComputeScaleFactor(trackPts);
-      SaveImagePoints(trackPts, 3, imgPtsFilename);
-      SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
-      SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-      SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
-      int numVerPts = 6000;
-      int numHorPts = 6000;
-      MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices); 
-      */
+      
+      //float scaleFactor = ComputeScaleFactor(trackPts);
+      //SaveImagePoints(trackPts, 3, imgPtsFilename);
+      //SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
+      
+      //SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
+      //SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
+      //int numVerPts = 6000;
+      //int numHorPts = 6000;
+      //MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices); 
+      
     }
    
     //initialization step for LIMA - START  

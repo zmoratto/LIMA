@@ -66,7 +66,7 @@ namespace math
     pointCloud
       (
   	Vector3 = Vector3(), //coords
-    int   = 0, // year
+        int   = 0, // year
   	int   = 0, // month
   	int   = 0, // day
   	int   = 0, // hour
@@ -168,12 +168,12 @@ class LOLAShot
     int              = 0, // centerPtIndex
     float            = 0, // reflectance
     float            = 0, // synthImage
-	int              = 0, // calc_acp
-	float            = 0, // filter_response
-	float            = 0, // featurePtRefl
-	float            = 1, // weightRefl
-	float            = 0, // featurePtLOLA
-	float            = 0  // filresLOLA
+    int              = 0, // calc_acp
+    float            = 0, // filter_response
+    float            = 0, // featurePtRefl
+    float            = 1, // weightRefl
+    float            = 0, // featurePtLOLA
+    float            = 0  // filresLOLA
     );
 };
 
@@ -187,10 +187,10 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
     << " synthiImage: "   << s.synthImage
     << " calc_acp: "      << s.calc_acp
     << endl
-    << "featurePtRefl: " << s.featurePtRefl
+    << "featurePtRefl: "  << s.featurePtRefl
     << " weightRefl: "    << s.weightRefl
     << " featurePtLOLA: " << s.featurePtLOLA
-	<< " filresLOLA: "    << s.filresLOLA
+    << " filresLOLA: "    << s.filresLOLA
     << endl
     << "Number of LOLA points in this shot: " << s.LOLAPt.size();
   for( unsigned int point = 0; point < s.LOLAPt.size(); ++point )
@@ -200,7 +200,7 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
   for( unsigned int point = 0; point < s.imgPt.size(); ++point )
     {
     stream << endl
-           << "  x: " << s.imgPt[point].x 
+           << " x: "   << s.imgPt[point].x 
            << " y: "   << s.imgPt[point].y 
            << " val: " << s.imgPt[point].val;
     }
@@ -241,7 +241,8 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
-
+void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
+void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 //this function does not belong here
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 
