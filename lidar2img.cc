@@ -54,19 +54,20 @@ using namespace std;
 #include "weights.h"
 #include "featuresLOLA.h"
 
+
 int main( int argc, char *argv[] ) {
 
   string inputCSVFilename; 
   std::string configFilename="lidar2img_settings.txt";
   
   std::vector<std::string> DEMFiles;
-  std::vector<std::string> cubFiles;
+  std::vector<std::string> mapCubFiles;
   std::string resDir = "../results";
  
   po::options_description general_options("Options");
   general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-    ("cubFiles,c", po::value<std::vector<std::string> >(&cubFiles))
+    ("mapCubFiles,c", po::value<std::vector<std::string> >(&mapCubFiles))
     ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
     ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
@@ -123,13 +124,13 @@ int main( int argc, char *argv[] ) {
   std::cerr << settings << endl;
 
 
-  int numCubFiles = cubFiles.size();
+  int numCubFiles = mapCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);
   vector<ModelParams> modelParamsArray;
   modelParamsArray.resize(numCubFiles);
   for (int i = 0; i < numCubFiles; i++){
-    printf("cubFiles[%d] = %s\n", i, cubFiles[i].c_str());
-    camera::IsisCameraModel model(cubFiles[i]);
+    printf("mapCubFiles[%d] = %s\n", i, mapCubFiles[i].c_str());
+    camera::IsisCameraModel model(mapCubFiles[i]);
     Vector3 center_of_moon(0,0,0);
     Vector2 pixel_location = model.point_to_pixel( center_of_moon );
     Vector3 cameraPosition = model.camera_center( pixel_location );
@@ -159,7 +160,7 @@ int main( int argc, char *argv[] ) {
   lon_lat_bb[3]=lat_lon_bb[1];
   printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
   
-  std::vector<int> overlapIndices = makeOverlapList(cubFiles, lon_lat_bb);
+  std::vector<int> overlapIndices = makeOverlapList(mapCubFiles, lon_lat_bb);
   printOverlapList(overlapIndices);
   printf("done\n");
 
@@ -251,7 +252,7 @@ int main( int argc, char *argv[] ) {
   for (int k = 0; k < numOverlappingImages; k++){
 
     //string inputDEMFilename;
-    string inputImgFilename = cubFiles[k];  
+    string inputImgFilename = mapCubFiles[k];  
     cout<<inputImgFilename<<endl;
 
     string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
@@ -291,7 +292,7 @@ int main( int argc, char *argv[] ) {
    
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub"<<endl; 
-    GetAllPtsFromCub(trackPts, cubFiles[k]);
+    GetAllPtsFromCub(trackPts, mapCubFiles[k]);
     
     
     if (settings.analyseFlag == 1){
@@ -303,7 +304,7 @@ int main( int argc, char *argv[] ) {
 	unitTransfArray[4]=1;
 	unitTransfArray[5]=0;
         ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
-			         trackIndices, cubFiles[k], lolaInitTracksOnImageFilename);
+			         trackIndices, mapCubFiles[k], lolaInitTracksOnImageFilename);
     }
     
 
@@ -335,7 +336,7 @@ int main( int argc, char *argv[] ) {
 
     cout<<"Initializing the affine tranformation ..."<<endl;
     //initMatchingErrorArray retains the matching error for each bestInitTransfArray
-    InitMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings,  
+    InitMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings,  
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     cout<<"done."<<endl;
    
@@ -344,7 +345,7 @@ int main( int argc, char *argv[] ) {
     if (refinedMatching == 1){
       cout<<"Computing the affine tranformation ..."<<endl;
       //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
-      UpdateMatchingParamsFromCub(trackPts, cubFiles[k], modelParamsArray[k], settings.maxNumIter,  
+      UpdateMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings.maxNumIter,  
 				  bestInitTransfArray, finalTransfArray, finalMatchingErrorArray, transfCentroid);
       cout<<"done."<<endl;
     }
@@ -357,12 +358,12 @@ int main( int argc, char *argv[] ) {
 
     //save to GCP structure.
     cout<<"CENTROID"<<transfCentroid<<endl;
-    UpdateGCP(trackPts, optimalTransfArray[k], cubFiles[k], gcpArray, transfCentroid);
+    UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid);
 
     if (settings.analyseFlag){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
-			        trackIndices, cubFiles[k], lolaFinalTracksOnImageFilename);
+			        trackIndices, mapCubFiles[k], lolaFinalTracksOnImageFilename);
     }    
     
   }  

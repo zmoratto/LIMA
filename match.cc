@@ -185,18 +185,27 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   params[1].resize(1);
   params[1][0] = 0;
 
-  params[2].resize(11);
-  params[2][0] = -5;
-  params[2][1] = -4;
-  params[2][2] = -3;
-  params[2][3] = -2;
-  params[2][4] = -1;
-  params[2][5] =  0;
-  params[2][6] =  1;
-  params[2][7] =  2;
-  params[2][8] =  3;
-  params[2][9] =  4;
-  params[2][10] = 5;
+  params[2].resize(19);
+  params[2][0] = -9;
+  params[2][1] = -8;
+  params[2][2] = -7;
+  params[2][3] = -6;
+  params[2][4] = -5;
+  params[2][5] = -4;
+  params[2][6] = -3;
+  params[2][7] = -2;
+  params[2][8] = -1;
+  params[2][9] =  0;
+  params[2][10] = 1;
+  params[2][11] = 2;
+  params[2][12] = 3;
+  params[2][13] = 4;
+  params[2][14] = 5;
+  params[2][15] = 6;
+  params[2][16] = 7;
+  params[2][17] = 8;
+  params[2][18] = 9;
+
 
   params[3].resize(1);
   params[3][0] = 0;  
@@ -241,6 +250,14 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
 	}
       }
     }
+  }
+
+  for (int i = 0; i < maxNumStarts; i++){
+    printf("%d:", i);
+    for (int j = 0; j < 6; j++){
+      printf("%f ", initTransfArray[i][j]);
+    }
+    printf("\n");
   }
 }
 

@@ -15,6 +15,7 @@
 #include "display.h"
 #include "util.h"
 #include "tracks.h"
+#include "map2cam.h"
 
 /* Constructor for pointCloud which is really just a Vector3 
  * with some extra data fields.
@@ -620,7 +621,11 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
                string cubFile, vector<gcp> &gcpArray, Vector2 centroid)
 {
-    int index = 0;
+
+    std::vector<float> map_pixel;
+    map_pixel.resize(2);
+    
+   int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
       for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
 	if (trackPts[t][s].featurePtLOLA==1){
@@ -633,12 +638,17 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 	    float j = (optimalTransfArray[3]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
 		       optimalTransfArray[4]*(trackPts[t][s].imgPt[2].y - centroid(1)) + 
                        optimalTransfArray[5] + centroid(1));
+
+            map_pixel[0] = i;
+            map_pixel[1] = j; 
+	    std::vector<float> cam_pixel = map2cam(cubFile, map_pixel);
+            cout<<"cam_pixel="<<cam_pixel[0]<<" "<<cam_pixel[1]<<endl;
 	    gcpArray[index].x.push_back(i);
 	    gcpArray[index].y.push_back(j);
 
 	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
 	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
-            cout<<"UpdateGCP: "<<index<<"numElements: "<<gcpArray[index].filename.size()<<endl;
+            cout<<"UpdateGCP: "<<index<<", numElements: "<<gcpArray[index].filename.size()<<endl;
           }
           index++;
 	}
