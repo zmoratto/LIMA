@@ -46,7 +46,7 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
-
+void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );
 void printOverlapList(std::vector<int>  overlapIndices);
 
 //this will be used to compute the makeOverlapList in a more general way.

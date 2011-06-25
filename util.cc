@@ -47,6 +47,23 @@ using namespace vw::cartography;
 using namespace vw::camera;
 using namespace std;
 
+
+void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace ) 
+{ 
+
+  size_t uPos = 0; 
+  size_t uFindLen = tFind.length(); 
+  size_t uReplaceLen = tReplace.length();
+  
+  if( uFindLen != 0 ){
+    for( ;(uPos = tInput.find( tFind, uPos )) != std::string::npos; ){
+      tInput.replace( uPos, uFindLen, tReplace );
+      uPos += uReplaceLen;
+    }
+  }
+
+}
+
 void printOverlapList(std::vector<int>  overlapIndices)
 {
   printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));

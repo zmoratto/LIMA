@@ -61,6 +61,7 @@ int main( int argc, char *argv[] ) {
   std::string configFilename="lidar2img_settings.txt";
   
   std::vector<std::string> DEMFiles;
+  std::vector<std::string> camCubFiles;
   std::vector<std::string> mapCubFiles;
   std::string resDir = "../results";
  
@@ -82,7 +83,7 @@ int main( int argc, char *argv[] ) {
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
-  p.add("cubFiles", -1);
+  p.add("mapCubFiles", -1);
 
   std::ostringstream usage;
   usage << "Description: main code for Lidar to image or DEM co-registration" << std::endl << std::endl;
@@ -104,7 +105,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("cubFiles") < 1 )) {
+  if(( vm.count("mapCubFiles") < 1 )) {
     std::cerr << "Error: Must specify at least one orthoprojected image file or one DEM file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
@@ -128,6 +129,8 @@ int main( int argc, char *argv[] ) {
   printf("numCubFiles = %d\n", numCubFiles);
   vector<ModelParams> modelParamsArray;
   modelParamsArray.resize(numCubFiles);
+  camCubFiles.resize(numCubFiles);
+
   for (int i = 0; i < numCubFiles; i++){
     printf("mapCubFiles[%d] = %s\n", i, mapCubFiles[i].c_str());
     camera::IsisCameraModel model(mapCubFiles[i]);
@@ -267,7 +270,10 @@ int main( int argc, char *argv[] ) {
     string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "lola.tif";  
     string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img_lola.tif";  
     string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "results_img_lola.tif";  
-  
+    camCubFiles[k] = inputImgFilename;
+    FindAndReplace(camCubFiles[k], "_map", ".lev1"); 
+    cout<<"camCubFiles="<<camCubFiles[k]<<endl;
+
     //create the results directory and prepare the output filenames - END
 
     vector<int> trackIndices;
@@ -358,8 +364,8 @@ int main( int argc, char *argv[] ) {
 
     //save to GCP structure.
     cout<<"CENTROID"<<transfCentroid<<endl;
-    UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid);
-
+    //UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid, 1.0);
+    UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], gcpArray, transfCentroid, 4.0);
     if (settings.analyseFlag){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 

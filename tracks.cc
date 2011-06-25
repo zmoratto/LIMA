@@ -619,7 +619,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, s
 }
 
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
-               string cubFile, vector<gcp> &gcpArray, Vector2 centroid)
+               string cubFile, vector<gcp> &gcpArray, Vector2 centroid, float downsample_factor)
 {
 
     std::vector<float> map_pixel;
@@ -646,8 +646,8 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 	    gcpArray[index].x.push_back(i);
 	    gcpArray[index].y.push_back(j);
 
-	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
-	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
+	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x/downsample_factor);
+	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y/downsample_factor);
             cout<<"UpdateGCP: "<<index<<", numElements: "<<gcpArray[index].filename.size()<<endl;
           }
           index++;
