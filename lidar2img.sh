@@ -12,14 +12,7 @@ do
    #/Users/anefian/StereoPipeline-1.0.4-i386-OSX/bin/ipfind --num-threads 1 $pngFile -g 0.9 -l -d 
 done
 
-#new LOLA data
-./lidar2img  -l ../data/Apollo15-LOLA/ApolloLOLA_22n24n_4e6e_pts_csv.csv -m ../data/Apollo15-CUB ../data/Apollo15-CUB/*.lev1.cub
-
-
-
-
-
-#old LOLA data
-#./lidar2img  -l ../data/Apollo15-LOLA/1E8E_21N28N/RDR_1E8E_21N28NPointPerRow_csv_table.csv ../data/Apollo15-CUB/*.cub
+#run lidar2img
+./lidar2img  -l ../data/Apollo15-LOLA/ApolloLOLA_22n24n_4e6e_pts_csv.csv -m ../data/Apollo15-MAP-CUB ../data/Apollo15-CAM-CUB/*.lev1.cub
 
 

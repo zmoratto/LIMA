@@ -273,7 +273,7 @@ int main( int argc, char *argv[] ) {
     FindAndReplace(camCubFiles[k], "_map", ".lev1"); 
     cout<<"camCubFiles="<<camCubFiles[k]<<endl;
     */
-    mapCubFiles[k] = inputImgFilename;
+    mapCubFiles[k] = mapCubDir+string("/")+imgFilenameNoPath;
     FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
     cout<<"mapCubFiles="<<mapCubFiles[k]<<endl;
 
