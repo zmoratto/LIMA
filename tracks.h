@@ -234,7 +234,12 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 
-void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, vector<gcp> &gcpArray, Vector2 centroid, float downsample_factor);
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, 
+               vector<gcp> &gcpArray, Vector2 centroid);
+
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
+               string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
+               float downsample_factor);
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 //void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
 //                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename);

@@ -13,7 +13,7 @@ do
 done
 
 #new LOLA data
-./lidar2img  -l ../data/Apollo15-LOLA/ApolloLOLA_22n24n_4e6e_pts_csv.csv ../data/Apollo15-CUB/*.cub
+./lidar2img  -l ../data/Apollo15-LOLA/ApolloLOLA_22n24n_4e6e_pts_csv.csv -m ../data/Apollo15-CUB ../data/Apollo15-CUB/*.lev1.cub
 
 
 

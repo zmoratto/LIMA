@@ -178,7 +178,6 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   vector<vector<float> > params;
   params.resize(6);
  
-
   params[0].resize(1);
   params[0][0] = 1;  
 
@@ -186,44 +185,21 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   params[1][0] = 0;
 
   params[2].resize(19);
-  params[2][0] = -9;
-  params[2][1] = -8;
-  params[2][2] = -7;
-  params[2][3] = -6;
-  params[2][4] = -5;
-  params[2][5] = -4;
-  params[2][6] = -3;
-  params[2][7] = -2;
-  params[2][8] = -1;
-  params[2][9] =  0;
-  params[2][10] = 1;
-  params[2][11] = 2;
-  params[2][12] = 3;
-  params[2][13] = 4;
-  params[2][14] = 5;
-  params[2][15] = 6;
-  params[2][16] = 7;
-  params[2][17] = 8;
-  params[2][18] = 9;
-
-
+  for (int i = 0; i < params[2].size(); i++){
+    params[2][i] = -9+i;
+  }
+ 
   params[3].resize(1);
   params[3][0] = 0;  
 
   params[4].resize(1);
   params[4][0] = 1;
- 
-  params[5].resize(9);
-  params[5][0] = -4;
-  params[5][1] = -3;
-  params[5][2] = -2;
-  params[5][3] = -1;
-  params[5][4] =  0;
-  params[5][5] =  1;
-  params[5][6] =  2;
-  params[5][7] =  3;
-  params[5][8] =  4;
 
+  params[5].resize(19);
+  for (int i = 0; i < params[5].size(); i++){
+    params[5][i] = -9+i;
+  }
+ 
 
   int maxNumStarts = 1;
   for( int i = 0; i < 6; i++){
@@ -251,7 +227,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
       }
     }
   }
-
+  /*
   for (int i = 0; i < maxNumStarts; i++){
     printf("%d:", i);
     for (int j = 0; j < 6; j++){
@@ -259,6 +235,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
     }
     printf("\n");
   }
+  */
 }
 
 void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 

@@ -64,11 +64,13 @@ int main( int argc, char *argv[] ) {
   std::vector<std::string> camCubFiles;
   std::vector<std::string> mapCubFiles;
   std::string resDir = "../results";
+  std::string mapCubDir = "../data/map";
  
   po::options_description general_options("Options");
   general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-    ("mapCubFiles,c", po::value<std::vector<std::string> >(&mapCubFiles))
+    ("camCubFiles,c", po::value<std::vector<std::string> >(&camCubFiles))
+    ("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
     ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
     ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
@@ -83,10 +85,10 @@ int main( int argc, char *argv[] ) {
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
-  p.add("mapCubFiles", -1);
+  p.add("camCubFiles", -1);
 
   std::ostringstream usage;
-  usage << "Description: main code for Lidar to image or DEM co-registration" << std::endl << std::endl;
+  usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
   usage << general_options << std::endl;
 
   po::variables_map vm;
@@ -105,35 +107,32 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("mapCubFiles") < 1 )) {
-    std::cerr << "Error: Must specify at least one orthoprojected image file or one DEM file!" << std::endl << std::endl;
+  if(( vm.count("camCubFiles") < 1 )) {
+    std::cerr << "Error: Must specify at least one cun image file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
   }
 
   //#if 0
   struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) )
-	{
-	std::cerr << "Config file " << configFilename << " found." << endl;
-	}
-  else
-	{
-	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
-	}
+  if( ReadConfigFile(configFilename, &settings) ){
+      std::cerr << "Config file " << configFilename << " found." << endl;
+  }
+  else{
+    std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+  }
   //PrintGlobalParams(&settings);
   std::cerr << settings << endl;
 
-
-  int numCubFiles = mapCubFiles.size();
+  int numCubFiles = camCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);
   vector<ModelParams> modelParamsArray;
   modelParamsArray.resize(numCubFiles);
-  camCubFiles.resize(numCubFiles);
+  mapCubFiles.resize(numCubFiles);
 
   for (int i = 0; i < numCubFiles; i++){
-    printf("mapCubFiles[%d] = %s\n", i, mapCubFiles[i].c_str());
-    camera::IsisCameraModel model(mapCubFiles[i]);
+    printf("camCubFiles[%d] = %s\n", i, camCubFiles[i].c_str());
+    camera::IsisCameraModel model(camCubFiles[i]);
     Vector3 center_of_moon(0,0,0);
     Vector2 pixel_location = model.point_to_pixel( center_of_moon );
     Vector3 cameraPosition = model.camera_center( pixel_location );
@@ -163,7 +162,7 @@ int main( int argc, char *argv[] ) {
   lon_lat_bb[3]=lat_lon_bb[1];
   printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
   
-  std::vector<int> overlapIndices = makeOverlapList(mapCubFiles, lon_lat_bb);
+  std::vector<int> overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
   printOverlapList(overlapIndices);
   printf("done\n");
 
@@ -217,7 +216,6 @@ int main( int argc, char *argv[] ) {
     else{
       filter[i] = -1.0; 
     }
-    //printf("%d %f\n", i, filter[i]);
   }
   
   //build crater filter -  END
@@ -255,7 +253,7 @@ int main( int argc, char *argv[] ) {
   for (int k = 0; k < numOverlappingImages; k++){
 
     //string inputDEMFilename;
-    string inputImgFilename = mapCubFiles[k];  
+    string inputImgFilename = camCubFiles[k];  
     cout<<inputImgFilename<<endl;
 
     string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
@@ -270,9 +268,14 @@ int main( int argc, char *argv[] ) {
     string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "lola.tif";  
     string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img_lola.tif";  
     string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "results_img_lola.tif";  
+    /*
     camCubFiles[k] = inputImgFilename;
     FindAndReplace(camCubFiles[k], "_map", ".lev1"); 
     cout<<"camCubFiles="<<camCubFiles[k]<<endl;
+    */
+    mapCubFiles[k] = inputImgFilename;
+    FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
+    cout<<"mapCubFiles="<<mapCubFiles[k]<<endl;
 
     //create the results directory and prepare the output filenames - END
 
@@ -365,7 +368,7 @@ int main( int argc, char *argv[] ) {
     //save to GCP structure.
     cout<<"CENTROID"<<transfCentroid<<endl;
     //UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid, 1.0);
-    UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], gcpArray, transfCentroid, 4.0);
+    UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], mapCubFiles[k], gcpArray, transfCentroid, 4.0);
     if (settings.analyseFlag){
        //write results to image outside matching
        ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
