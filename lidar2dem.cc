@@ -55,6 +55,7 @@ int main( int argc, char *argv[] )
 string inputCSVFilename; 
 int verbose;
 std::string configFilename;
+std::string errorFilename;
 std::vector<std::string> DEMFiles;
 std::vector<std::string> cubFiles;
 std::string resDir;
@@ -69,6 +70,9 @@ general_options.add_options()
     ("settings-filename,s", 
 		po::value<std::string>(&configFilename)->default_value("lidar2dem_settings.txt"), 
 		"settings filename.")
+    ("error-filename,e", 
+		po::value<std::string>(&errorFilename)->default_value("lidar2dem_errors.txt"), 
+		"error output filename.")
     ("verbose,v", 
 		po::value<int>(&verbose)->default_value(1), 
 		"Verbosity level, zero emits no messages.")
@@ -207,7 +211,7 @@ if( verbose > 0 ){ cout << settings << endl; }
       vector<Vector3> featureArray;//DEM
       vector<Vector3> modelArray;//LOLA
       vector<Vector3> modelArrayLatLon;//LOLA
-      vector<float> errorArray;//error array same size as model and feature
+      valarray<float> errorArray;//error array same size as model and feature
       currRotation[0][0] = 1.0;
       currRotation[1][1] = 1.0;
       currRotation[2][2] = 1.0;
@@ -250,6 +254,8 @@ if( verbose > 0 ){ cout << settings << endl; }
       }
 
       featureArray.resize(modelArray.size());
+      errorArray.resize(modelArray.size());
+
       if( verbose > 0 )
 		{
 		cout << "Number of points to be compared: " << modelArray.size() << endl;
@@ -259,8 +265,17 @@ if( verbose > 0 ){ cout << settings << endl; }
 
       //run ICP-matching
       ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, modelArrayLatLon, settings, 
-                      currTranslation, currRotation, modelCentroid );
-                     // currTranslation, currRotation, modelCentroid, errorArray);
+                      currTranslation, currRotation, modelCentroid, errorArray);
+
+      if( vm.count("error-filename") )
+        {
+		vector<string> titles(4);
+		titles[0] = "Latitude";
+		titles[1] = "Longitude";
+		titles[2] = "Radius (m)";
+		titles[3] = "Errors";
+        writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
+        }
      
       if( verbose >= 0 )
 		{ 

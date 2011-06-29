@@ -96,5 +96,14 @@ inline Vector3 find_centroid( const vector<Vector3>& points )
   return centroid;
   }
 
+// Writes out the locations and errors to a file
+void
+writeErrors( const string&          filename, 
+             const vector<Vector3>& locations, 
+             const valarray<float>& errors,
+             const vector<string>&  titles= vector<string>(),
+             const string&          separator = ",",
+             const string&          commentor = "#" );
+
 #endif
 

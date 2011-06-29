@@ -379,8 +379,8 @@ ICP_LIDAR_2_DEM(
 	const CoregistrationParams 	settings,
 	      Vector3&				translation, 
 	      Matrix<float, 3, 3>&  rotation, 
-	const Vector3& 				modelCenter)
-	// const vector<float>&		errorArray) // probably don't need this anymore
+	const Vector3& 				modelCenter,
+	      valarray<float>&		errorArray) // probably don't need this anymore
 {
    
 vector<Vector3> translationArray;
@@ -400,7 +400,7 @@ while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
 						settings.matchWindowHalfSize);
 
 	vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-	valarray<float> errorArray = ComputeMatchingError(featureArray, modelArray);
+	errorArray = ComputeMatchingError(featureArray, modelArray);
 	matchError = errorArray.sum()/errorArray.size();
 	vw_out(vw::InfoMessage, "icp") << matchError << endl;
 

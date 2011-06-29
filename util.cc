@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/operators.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -40,6 +41,8 @@ namespace fs = boost::filesystem;
 #include <vw/Math.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
+
+#include "util.h"
 
 using namespace vw;
 using namespace vw::math;
@@ -67,7 +70,7 @@ void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplac
 void printOverlapList(std::vector<int>  overlapIndices)
 {
   printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
-    for (int i = 0; i < overlapIndices.size(); i++){
+    for (unsigned int i = 0; i < overlapIndices.size(); i++){
       printf("%d ", overlapIndices[i]);
     }
 }
@@ -153,6 +156,42 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
 
   //cout<<overlapIndices<<endl;
   return overlapIndices;
+}
+
+void
+writeErrors(	const string&          filename, 
+				const vector<Vector3>& locations, 
+				const valarray<float>& errors,
+				const vector<string>&  titles,
+				const string&          separator,
+                const string&          commentor)
+{
+ofstream file( filename.c_str() );
+
+if( !file ) {
+  vw_throw( ArgumentErr() << "Can't open error output file \"" << filename << "\"" );
+  }
+
+if( locations.size() != errors.size() ) {
+  vw_throw( ArgumentErr() 
+  << "The there are a different number of locations (" 
+  << locations.size() << ") than errors (" 
+  << errors.size() <<") which is a problem." );
+  }
+
+if( titles.size() > 0 ){
+  file << commentor << " ";
+  string title = boost::join( titles, separator );
+  file << title << endl;
+}
+
+for( unsigned int i = 0; i < locations.size(); i++ ){
+  file  << locations[i].x() << separator
+		<< locations[i].y() << separator
+		<< fixed
+		<< locations[i].z() << separator
+		<< errors[i] << endl;
+  }
 }
 
 #endif

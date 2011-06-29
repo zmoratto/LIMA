@@ -38,12 +38,13 @@ LIBPATH = -L$(MACPORTS_DIR)/lib/
 LIBPATH += -L/usr/lib 
 LDFLAGS += -lpng \
 			-lboost_filesystem-mt -lboost_system-mt \
-			-lboost_thread-mt -lboost_program_options-mt
+			-lboost_thread-mt -lboost_program_options-mt \
+			-lisis3
 
 # ASP dependencies
 #CXXFLAGS_ISIS = -I$(ISISROOT)/../noinstall/include -I$(ISISROOT)/../noinstall/include/QtCore -I$(ISISROOT)/3rdParty/include -I$(ISISROOT)/inc
 INCISIS = -I$(QTCORE_H) -I$(SPICE_H) -I$(ISISROOT)/3rdParty/include -I$(ISISROOT)/inc
-LIBISIS = -L$(ISISROOT)/lib -L$(ISISROOT)/3rdParty/lib
+LIBISIS = -L$(ISISROOT)/lib -L$(ISISROOT)/3rdParty/lib 
 
 #needed for 32bit
 #CXXFLAGS += -m32
@@ -57,14 +58,14 @@ all: $(programs)
 debug: $(programs)
 
 
-lidar2img: tracks.o match.o coregister.o display.o weights.o featuresLOLA.o util.o lidar2img.o
+lidar2img: tracks.o match.o coregister.o display.o map2cam.o weights.o featuresLOLA.o util.o lidar2img.o
 	$(CXX) -fopenmp $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
 
 #dem2dem
 assembler: coregister.o icp.o assembler.o
 	$(CXX) $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $^ -o $@
 
-lidar2dem: icp.o coregister.o tracks.o display.o weights.o featuresLOLA.o lidar2dem.o
+lidar2dem: icp.o coregister.o tracks.o display.o weights.o featuresLOLA.o lidar2dem.o map2cam.o util.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
 
 dem_warp: dem_warp.o
