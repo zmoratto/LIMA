@@ -261,40 +261,24 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
     optimalTransf = finalTransfArray[bestResult];
     optimalError  = finalMatchingErrorArray[bestResult];
 }
-/*
-//DEM to DEM coregistration
-void UpdateMatchingParams(string refDEMFilename, string matchDEMFilename,  
-			  ModelParams modelParams,  int numMaxIter, 
-			  vector<Vector<float, 6> >initTransfArray, 
-                          vector<Vector<float, 6> >&finalTransfArray, 
-			  vector<float> &errorArray )
-{
 
-  DiskImageView<PixelGray<float> >   rDEM(refDEMFilename);
-  GeoReference rDEMGeo;
-  read_georeference(rDEMGeo, refDEMFilename);
-
-  DiskImageView<PixelGray<float> >   mDEM(matchDEMFilename);
-  GeoReference mDEMGeo;
-  read_georeference(mDEMGeo, matchDEMFilename);
-
-}
-*/
 //determines the best finalTransfArray from all initTransfArrays
 //it assumes that each image is transformed by one affine transform
 //in the future we can investigate the use of one affine transform per track. 
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
-			       vector<float> &matchingErrorArray /*float *matchingError*/)
+			       vector<float> &matchingErrorArray)
 {
     int ti, si, li;
     int jA, iA;
     float I_e_val;
     Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
 
-    vector<float>errorArray;
+    vector<float> errorArray;
     errorArray.resize(initTransfArray.size());
+    vector<int> numValidPts;
+    numValidPts.resize(initTransfArray.size());    
 
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
     double nodata_value = rsrc->nodata_read();
@@ -305,31 +289,13 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     cout<<"width="<<width<<" "<<"height="<<height<<endl;
     camera::IsisCameraModel model(cubFilename);
 
-    /*
-    ImageViewRef<float> interpImg;
-    interpImg = pixel_cast<float>(interpolate(edge_extend(isis_view, 
-    							  ConstantEdgeExtension()),
-    					      BilinearInterpolation()) );
-    */
-
     InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> interpImg
     = interpolate(edge_extend(isis_view,ConstantEdgeExtension()), BilinearInterpolation());
-
-    //DiskImageView<PixelGray<uint8> >   DRG(DRGFilename);
-    //GeoReference DRGGeo;
-    //read_georeference(DRGGeo, DRGFilename);
-
-    //cout <<"Interpolating the image ...";
-    //ImageViewRef<PixelGray<uint8> >   interpDRG = interpolate(edge_extend(DRG.impl(),
-    //									 ConstantEdgeExtension()),
-    //							     BilinearInterpolation());
-    cout<<"done."<<endl;
     
     int index;
     float scaleFactor;
-    //int row_max = DRG.rows();
-    //int col_max = DRG.cols();
-    
+   
+
     //compute the scale factor between LOLA reflectance and image.
     scaleFactor = ComputeScaleFactor(trackPts);
     cout<<"done computing the scaling factor: "<<scaleFactor<<endl;
@@ -337,13 +303,11 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     for (index = 0; index < initTransfArray.size(); index++){
       
       errorArray[index] = 0.0;
-      
+      numValidPts[index] = 0;
       for (ti = 0; ti < trackPts.size(); ti++){//for each track
 
 	for (si = 0; si < trackPts[ti].size(); si++){//for each shot
           
-          //cout<<ti<<" "<<si<<endl;
-
           //if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)){
           if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
            
@@ -351,7 +315,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
         
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
-              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+              if (trackPts[ti][si].LOLAPt[li].s == 1/*3*/){//center point of a valid shot
     
                  
 		iA = (int) floor(initTransfArray[index][0]*trackPts[ti][si].imgPt[li].x 
@@ -366,13 +330,14 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
                   //if (interpImg(jA, iA)!=nodata_value){//valid value     
                   if ((float)interpImg(jA, iA)>nodata_value){//valid value  
                     //calculate ii & jj relative to the image center
-		    I_e_val = (float)interpImg(jA,iA)-minmax(0) - scaleFactor*trackPts[ti][si].reflectance;
+		    I_e_val = (float)interpImg(jA,iA) - minmax(0) - scaleFactor*trackPts[ti][si].reflectance;
 		  }
                   else{
                     I_e_val= 0;
                   }
                   //cout<<"I_e_val="<<I_e_val<<endl;
 		  errorArray[index] += abs(I_e_val);
+                  numValidPts[index]++;
 		}
 		
 	      }
@@ -390,14 +355,14 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     finalTransfArray[0] = initTransfArray[0];
     for (index = 0; index < initTransfArray.size(); index++){
       if (errorArray[index] < minError){
-	minError = errorArray[index];
+	minError = errorArray[index]/numValidPts[index];
         finalTransfArray[0] = initTransfArray[index];
         bestIndex = index;
       }  
     }
     cout<<"minError= "<<minError<<endl;
     cout<<"bestIndex="<<bestIndex<<endl; 
-    //*matchingError = minError;
+
     matchingErrorArray[0] = minError;
     
 }
@@ -405,8 +370,8 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
 //image to lidar coregistration
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
 			         ModelParams modelParams,  int numMaxIter, 
-			         vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-			         vector<float> &errorArray, Vector2 &centroid)
+			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
+                                 vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid)
 {
 
   printf("LIMA matching single processor\n");
@@ -489,7 +454,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
    for (int si = 0; si < trackPts[ti].size(); si++){
      if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
        for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
-          if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+	 if (trackPts[ti][si].LOLAPt[li].s == 1/*3*/){//center point of a valid shot
             if ((float)interpDRG(trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].y)!=nodata_value){
                i_C = i_C+ trackPts[ti][si].imgPt[li].x;
                j_C = j_C+ trackPts[ti][si].imgPt[li].y;
@@ -505,21 +470,15 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   centroid(0) = i_C;
   centroid(1) = j_C;
 
-  //cout<<"NEW VALS = "<<i_C<<" "<<j_C<<endl;
-  //compute the  i_C and  j_C new way - END
-  
-  //compute the  i_C and  j_C old way - START
+
   int row_max, col_max;
   row_max = x_deriv.rows();
   col_max = x_deriv.cols();
-  
-  //float old_i_C = row_max/2;
-  //float old_j_C = col_max/2;
-  //compute the  i_C and  j_C old way - END
-  //cout<<"OLD VALS = "<<old_i_C<<" "<<old_j_C<<endl;
-  
+    
   errorArray.resize(initTransfArray.size());
   finalTransfArray.resize(initTransfArray.size());
+  vector<int> numValidPts;
+  numValidPts.resize(initTransfArray.size());
   
   //copy initTransfArray into finalTransfArray.
   for (int index = 0; index < initTransfArray.size(); index++){
@@ -530,8 +489,6 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   }
 
   for (int index = 0; index < initTransfArray.size(); index++){
-
-    //cout << "index = "<< index << endl;
   
     int ti,si,li;//indices for tracks, shots and lola points respectively
     int iA, jA;
@@ -542,7 +499,6 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
     float I_e_val ;
     Matrix<float,6,6> rhs;
     Vector<float,6> lhs;
-    int numValidPts;
 
     iA = 0;
     jA = 0;
@@ -560,7 +516,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
  
       //reset the error;
       errorArray[index] = 0.0;
-      numValidPts = 0;
+      numValidPts[index] = 0;
       
       for (ti = 0; ti < trackPts.size(); ti++){
 
@@ -574,7 +530,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
-              if (trackPts[ti][si].LOLAPt[li].s == 3){//center point of a valid shot
+              if (trackPts[ti][si].LOLAPt[li].s == 1/*3*/){//center point of a valid shot
     
 		iA = (int) floor(finalTransfArray[index][0]*(trackPts[ti][si].imgPt[li].x-i_C)+ 
                                  finalTransfArray[index][1]*(trackPts[ti][si].imgPt[li].y-j_C)+
@@ -585,9 +541,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
                 
                 // check (iA,jA) are inside the image!
 		if ( ( iA >= 1) && ( iA < row_max-1) && ( jA >= 1) && ( jA < col_max-1)){ 
-		  //if (is_valid(interpDRG(jA, iA)) ){
-                  //cout<<"val="<<(float)interpDRG(jA,iA)<<"nodata_val="<<nodata_value<<endl;
-                  //cout<<x_deriv(jA, iA)<<" "<<y_deriv(jA,iA)<<endl;
+	
                   if (((float)interpDRG(jA,iA)!=nodata_value) && (fabs(x_deriv(jA, iA))< 10000) && (fabs(y_deriv(jA, iA))< 10000) ){
  
 		    // calculate ii & jj relative to the image center
@@ -631,13 +585,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 		    lhs(3) += ii * I_y_val * I_e_val;
 		    lhs(4) += jj * I_y_val * I_e_val;
 		    lhs(5) +=      I_y_val * I_e_val;
-		    /*
-		    if (weight>0.0){
-		      cout<<"weight="<<weight<<", I_x_val="<<I_x_val<<", I_y_val= "<<I_y_val<<
-                            ", x_deriv="<<x_deriv(jA, iA)<<", y_deriv="<<y_deriv(jA, iA)<<", I_e_val="<<I_e_val<<endl;
-		      cout<<"lhs"<<lhs(0)<<endl;
-		    }
-		    */
+		  
 		    // Right Hand Side UL
 		    rhs(0,0) += ii*ii * I_x_sqr;
 		    rhs(0,1) += ii*jj * I_x_sqr;
@@ -669,7 +617,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
                   }
 
 		  errorArray[index] += abs(I_e_val);
-                  numValidPts++;
+                  numValidPts[index]++;
 
 		}
 	      }           
@@ -713,8 +661,8 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
         //             exit(0);
       }
 
-      cout<<"numValidPts="<<numValidPts<<endl; 
-      errorArray[index] = errorArray[index]/numValidPts;
+      cout<<"numValidPts="<<numValidPts[index]<<endl; 
+      errorArray[index] = errorArray[index]/numValidPts[index];
       printLHS_Error(lhs, errorArray[index], index, iter);
 
       finalTransfArray[index] += lhs;
@@ -725,6 +673,8 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
    
   }//index loop ends here
 
+
+  //TODO: check to make sure the error is smaller than after the initialization stage.
 } 
 
 

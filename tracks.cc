@@ -631,12 +631,6 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
                string cubFile, vector<gcp> &gcpArray, Vector2 centroid)
 {
 
-   std::vector<float> map_pixel;
-   map_pixel.resize(2);
-   
-   std::vector<float> map_pixel_init;
-   map_pixel_init.resize(2);
-
    int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
       for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
@@ -756,12 +750,14 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 		   gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
 	 
 	   for (int j = 0; j < numFiles-1; j++){
+              string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[j]);
 	      fprintf(fp,"%s %f %f\n", 
-		      (char*)(gcpArray[i].filename[j].c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
+		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
 	   }
 	   if (numFiles > 0){
+	      string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[numFiles-1]);
 	      fprintf(fp, "%s %f %f", 
-		      (char*)(gcpArray[i].filename[numFiles-1].c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
+		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
 	   }
 	   fclose(fp);
        }

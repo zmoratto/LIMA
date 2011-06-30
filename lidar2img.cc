@@ -355,7 +355,8 @@ int main( int argc, char *argv[] ) {
       cout<<"Computing the affine tranformation ..."<<endl;
       //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
       UpdateMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings.maxNumIter,  
-				  bestInitTransfArray, finalTransfArray, finalMatchingErrorArray, transfCentroid);
+				  bestInitTransfArray, initMatchingErrorArray,
+                                  finalTransfArray, finalMatchingErrorArray, transfCentroid);
       cout<<"done."<<endl;
     }
     else{
@@ -367,7 +368,8 @@ int main( int argc, char *argv[] ) {
 
     //save to GCP structure.
     cout<<"CENTROID"<<transfCentroid<<endl;
-    //UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid, 1.0);
+    //UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid);
+  
     UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], mapCubFiles[k], gcpArray, transfCentroid, 4.0);
     if (settings.analyseFlag){
        //write results to image outside matching
@@ -380,15 +382,8 @@ int main( int argc, char *argv[] ) {
  
   //save the GCP
   string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));
-  /*
-  for (int k = 0; k < numOverlappingImages; k++){
-    printf("k=%d, [0]:%f  [1]:%f [2]:%f [3]:%f [4]:%f [5]:%f\n",
-	   k, optimalTransfArray[k][0], optimalTransfArray[k][1],
-              optimalTransfArray[k][2], optimalTransfArray[k][3],
-              optimalTransfArray[k][4], optimalTransfArray[k][5]);
-  }
-  */
-  cout<<"writting the GC file..."<<endl;
+ 
+  cout<<"writting the GCP file..."<<endl;
   SaveGCPoints(gcpArray,  gcpFilenameRoot);
 
 
@@ -397,11 +392,11 @@ int main( int argc, char *argv[] ) {
     //TO DO: this should become all one function - START  
     cout<<"writting the GCP images..."<<endl;
     int gc_index = 0;
-  
+ 
     for (unsigned int t=0; t<trackPts.size(); t++){
       for (unsigned int s=0; s<trackPts[t].size(); s++){
 	if (trackPts[t][s].featurePtLOLA==1){ 
-	  if (/*(25*(gc_index/25)==gc_index) &&*/ (gcpArray[gc_index].filename.size() > 0)){ //non-empty GCP
+	  if (gcpArray[gc_index].filename.size() > 0){ //non-empty GCP
 	    stringstream ss;
 	    ss<<gc_index;
 	    string gcpFilename = gcpFilenameRoot+"_"+ss.str()+".gcp";
@@ -419,12 +414,7 @@ int main( int argc, char *argv[] ) {
 
   }
   //#endif
-  /*
-  string gcpFilename = string("../results/RDR_1E8E_21N28NPointPerRow_csv_table_0.gcp");
-  string assembledImgFilename = string("../results/RDR_1E8E_21N28NPointPerRow_csv_table_0.tif");
-  string cubDirname = string("../data/Apollo15-CUB");
-  SaveGCPImages(gcpFilename, cubDirname, assembledImgFilename);
-  */
+ 
   return 0;
 
 }
