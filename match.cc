@@ -171,7 +171,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
 
   params[2].resize(19);
   for (unsigned int i = 0; i < params[2].size(); i++){
-    params[2][i] = -9+i;
+    params[2][i] = (float)(-9.0+i);
   }
  
   params[3].resize(1);
@@ -182,7 +182,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
 
   params[5].resize(19);
   for (unsigned int i = 0; i < params[5].size(); i++){
-    params[5][i] = -9+i;
+    params[5][i] = (float)(-9.0+i);
   }
  
 
@@ -345,6 +345,8 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
         bestIndex = index;
       }  
     }
+
+    cout <<"finalTransform: "<<finalTransfArray[0]<<endl;
     cout<<"minError= "<<minError<<endl;
     cout<<"bestIndex="<<bestIndex<<endl; 
 
@@ -470,7 +472,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
     for (unsigned int i = 0; i < 6; i++){
       finalTransfArray[index][i]=initTransfArray[index][i];
     }
-    cout <<"InitTransform"<<initTransfArray[index]<<endl;
+    cout <<"InitTransform: "<<initTransfArray[index]<<endl;
   }
 
   for (unsigned int index = 0; index < initTransfArray.size(); index++){
