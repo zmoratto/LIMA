@@ -179,7 +179,7 @@ int ComputeSalientReflectanceFeatures( vector< LOLAShot > & trackPts, float topP
 }
 
 
-int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh)
+void ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh)
 {
   int numShots = trackPts.size();
   for (int si = 0; si < numShots; si++){
@@ -242,7 +242,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter
 
   //print results - START
   int numSalientFeatures = 0;
-  int numNonSalientFeatures = 0;
+  //int numNonSalientFeatures = 0;
   for (unsigned int si = 0; si < trackPts.size(); si ++ ){
       if (trackPts[si].featurePtLOLA == 1){
 	printf("%d ", si);
@@ -259,7 +259,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter
 }
 
 //returns a number of salient features per track
-int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent)
+void ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent)
 {
   int numShots = trackPts.size();
   for (int si = 0; si < numShots; si++){
@@ -348,7 +348,7 @@ int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float
 
   //print results - START
   int numSalientFeatures = 0;
-  int numNonSalientFeatures = 0;
+  // int numNonSalientFeatures = 0;
   for (unsigned int si = 0; si < trackPts.size(); si ++ ){
       if (trackPts[si].featurePtLOLA == 1){
 	printf("%d ", si);

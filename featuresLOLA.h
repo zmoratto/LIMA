@@ -31,9 +31,9 @@ int InterpolateInvalidPoint(vector< LOLAShot>& trackPts);
 int ComputeGradient(vector<LOLAShot >& trackPts, int halfWindow);
 
 int ComputeSalientReflectanceFeatures( vector< LOLAShot > & trackPts, float topPercent, int numValid);
-int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh);
+void ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh);
 
 
 //this function will be grandfathered
-int ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent);
+void ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts,int halfWindow, float topPercent);
 #endif

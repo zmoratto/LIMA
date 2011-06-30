@@ -5,12 +5,6 @@
 // __END_LICENSE__
 
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -206,7 +200,7 @@ int main( int argc, char *argv[] ) {
   //build crater filter - START
   vector<float> filter;
   int windowSize = 12;//16
-  int halfWindowSize = windowSize/2;
+  // int halfWindowSize = windowSize/2;
   int quartWindowSize = windowSize/4;
   filter.resize(windowSize);
   for (int i = 0; i < windowSize ;i++ ){
@@ -281,7 +275,7 @@ int main( int argc, char *argv[] ) {
 
     vector<int> trackIndices;
     trackIndices.resize(trackPts.size());
-    for (int i = 0; i < trackPts.size(); i++){
+    for (unsigned int i = 0; i < trackPts.size(); i++){
       trackIndices[i] = i;
     }
     

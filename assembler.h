@@ -3,11 +3,6 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
@@ -22,16 +17,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
-
 
 #include <vw/Core.h>
 #include <vw/Image.h>

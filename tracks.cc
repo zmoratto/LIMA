@@ -396,7 +396,7 @@ Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
   Vector3 normal;
   Matrix<float,5,4> rhs;
   Vector<float,3> lhs;
-  for (int i = 0; i < pointArray.size(); i++){
+  for (unsigned int i = 0; i < pointArray.size(); i++){
     rhs(i,0)=pointArray[i][0];
     rhs(i,1)=pointArray[i][1]; 
     rhs(i,2)=pointArray[i][2];
@@ -866,7 +866,7 @@ void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
 void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
 {
   int numValidPts = 0; 
-  float avgDistance = 0.0;
+  // float avgDistance = 0.0;
   vector<Vector3> xyzArray;
   xyzArray.resize(5);
   vector<float> distArray;

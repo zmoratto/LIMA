@@ -70,8 +70,7 @@ int MakeLinearWeights( vector< LOLAShot > & trackPts, const int &halfWindow)
 
 //write out all weight specific variables to a txt file specified by "f_name".  
 //writen out is: reflectance, calc_acp, filter_response, weight_lsq, weight_prd
-int SaveWeights(vector< LOLAShot>& trackPts, string filename)
-
+void SaveWeights(vector< LOLAShot>& trackPts, string filename)
 {  
   cout << "saving to file "<<filename<<" ...";
  FILE* sFile;

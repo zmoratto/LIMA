@@ -7,27 +7,12 @@
 #ifndef MATCH_H
 #define MATCH_H
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
-
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
 
 #include <vw/Core.h>
 #include <vw/Image.h>

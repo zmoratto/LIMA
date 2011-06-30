@@ -5,12 +5,6 @@
 // __END_LICENSE__
 
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
-
 #include <omp.h>
 #include <iostream>
 #include <string>
@@ -18,15 +12,6 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -82,11 +67,11 @@ void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6>
     fprintf(fp, "numTotalTracks = %d\n", (int)trackPts.size());
     
     //print the number of features per track
-    for (int ti = 0; ti < trackPts.size(); ti++){
+    for (unsigned int ti = 0; ti < trackPts.size(); ti++){
       fprintf(fp,"trackID: %d ", ti);
       fprintf(fp,"numShots: %d ", (int)trackPts[ti].size());
       int numFeatures = 0;
-      for (int si = 0; si < trackPts[ti].size(); si++){
+      for (unsigned int si = 0; si < trackPts[ti].size(); si++){
 	if ((trackPts[ti][si].featurePtRefl == 1.0) && (trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)) { 
 	  numFeatures++;  
 	}
@@ -185,7 +170,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   params[1][0] = 0;
 
   params[2].resize(19);
-  for (int i = 0; i < params[2].size(); i++){
+  for (unsigned int i = 0; i < params[2].size(); i++){
     params[2][i] = -9+i;
   }
  
@@ -196,7 +181,7 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   params[4][0] = 1;
 
   params[5].resize(19);
-  for (int i = 0; i < params[5].size(); i++){
+  for (unsigned int i = 0; i < params[5].size(); i++){
     params[5][i] = -9+i;
   }
  
@@ -208,12 +193,12 @@ void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, Coregist
   initTransfArray.resize(maxNumStarts);
   
   int index = 0;
-  for (int i0 = 0; i0 < params[0].size(); i0++){
-    for (int i1 = 0; i1 < params[1].size(); i1++){ 
-      for (int i2 = 0; i2 < params[2].size(); i2++){
-        for (int i3 = 0; i3 < params[3].size(); i3++){
-          for (int i4 = 0; i4 < params[4].size(); i4++){
-            for (int i5 = 0; i5 < params[5].size(); i5++){
+  for (unsigned int i0 = 0; i0 < params[0].size(); i0++){
+    for (unsigned int i1 = 0; i1 < params[1].size(); i1++){ 
+      for (unsigned int i2 = 0; i2 < params[2].size(); i2++){
+        for (unsigned int i3 = 0; i3 < params[3].size(); i3++){
+          for (unsigned int i4 = 0; i4 < params[4].size(); i4++){
+            for (unsigned int i5 = 0; i5 < params[5].size(); i5++){
 	      initTransfArray[index][0] = params[0][i0];
 	      initTransfArray[index][1] = params[1][i1];
 	      initTransfArray[index][2] = params[2][i2];
@@ -244,7 +229,7 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
     //this will be made a special function to make sure it is flexible wrt to the name of the parameters.
     int bestResult = 0;
     float smallestError = std::numeric_limits<float>::max();
-    for (int index = 0; index < finalTransfArray.size(); index++){
+    for (unsigned int index = 0; index < finalTransfArray.size(); index++){
       printf("refined %d: g_error= %f d[0]= %f d[1]= %f d[2]= %f d[3]= %f d[4]= %f d[5]= %f\n", 
 	     index, finalMatchingErrorArray[index], 
 	     finalTransfArray[index](0), finalTransfArray[index](1), 
@@ -270,7 +255,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
 			       vector<float> &matchingErrorArray)
 {
-    int ti, si, li;
+    unsigned int ti, si, li;
     int jA, iA;
     float I_e_val;
     Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
@@ -292,7 +277,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> interpImg
     = interpolate(edge_extend(isis_view,ConstantEdgeExtension()), BilinearInterpolation());
     
-    int index;
+    unsigned int index;
     float scaleFactor;
    
 
@@ -311,7 +296,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
           //if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0)){
           if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
            
-            float weight = trackPts[ti][si].weightRefl;
+            //float weight = trackPts[ti][si].weightRefl;
         
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
@@ -450,10 +435,10 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   int numPts = 0;
 
   //compute the  i_C and  j_C new way - START
-  for (int ti = 0; ti < trackPts.size(); ti++){
-   for (int si = 0; si < trackPts[ti].size(); si++){
+  for (unsigned int ti = 0; ti < trackPts.size(); ti++){
+   for (unsigned int si = 0; si < trackPts[ti].size(); si++){
      if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
-       for (int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
+       for (unsigned int li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 	 if (trackPts[ti][si].LOLAPt[li].s == 1/*3*/){//center point of a valid shot
             if ((float)interpDRG(trackPts[ti][si].imgPt[li].x, trackPts[ti][si].imgPt[li].y)!=nodata_value){
                i_C = i_C+ trackPts[ti][si].imgPt[li].x;
@@ -481,16 +466,16 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   numValidPts.resize(initTransfArray.size());
   
   //copy initTransfArray into finalTransfArray.
-  for (int index = 0; index < initTransfArray.size(); index++){
-    for (int i = 0; i < 6; i++){
+  for (unsigned int index = 0; index < initTransfArray.size(); index++){
+    for (unsigned int i = 0; i < 6; i++){
       finalTransfArray[index][i]=initTransfArray[index][i];
     }
     cout <<"InitTransform"<<initTransfArray[index]<<endl;
   }
 
-  for (int index = 0; index < initTransfArray.size(); index++){
+  for (unsigned int index = 0; index < initTransfArray.size(); index++){
   
-    int ti,si,li;//indices for tracks, shots and lola points respectively
+    unsigned int ti,si,li;//indices for tracks, shots and lola points respectively
     int iA, jA;
     int ii, jj;
     int iter;
@@ -718,7 +703,7 @@ void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,
 			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
 			float *matchingError)
 {
-    int ti, si, li;
+    unsigned int ti, si, li;
     int jA, iA;
     float I_e_val;
   
@@ -734,7 +719,7 @@ void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,
 							     BilinearInterpolation());
     cout<<"done."<<endl;
 
-    int index;
+    unsigned int index;
     float scaleFactor;
     int row_max = DRG.rows();
     int col_max = DRG.cols();
@@ -755,7 +740,7 @@ void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,
 
           if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != /*0*/-1)){
            
-            float weight = trackPts[ti][si].weightRefl;
+            // float weight = trackPts[ti][si].weightRefl;
         
             for (li = 0; li < trackPts[ti][si].LOLAPt.size(); li++){//for each point of a LOLA shot
 
@@ -889,18 +874,18 @@ void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilenam
 */
 
   //copy initTransfArray into finalTransfArray.
-  for (int index = 0; index < initTransfArray.size(); index++){
-    for (int i = 0; i < 6; i++){
+  for (unsigned int index = 0; index < initTransfArray.size(); index++){
+    for (unsigned int i = 0; i < 6; i++){
       finalTransfArray[index][i]=initTransfArray[index][i];
     }
   }
 
-  for (int index = 0; index < initTransfArray.size(); index++){
+  for (unsigned int index = 0; index < initTransfArray.size(); index++){
 
     cout << "index = "<< index << endl;
   
   
-    int ti,si,li;//indices for tracks, shots and lola points respectively
+    unsigned int ti,si,li;//indices for tracks, shots and lola points respectively
     int iA, jA;
     int ii, jj;
     int iter;
