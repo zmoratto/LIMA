@@ -240,7 +240,7 @@ Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
   Vector2 minmax;
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
   double nodataVal = rsrc->nodata_read();
-  cout<<"nodaval:"<<nodataVal<<endl;
+  //cout<<"nodaval:"<<nodataVal<<endl;
   DiskImageView<PixelGray<float> > isis_view( rsrc );
   int width = isis_view.cols();
   int height = isis_view.rows();
@@ -370,7 +370,7 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 
         //update the nominator for the center point
         for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-          if (trackPts[k][i].LOLAPt[j].s == 3){ 
+          if (trackPts[k][i].LOLAPt[j].s == 1){ 
             nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
           }
         }
@@ -380,7 +380,7 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
     }
   }
 
-  cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
+  //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
   if (numValidPts != 0){ 
     scaleFactor = nominator/numValidPts;
   }
@@ -420,7 +420,9 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
   globalParams.albedoInitType = 1;
   globalParams.exposureInitType = 1;
 
-
+  float minReflectance =  10000.0;
+  float maxReflectance = -10000.0;
+ 
   for (unsigned int k = 0; k < allTracks.size(); k++ ){
     for (unsigned int i = 0; i < allTracks[k].size(); i++){
       LOLAPts = allTracks[k][i].LOLAPt;
@@ -447,13 +449,20 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
         Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
 
         allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
+        if (allTracks[k][i].reflectance < minReflectance){
+	  minReflectance = allTracks[k][i].reflectance;
+        }
+        if (allTracks[k][i].reflectance > maxReflectance){
+	  maxReflectance = allTracks[k][i].reflectance;
+        }
       }
       else{
         allTracks[k][i].reflectance = -1;
       }
     }//i
   }//k
-
+ 
+  cout<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
 }
 
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
@@ -882,6 +891,10 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
 	  lon = trackPts[i][j].LOLAPt[k].x();
 	  lat = trackPts[i][j].LOLAPt[k].y();
 	  rad = trackPts[i][j].LOLAPt[k].z();
+          int s = trackPts[i][j].LOLAPt[0].s;
+
+          //cout<<"s="<<s<<endl;
+
 	  lon_lat_rad(0) = lon;
 	  lon_lat_rad(1) = lat;
 	  lon_lat_rad(2) = 1000*rad;
