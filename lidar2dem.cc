@@ -289,6 +289,11 @@ if( verbose > 0 ){ cout << settings << endl; }
           // Decompose rotation matrix to Euler Angles (phi, theta, psi about Z, X, and Z axes):
           Vector3 euler_angles = rotation_matrix_to_euler_xyz( currRotation );
           euler_angles *= 180/M_PI;
+          
+          // Decompose rotation matrix to Axis-angle:
+          Vector3 axis_angle = matrix_to_axis_angle( currRotation );
+          double axis_angle_deg = norm_2( axis_angle ) * 180/M_PI;
+	
 
           // Work out estimate of the scale factor
           Vector3 f_cent = find_centroid( featureArray );
@@ -315,6 +320,7 @@ if( verbose > 0 ){ cout << settings << endl; }
                  << "Translation (llr) = " << translation_llr << endl
                  << "Rotation = " << currRotation << endl
                  << "Euler Angles (xyz in degrees)  = " << euler_angles << endl
+                 << "Axis Angle = " << axis_angle << ", " << axis_angle_deg << " degrees" << endl
                  << "Scale factors = " << scale << endl
                  //<< "Center = " << center << endl;
                  << "Centroid = " << modelCentroid << endl;
