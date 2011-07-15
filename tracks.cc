@@ -281,6 +281,9 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
   //calculate the min max value of the image
   Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
 
+  float minTrackVal = 1000000.0;
+  float maxTrackVal = -1000000.0;
+
   ImageViewRef<float> interpImg;
   interpImg = pixel_cast<float>(interpolate(edge_extend(isis_view,
 							  ConstantEdgeExtension()),
@@ -309,10 +312,16 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
             //check that (x,y) are within the image boundaries
 	    if ((x>=0) && (y>=0) && (x<width) && (y<height)){//valid position  
               //check for valid data as well
-              if (interpImg(x, y)>nodata_value){//valid values
-		 trackPts[k][i].imgPt[j].val = interpImg(x, y) - minmax(0);
+              if (interpImg(x, y)>minmax(0)){//valid values
+		trackPts[k][i].imgPt[j].val = interpImg(x, y)/* - minmax(0)*/;
 	         trackPts[k][i].imgPt[j].x = cub_pix[0];
 	         trackPts[k][i].imgPt[j].y = cub_pix[1];
+                 if(interpImg(x,y)<minTrackVal){
+		     minTrackVal = interpImg(x,y);
+                 }
+		 if(interpImg(x,y)>maxTrackVal){
+		    maxTrackVal = interpImg(x,y);
+                 }
 	      }
               else{//invalidate the point
                  trackPts[k][i].valid = 0;
@@ -324,18 +333,19 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 	
       }
       //check for valid shot with 3 points to compute reflectance
-      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
-      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
-      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
+      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 1);
+      pointCloud topPt     = GetPointFromIndex( LOLAPts, 3);
+      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 2);
       //cout<<"before "<<trackPts[k][i].valid<<endl;
       if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() >5)){//invalid LOLA shot
           trackPts[k][i].valid = 0; 
       }
+      
       //cout<<"center "<<centerPt.s<<"top "<<topPt.s<<"left "<<leftPt.s<<endl;
 
     }//i  
   }//k
- 
+  cout <<"minTrackVal="<<minTrackVal<<", maxTrackVal="<<maxTrackVal<<endl;
 }
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
@@ -364,18 +374,24 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   int numValidPts = 0;
   float scaleFactor;// = 1;
 
+  //Vector2 minmax = ComputeMinMaxValuesFromCub(string cubFilename);
+
   for(unsigned int k = 0; k < trackPts.size();k++){
     for(unsigned int i = 0; i < trackPts[k].size(); i++){
       if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
 
         //update the nominator for the center point
+
         for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-          if (trackPts[k][i].LOLAPt[j].s == 1){ 
-            nominator = nominator + trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance;
+          if (trackPts[k][i].LOLAPt[j].s == 1){
+            //cout<< trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance<<endl;
+            nominator = nominator + (trackPts[k][i].imgPt[j].val/*-minmax(0)*/)/trackPts[k][i].reflectance;
+            numValidPts++;
           }
         }
+
         //update the denominator
-        numValidPts++;
+        //numValidPts++;
       }
     }
   }
@@ -389,6 +405,60 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
     scaleFactor = -1;
   }
   return scaleFactor;
+}
+
+//computes the scale factor for all tracks at once
+Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts)
+{
+  int numValidPts = 0;
+  float sum_rfl = 0.0; 
+  float sum_img = 0.0;
+  float sum_rfl_2 = 0.0;
+  float sum_rfl_img = 0.0;
+  Matrix<float,2,2> rhs;
+  Vector<float,2> lhs;
+  Vector2 gain_bias;
+
+  for(unsigned int k = 0; k < trackPts.size();k++){
+    for(unsigned int i = 0; i < trackPts[k].size(); i++){
+      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
+
+        //update the nominator for the center point
+
+        for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
+          if (trackPts[k][i].LOLAPt[j].s == 1){
+            sum_rfl = sum_rfl + trackPts[k][i].reflectance;
+            sum_rfl_2 = sum_rfl_2 + trackPts[k][i].reflectance*trackPts[k][i].reflectance;
+            sum_rfl_img = sum_rfl_img + trackPts[k][i].reflectance*(trackPts[k][i].imgPt[j].val);
+            sum_img = sum_img + (trackPts[k][i].imgPt[j].val);
+            numValidPts++;
+          }
+        }
+
+        //update the denominator
+        //numValidPts++;
+      }
+    }
+  }
+
+  //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
+  if (numValidPts != 0){ 
+    rhs(0,0) = sum_rfl_2;
+    rhs(0,1) = sum_rfl;
+    rhs(1,0) = sum_rfl;
+    rhs(1,1) = numValidPts;
+    lhs(0) = sum_rfl_img;
+    lhs(1) = sum_img;
+    solve_symmetric_nocopy(rhs,lhs);
+    gain_bias = lhs;
+    cout<<"gain and bias"<<lhs<<endl;
+  }
+  else{
+    //invalid scaleFactor, all tracks are invalid
+    gain_bias(0) = 0.0;
+    gain_bias(1) = 0.0;
+  }
+  return gain_bias;
 }
 
 Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
@@ -536,14 +606,14 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, str
 }
 
 
-void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename)
+void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename)
 {
 
   FILE *fp;
-
-
+  float gain = gain_bias(0);
+  float bias = gain_bias(1);
+ 
   for (unsigned int k = 0; k < allTracks.size(); k++ ){
-
 
     string prefixTrackFilename =  prefix_from_filename(filename);  
     char* trackFilename = new char[500];
@@ -553,7 +623,7 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFa
 
     for (unsigned int i = 0; i < allTracks[k].size(); i++){
       if (allTracks[k][i].valid == 1){
-        fprintf(fp, "%f\n", scaleFactor*allTracks[k][i].reflectance);
+        fprintf(fp, "%f\n", gain*allTracks[k][i].reflectance + bias);
       }
       else{
         fprintf(fp, "-1\n");
@@ -891,7 +961,7 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
 	  lon = trackPts[i][j].LOLAPt[k].x();
 	  lat = trackPts[i][j].LOLAPt[k].y();
 	  rad = trackPts[i][j].LOLAPt[k].z();
-          int s = trackPts[i][j].LOLAPt[0].s;
+          //int s = trackPts[i][j].LOLAPt[0].s;
 
           //cout<<"s="<<s<<endl;
 

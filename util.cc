@@ -170,3 +170,53 @@ for( unsigned int i = 0; i < locations.size(); i++ ){
 		<< errors[i] << endl;
   }
 }
+
+void MakeTestTable() 
+{
+  ofstream out("matches_test.dat", ios::out | ios::binary);
+  float *scoreArray = new float[10];
+  for (int i = 0; i < 10;i++){
+    scoreArray[i] = (float)i*1.0;
+  }
+  //out.seekp(i, ios::beg);
+  //out.write((char*)(&scoreArray[0]), 10*sizeof(float));
+  
+  for (int i = 0; i < 10;i++){
+    float score = (float)i;
+    cout<<"score="<<score<<endl;
+    out.seekp(i*sizeof(float), ios::beg);
+    out.write(reinterpret_cast<char*>(&score), sizeof(float));
+  }
+  
+  out.close();
+}
+
+void ReadTestTable()
+{
+  cout<<"reading"<<endl;
+  ifstream fp;
+  fp.open ("matches_test.dat", ios::in | ios::binary );
+  if (!fp.is_open()){
+    cout<<"muja"<<endl;
+  }
+  /*
+  //vector<float> scoreArray;
+  //scoreArray.resize(10);
+  float *scoreArray = new float[10];
+  fp.read((char*)&(scoreArray[0]), 10*sizeof(float));
+  for (int i = 0; i < 10; i++){
+    cout<<i<<":"<<scoreArray[i]<<endl;
+  }
+  */
+  fp.seekg (0, ios::end);
+  long length = fp.tellg();
+  cout<<"length="<<length<<endl;
+  float value;
+  for (int i = 0; i < 10; i++){
+    fp.seekg(i*sizeof(float), ios::beg);
+    cout << "File pointer is at " << fp.tellg() << endl;
+    fp.read((char*)&value, sizeof(float));
+    cout<<"index: "<<i<<", value: "<<value<<endl;
+  }
+  fp.close();
+}

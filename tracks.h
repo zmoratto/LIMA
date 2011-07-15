@@ -211,10 +211,11 @@ vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts);
 void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
-void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, float scaleFactor, string filename);
+void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
@@ -226,8 +227,6 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
                string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
                float downsample_factor);
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
-//void SaveGCPoints(vector<vector<LOLAShot> > trackPts,  std::vector<std::string> DRGFiles,  std::vector<int> overlapIndices, 
-//                  vector<Vector<float, 6> > optimalTransfArray, vector<float> optimalErrorArray, string gcpFilename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);

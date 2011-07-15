@@ -163,44 +163,14 @@ int main( int argc, char *argv[] ) {
   int numOverlappingImages = (int)overlapIndices.size();
   ComputeAverageShotDistance(trackPts);
   ComputeAverageIntraShotDistance(trackPts);
-  /*
-  //determine the LOLA features
-  int halfWindow = 10;
+ 
+  //compute LOLA features - START
   printf("numTracks = %d\n", (int)trackPts.size());
-  for (int ti = 0; ti < (int)trackPts.size(); ti++){
-    printf("trackIndex = %d\n", ti);
-    ComputeSalientLOLAFeature(trackPts[ti], halfWindow, (float)(settings.topPercentFeatures)/1000.0);
-    ComputeSalientLOLAFeature(vector<LOLAShot > & trackPts, vector<float> filter, float salientFeatureThresh);
-  }
-  */
-  //compute LOLA features
-  printf("numTracks = %d\n", (int)trackPts.size());
-  /* 
-  //build step filter - START
-  vector<float> filter;
-
-  int windowSize = 21;
-  int halfWindowSize = windowSize/2;
-  filter.resize(windowSize);
-  for (int i = 0; i < windowSize ;i++ ){
-    if (i < halfWindowSize){
-      filter[i] = -1.0; 
-    }
-    if(i == halfWindowSize){
-      filter[i] = 0.0;
-    }
-    if (i > halfWindowSize){
-      filter[i] = 1.0;
-    }
-  }
-  //build step filter - END
-  float salientFeatureThresh = 0.18;
-  */
-
+  
   //build crater filter - START
   vector<float> filter;
   int windowSize = 12;//16
-  // int halfWindowSize = windowSize/2;
+  //craters of 300m diameter - seven pixels wide
   int quartWindowSize = windowSize/4;
   filter.resize(windowSize);
   for (int i = 0; i < windowSize ;i++ ){
@@ -211,15 +181,17 @@ int main( int argc, char *argv[] ) {
       filter[i] = -1.0; 
     }
   }
-  
   //build crater filter -  END
   float salientFeatureThresh = 0.008;//0.015;
 
   for (int ti = 0; ti < (int)trackPts.size(); ti++){
-    printf("trackIndex = %d\n", ti);
+    cout<<"trackIndex="<<ti<<" of "<<trackPts.size()<<endl;
     ComputeSalientLOLAFeature(trackPts[ti], filter, salientFeatureThresh);
   }
+  //compute LOLA features - END
 
+
+  cout<<"create the GCPs ..."<<endl;
   //this should be returned by ComputeSalientLOLAFeature
   vector<gcp> gcpArray;
   for (unsigned int t=0; t<trackPts.size(); t++){
@@ -236,6 +208,7 @@ int main( int argc, char *argv[] ) {
       }
     }
   }
+  cout<<"done."<<endl;
 
  //allocate memory for all final transforms, one per image
   vector<Vector<float, 6> > optimalTransfArray;
@@ -243,111 +216,47 @@ int main( int argc, char *argv[] ) {
   optimalTransfArray.resize(numOverlappingImages);
   optimalErrorArray.resize(numOverlappingImages);
 
+  cout<<"generating the initTransforms ..."<<endl;
+  vector<Vector<float, 6> >initTransfArray;
+  GenerateInitTransforms(initTransfArray, settings);
+  cout<<"done."<<endl;  
+
+  vector<Vector<float, 6> > bestInitTransfArray; 
+  vector<Vector<float, 6> > finalTransfArray;
+  vector<float> initMatchingErrorArray;
+  vector<float> finalMatchingErrorArray;
+  Vector2 transfCentroid;
 
   for (int k = 0; k < numOverlappingImages; k++){
 
-    //string inputDEMFilename;
     string inputImgFilename = camCubFiles[k];  
-    cout<<inputImgFilename<<endl;
-
-    string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
-
-    string imgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img.txt";    
-    string reflectancePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "refl.txt";  
-    string syntImgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "synth.txt";  
-    string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";
-    string lolaFeaturesFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "_features_lola.txt";  
-    string transformFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "transform_results"  +".txt";  
-    string matchResultsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "match_results"  +".txt";  
-    string lolaTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "lola.tif";  
-    string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img_lola.tif";  
-    string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "results_img_lola.tif";  
-    /*
-    camCubFiles[k] = inputImgFilename;
-    FindAndReplace(camCubFiles[k], "_map", ".lev1"); 
-    cout<<"camCubFiles="<<camCubFiles[k]<<endl;
-    */
+    string imgFilenameNoPath = sufix_from_filename(inputImgFilename);  
     mapCubFiles[k] = mapCubDir+string("/")+imgFilenameNoPath;
     FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
-    cout<<"mapCubFiles="<<mapCubFiles[k]<<endl;
 
-    //create the results directory and prepare the output filenames - END
-
-    vector<int> trackIndices;
-    trackIndices.resize(trackPts.size());
-    for (unsigned int i = 0; i < trackPts.size(); i++){
-      trackIndices[i] = i;
-    }
-    
-    if (settings.analyseFlag == 1){
-      
-      //float scaleFactor = ComputeScaleFactor(trackPts);
-      //SaveImagePoints(trackPts, 3, imgPtsFilename);
-      //SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
-      
-      //SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-      //SaveReflectancePoints(trackPts, scaleFactor, syntImgPtsFilename);
-      //int numVerPts = 6000;
-      //int numHorPts = 6000;
-      //MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices); 
-      
-    }
-   
+    cout<<"camCubFiles="<<camCubFiles[k]<<", mapCubFiles="<<mapCubFiles[k]<<endl;
+  
     //initialization step for LIMA - START  
-    cout<<"GetAllPtsFromCub"<<endl; 
+    cout<<"GetAllPtsFromCub "<<endl; 
     GetAllPtsFromCub(trackPts, mapCubFiles[k]);
-    
-    
-    if (settings.analyseFlag == 1){
-        Vector<float, 6> unitTransfArray;
-        unitTransfArray[0]=1;
-        unitTransfArray[1]=0;
-	unitTransfArray[2]=0;
-	unitTransfArray[3]=0;
-	unitTransfArray[4]=1;
-	unitTransfArray[5]=0;
-        ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
-			         trackIndices, mapCubFiles[k], lolaInitTracksOnImageFilename);
-    }
-    
-
+    cout<<"done."<<endl; 
+  
     cout << "ComputeTrackReflectance..." << endl;
     ComputeAllReflectance(trackPts, modelParamsArray[k], settings);
-    //initialization step for LIMA - END  
+    cout<<"done."<<endl;
+    //initialization step for LIMA - END 
 
-     
-    if (settings.useReflectanceFeatures){
-      cout << "Computing LOLA reflectance features and weights ... ";
-      int halfWindow = 10; //this should go into settings
-      ComputeWeights( trackPts, halfWindow, (float)(settings.topPercentFeatures)/1000.0, lolaFeaturesFilename);
-      cout<<"done."<<endl;
-    }
-    else{
-      ResetWeights(trackPts);
-    }
+    //iterative matching step for LIMA - START
    
-
-    //start matching
-    vector<Vector<float, 6> >initTransfArray;
-    vector<Vector<float, 6> >bestInitTransfArray; 
-    vector<Vector<float, 6> > finalTransfArray;
-    vector<float> initMatchingErrorArray;
-    vector<float> finalMatchingErrorArray;
-    Vector2 transfCentroid;
-    
-    GenerateInitTransforms(initTransfArray, settings);
-
     cout<<"Initializing the affine tranformation ..."<<endl;
-    //initMatchingErrorArray retains the matching error for each bestInitTransfArray
     InitMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings,  
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
-    cout<<"done."<<endl;
+   
    
     int refinedMatching = 1;
 
     if (refinedMatching == 1){
       cout<<"Computing the affine tranformation ..."<<endl;
-      //finalMatchingErrorArray retains the matching error after the last iteration for each finalTransfArray   
       UpdateMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings.maxNumIter,  
 				  bestInitTransfArray, initMatchingErrorArray,
                                   finalTransfArray, finalMatchingErrorArray, transfCentroid);
@@ -359,18 +268,11 @@ int main( int argc, char *argv[] ) {
     }
 
     GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
+    //iterative matching step for LIMA - END
 
-    //save to GCP structure.
-    cout<<"CENTROID"<<transfCentroid<<endl;
-    //UpdateGCP(trackPts, optimalTransfArray[k], mapCubFiles[k], gcpArray, transfCentroid);
-  
+    //save to GCP structure. 
     UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], mapCubFiles[k], gcpArray, transfCentroid, 4.0);
-    if (settings.analyseFlag){
-       //write results to image outside matching
-       ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
-			        trackIndices, mapCubFiles[k], lolaFinalTracksOnImageFilename);
-    }    
-    
+  
   }  
   //end matching
  
@@ -379,12 +281,69 @@ int main( int argc, char *argv[] ) {
  
   cout<<"writting the GCP file..."<<endl;
   SaveGCPoints(gcpArray,  gcpFilenameRoot);
+  cout<<"done"<<endl;
 
-
+  //these are the display functions
   if (settings.analyseFlag){
  
+    for (int k = 0; k < numOverlappingImages; k++){
+   
+      string inputImgFilename = camCubFiles[k];  
+      string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
+      string imgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img.txt";  
+      string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";  
+      string reflectancePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "refl.txt";  
+      string syntImgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "synth.txt";  
+      string lolaFeaturesFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "lola_feat.txt";
+  
+      
+      string lolaInitTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "init_lola.tif";  
+      string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "init_img_lola.tif";  
+      string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "final_img_lola.tif";  
+      
+      mapCubFiles[k] = mapCubDir+string("/")+imgFilenameNoPath;
+      FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
+      cout<<"mapCubFiles="<<mapCubFiles[k]<<endl;
+     
+      vector<int> trackIndices;
+      trackIndices.resize(trackPts.size());
+      for (unsigned int i = 0; i < trackPts.size(); i++){
+	   trackIndices[i] = i;
+      }
+      
+      
+      //Vector2 minmax;
+      Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+      SaveImagePoints(trackPts, 3, imgPtsFilename);
+      SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
+      SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
+      SaveReflectancePoints(trackPts, gain_bias, syntImgPtsFilename);
+
+      /*
+      //int numVerPts = 6000;
+      //int numHorPts = 6000;
+      //MakeGrid(trackPts, numVerPts, numHorPts, lolaInitTracksFilename, trackIndices); 
+      */
+      
+      Vector<float, 6> unitTransfArray;
+      unitTransfArray[0]=1;
+      unitTransfArray[1]=0;
+      unitTransfArray[2]=0;
+      unitTransfArray[3]=0;
+      unitTransfArray[4]=1;
+      unitTransfArray[5]=0;
+      ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
+			       trackIndices, mapCubFiles[k], lolaInitTracksOnImageFilename);
+      
+
+      //write results to image outside matching
+      //ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
+      //			 trackIndices, mapCubFiles[k], lolaFinalTracksOnImageFilename);
+
+    }
+
     //TO DO: this should become all one function - START  
-    cout<<"writting the GCP images..."<<endl;
+    cout<<"saving the GCP images..."<<endl;
     int gc_index = 0;
  
     for (unsigned int t=0; t<trackPts.size(); t++){
@@ -404,6 +363,7 @@ int main( int argc, char *argv[] ) {
 	}
       }
     }
+    cout<<"done."<<endl;
     //TO DO: this should become all one function - END  
 
   }
