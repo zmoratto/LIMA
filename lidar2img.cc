@@ -59,27 +59,24 @@ int main( int argc, char *argv[] ) {
   std::vector<std::string> mapCubFiles;
   std::string resDir = "../results";
   std::string mapCubDir = "../data/map";
- 
+  std::string camCubFileList;
+
   po::options_description general_options("Options");
   general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("camCubFiles,c", po::value<std::vector<std::string> >(&camCubFiles))
+    ("camCubFileList,a", po::value<std::string> (&camCubFileList))
     ("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
     ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
     ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
     ("help,h", "Display this help message");
   
-
-  po::options_description hidden_options("");
-
-  hidden_options.add_options()
-    ("DEMFiles,d", po::value<std::vector<std::string> >(&DEMFiles));
- 
   po::options_description options("Allowed Options");
-  options.add(general_options).add(hidden_options);
+  options.add(general_options);
 
   po::positional_options_description p;
-  p.add("camCubFiles", -1);
+  //p.add("camCubFiles", -1);
+  p.add("camCubFileList", -1);
 
   std::ostringstream usage;
   usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
@@ -101,11 +98,13 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("camCubFiles") < 1 )) {
+  //if(( vm.count("camCubFiles") < 1 )) {
+  if(( vm.count("camCubFileList") < 1 )) {
     std::cerr << "Error: Must specify at least one cun image file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
   }
+
 
   //#if 0
   struct CoregistrationParams settings;
@@ -117,6 +116,10 @@ int main( int argc, char *argv[] ) {
   }
   //PrintGlobalParams(&settings);
   std::cerr << settings << endl;
+
+
+ 
+  ReadCamFileList(camCubFileList, camCubFiles);
 
   int numCubFiles = camCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);

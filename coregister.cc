@@ -99,7 +99,6 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
     settings->matchWindowHalfSize(1) = 5;
     settings->maxNumIter = 3;
     settings->maxNumStarts = 160;
-    //settings->displayResults = 0; 
     settings->noDataVal = -10000;
     settings->minConvThresh = 0.01;
 
@@ -107,43 +106,7 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
   }
 }
 
-/*
-//this function will be removed
-int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params)
-{
 
- int MAX_LENGTH = 5000;
- char line[MAX_LENGTH];
- ifstream modelParamsFile((char*)modelParamsFilename.c_str());
-
-  if (modelParamsFile.is_open()){
-    printf("MODEL PARAMS FILE FOUND\n");
-    
-    modelParamsFile.getline(line, MAX_LENGTH);
-
-    modelParamsFile.getline(line, MAX_LENGTH);
-    sscanf(line, "LIGHT_POS %lf %lf %lf\n", &(params->sunPosition[0]), &(params->sunPosition[1]), &(params->sunPosition[2])  );
-
-    modelParamsFile.getline(line, MAX_LENGTH);
-    sscanf(line, "VIEWER_POS %lf %lf %lf\n", &(params->spacecraftPosition[0]), &(params->spacecraftPosition[1]), &(params->spacecraftPosition[2]));
-
-    params->exposureTime = 1.0;
-    //params->rescalingParams[0] = 1;
-    //params->rescalingParams[1] = 0;
-
-    params->sunPosition[0] = 1000*(params->sunPosition[0]);
-    params->sunPosition[1] = 1000*(params->sunPosition[1]);
-    params->sunPosition[2] = 1000*(params->sunPosition[2]);
-
-    params->spacecraftPosition[0] = 1000*(params->spacecraftPosition[0]);
-    params->spacecraftPosition[1] = 1000*(params->spacecraftPosition[1]);
-    params->spacecraftPosition[2] = 1000*(params->spacecraftPosition[2]);
-    return (0);
-  }
-
-  return(1);
-}
-*/
 
 void PrintModelParams(struct ModelParams *params)
 {
@@ -156,7 +119,21 @@ void PrintModelParams(struct ModelParams *params)
   cout<<"VIEWER_POS[2]"<<params->spacecraftPosition[2]<<endl;
 }
 
+void ReadCamFileList(string camFileListFilename, vector<string> &camFileArray)
+{
 
+ ifstream file;
+ file.open(camFileListFilename.c_str());
+ string camFilename;
+ if (file.is_open()) {
+    while (!file.eof()) {
+      file >> camFilename;
+      camFileArray.push_back(camFilename);
+    }
+  }
+  file.close();
+
+}
 
 void SaveVectorToFile(vector<float> v, string filename)
 {

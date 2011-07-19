@@ -21,8 +21,8 @@ void printOverlapList(std::vector<int>  overlapIndices);
 //it takes into consideration any set of overlapping images.
 Vector4 ComputeGeoBoundary(string cubFilename);
 
-void MakeTestTable(); 
-void ReadTestTable();
+
+void ReadCamFileList(string camFileListFilename, vector<string> &camFileArray);
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
