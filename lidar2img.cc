@@ -127,28 +127,32 @@ int main( int argc, char *argv[] ) {
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
 
   //select the overlapping images - START
-  //ReadOverlapList(inputCSVFilename, overlapIndices);
+ 
+  cout<<"Selecting the overlapping images ..."<<endl;
 
-  printf("Selecting the overlapping images ...\n");
-  Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
-  Vector4 lon_lat_bb;
-  lon_lat_bb[0]=lat_lon_bb[2];
-  lon_lat_bb[1]=lat_lon_bb[3];
-  lon_lat_bb[2]=lat_lon_bb[0];
-  lon_lat_bb[3]=lat_lon_bb[1];
-  printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
-  
-  std::vector<int> overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
+  std::vector<int> overlapIndices;
+  string overlapListFilename = resDir+string("/")+sufix_from_filename(inputCSVFilename);
+  FindAndReplace(overlapListFilename, ".csv", "_overlap_list.txt"); 
+  int fileFound = ReadOverlapList(overlapListFilename, overlapIndices);
+
+  if (fileFound == 0){
+    Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
+    Vector4 lon_lat_bb;
+    lon_lat_bb[0]=lat_lon_bb[2];
+    lon_lat_bb[1]=lat_lon_bb[3];
+    lon_lat_bb[2]=lat_lon_bb[0];
+    lon_lat_bb[3]=lat_lon_bb[1];
+    printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
+    overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
+    SaveOverlapList(overlapListFilename, overlapIndices);
+  }
+
   PrintOverlapList(overlapIndices);
-  //SaveOverlapList(inputCSVFilename, overlapIndices);
-
-
-  printf("done\n");
-
   int numOverlappingImages = (int)overlapIndices.size();
+  cout<<"done."<<endl;
+
   //select the overlapping images - END
   
- 
   //ComputeAverageShotDistance(trackPts);
   //ComputeAverageIntraShotDistance(trackPts);
  

@@ -137,23 +137,32 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
 void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
 {
    ofstream file( filename.c_str() );
-   for (int i = 0; i < overlapIndices.size(); i++){
+   for (int i = 0; i < overlapIndices.size()-1; i++){
        file<<overlapIndices[i]<<endl;
    }
+   file<<overlapIndices[overlapIndices.size()-1];
    file.close();
    
 }
-void ReadOverlapList(string filename, std::vector<int> &overlapIndices)
+int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
 {
+   int fileFound = 0;
    ifstream file( filename.c_str() );
    if (!file){
+     cout<<"file not found"<<endl;
      overlapIndices.clear();
+     return fileFound;
    }
    else{
-     for (int i = 0; i < overlapIndices.size(); i++){
-       file>>overlapIndices[i];
+     cout<<"file found"<<endl;
+     fileFound = 1;
+     while (!file.eof()){
+       int index;
+       file>>index;
+       overlapIndices.push_back(index);
      }
      file.close();
+     return fileFound;
    }
 }
 
