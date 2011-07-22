@@ -44,7 +44,7 @@ void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplac
 
 }
 
-void printOverlapList(std::vector<int>  overlapIndices)
+void PrintOverlapList(std::vector<int>  overlapIndices)
 {
   printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
     for (unsigned int i = 0; i < overlapIndices.size(); i++){
@@ -134,6 +134,28 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
   //cout<<overlapIndices<<endl;
   return overlapIndices;
 }
+void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
+{
+   ofstream file( filename.c_str() );
+   for (int i = 0; i < overlapIndices.size(); i++){
+       file<<overlapIndices[i]<<endl;
+   }
+   file.close();
+   
+}
+void ReadOverlapList(string filename, std::vector<int> &overlapIndices)
+{
+   ifstream file( filename.c_str() );
+   if (!file){
+     overlapIndices.clear();
+   }
+   else{
+     for (int i = 0; i < overlapIndices.size(); i++){
+       file>>overlapIndices[i];
+     }
+     file.close();
+   }
+}
 
 void
 writeErrors(	const string&          filename, 
@@ -171,52 +193,3 @@ for( unsigned int i = 0; i < locations.size(); i++ ){
   }
 }
 
-void MakeTestTable() 
-{
-  ofstream out("matches_test.dat", ios::out | ios::binary);
-  float *scoreArray = new float[10];
-  for (int i = 0; i < 10;i++){
-    scoreArray[i] = (float)i*1.0;
-  }
-  //out.seekp(i, ios::beg);
-  //out.write((char*)(&scoreArray[0]), 10*sizeof(float));
-  
-  for (int i = 0; i < 10;i++){
-    float score = (float)i;
-    cout<<"score="<<score<<endl;
-    out.seekp(i*sizeof(float), ios::beg);
-    out.write(reinterpret_cast<char*>(&score), sizeof(float));
-  }
-  
-  out.close();
-}
-
-void ReadTestTable()
-{
-  cout<<"reading"<<endl;
-  ifstream fp;
-  fp.open ("matches_test.dat", ios::in | ios::binary );
-  if (!fp.is_open()){
-    cout<<"muja"<<endl;
-  }
-  /*
-  //vector<float> scoreArray;
-  //scoreArray.resize(10);
-  float *scoreArray = new float[10];
-  fp.read((char*)&(scoreArray[0]), 10*sizeof(float));
-  for (int i = 0; i < 10; i++){
-    cout<<i<<":"<<scoreArray[i]<<endl;
-  }
-  */
-  fp.seekg (0, ios::end);
-  long length = fp.tellg();
-  cout<<"length="<<length<<endl;
-  float value;
-  for (int i = 0; i < 10; i++){
-    fp.seekg(i*sizeof(float), ios::beg);
-    cout << "File pointer is at " << fp.tellg() << endl;
-    fp.read((char*)&value, sizeof(float));
-    cout<<"index: "<<i<<", value: "<<value<<endl;
-  }
-  fp.close();
-}

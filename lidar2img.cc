@@ -54,9 +54,8 @@ int main( int argc, char *argv[] ) {
   string inputCSVFilename; 
   std::string configFilename="lidar2img_settings.txt";
   
-  std::vector<std::string> DEMFiles;
+ 
   std::vector<std::string> camCubFiles;
-  std::vector<std::string> mapCubFiles;
   std::string resDir = "../results";
   std::string mapCubDir = "../data/map";
   std::string camCubFileList;
@@ -117,39 +116,19 @@ int main( int argc, char *argv[] ) {
   //PrintGlobalParams(&settings);
   std::cerr << settings << endl;
 
-
  
   ReadCamFileList(camCubFileList, camCubFiles);
 
   int numCubFiles = camCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);
-  vector<ModelParams> modelParamsArray;
-  modelParamsArray.resize(numCubFiles);
-  mapCubFiles.resize(numCubFiles);
-
-  for (int i = 0; i < numCubFiles; i++){
-    printf("camCubFiles[%d] = %s\n", i, camCubFiles[i].c_str());
-    camera::IsisCameraModel model(camCubFiles[i]);
-    Vector3 center_of_moon(0,0,0);
-    Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-    Vector3 cameraPosition = model.camera_center( pixel_location );
-    Vector3 lightPosition= model.sun_position( pixel_location );
-    modelParamsArray[i].sunPosition[0] = lightPosition[0];
-    modelParamsArray[i].sunPosition[1] = lightPosition[1];
-    modelParamsArray[i].sunPosition[2] = lightPosition[2];
-
-    modelParamsArray[i].spacecraftPosition[0] = cameraPosition[0];
-    modelParamsArray[i].spacecraftPosition[1] = cameraPosition[1];
-    modelParamsArray[i].spacecraftPosition[2] = cameraPosition[2];
-    
-    PrintModelParams(&modelParamsArray[i]);
-  }
 
   //create the results directory and prepare the output filenames - START
   system("mkdir ../results"); 
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
 
-  //select the overlapping images
+  //select the overlapping images - START
+  //ReadOverlapList(inputCSVFilename, overlapIndices);
+
   printf("Selecting the overlapping images ...\n");
   Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
   Vector4 lon_lat_bb;
@@ -160,12 +139,18 @@ int main( int argc, char *argv[] ) {
   printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
   
   std::vector<int> overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
-  printOverlapList(overlapIndices);
+  PrintOverlapList(overlapIndices);
+  //SaveOverlapList(inputCSVFilename, overlapIndices);
+
+
   printf("done\n");
 
   int numOverlappingImages = (int)overlapIndices.size();
-  ComputeAverageShotDistance(trackPts);
-  ComputeAverageIntraShotDistance(trackPts);
+  //select the overlapping images - END
+  
+ 
+  //ComputeAverageShotDistance(trackPts);
+  //ComputeAverageIntraShotDistance(trackPts);
  
   //compute LOLA features - START
   printf("numTracks = %d\n", (int)trackPts.size());
@@ -231,28 +216,48 @@ int main( int argc, char *argv[] ) {
   Vector2 transfCentroid;
 
   for (int k = 0; k < numOverlappingImages; k++){
+    
+    ModelParams modelParamsArray;
+    string overlapCamCubFile;
+    string overlapMapCubFile;
 
-    string inputImgFilename = camCubFiles[k];  
-    string imgFilenameNoPath = sufix_from_filename(inputImgFilename);  
-    mapCubFiles[k] = mapCubDir+string("/")+imgFilenameNoPath;
-    FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
+    overlapCamCubFile = camCubFiles[overlapIndices[k]];
+    overlapMapCubFile = sufix_from_filename(overlapCamCubFile); 
+    overlapMapCubFile = mapCubDir+string("/")+overlapMapCubFile;
+    FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
 
-    cout<<"camCubFiles="<<camCubFiles[k]<<", mapCubFiles="<<mapCubFiles[k]<<endl;
-  
+    cout<<"camCubFile="<<overlapCamCubFile<<", mapCubFile="<<overlapMapCubFile<<endl;
+
+    camera::IsisCameraModel model(overlapCamCubFile);
+    Vector3 center_of_moon(0,0,0);
+    Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+    Vector3 cameraPosition = model.camera_center( pixel_location );
+    Vector3 lightPosition= model.sun_position( pixel_location );
+    modelParamsArray.sunPosition[0] = lightPosition[0];
+    modelParamsArray.sunPosition[1] = lightPosition[1];
+    modelParamsArray.sunPosition[2] = lightPosition[2];
+
+    modelParamsArray.spacecraftPosition[0] = cameraPosition[0];
+    modelParamsArray.spacecraftPosition[1] = cameraPosition[1];
+    modelParamsArray.spacecraftPosition[2] = cameraPosition[2];
+    
+    PrintModelParams(&modelParamsArray);
+    //read the ligthing parameters - END
+
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub "<<endl; 
-    GetAllPtsFromCub(trackPts, mapCubFiles[k]);
+    GetAllPtsFromCub(trackPts, overlapMapCubFile);
     cout<<"done."<<endl; 
   
     cout << "ComputeTrackReflectance..." << endl;
-    ComputeAllReflectance(trackPts, modelParamsArray[k], settings);
+    ComputeAllReflectance(trackPts, modelParamsArray, settings);
     cout<<"done."<<endl;
     //initialization step for LIMA - END 
 
     //iterative matching step for LIMA - START
    
     cout<<"Initializing the affine tranformation ..."<<endl;
-    InitMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings,  
+    InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
 			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
    
    
@@ -260,7 +265,7 @@ int main( int argc, char *argv[] ) {
 
     if (refinedMatching == 1){
       cout<<"Computing the affine tranformation ..."<<endl;
-      UpdateMatchingParamsFromCub(trackPts, mapCubFiles[k], modelParamsArray[k], settings.maxNumIter,  
+      UpdateMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings.maxNumIter,  
 				  bestInitTransfArray, initMatchingErrorArray,
                                   finalTransfArray, finalMatchingErrorArray, transfCentroid);
       cout<<"done."<<endl;
@@ -274,7 +279,7 @@ int main( int argc, char *argv[] ) {
     //iterative matching step for LIMA - END
 
     //save to GCP structure. 
-    UpdateGCP(trackPts, optimalTransfArray[k], camCubFiles[k], mapCubFiles[k], gcpArray, transfCentroid, 4.0);
+    UpdateGCP(trackPts, optimalTransfArray[k], overlapCamCubFile, overlapMapCubFile, gcpArray, transfCentroid, 4.0);
   
   }  
   //end matching
@@ -290,8 +295,14 @@ int main( int argc, char *argv[] ) {
   if (settings.analyseFlag){
  
     for (int k = 0; k < numOverlappingImages; k++){
-   
-      string inputImgFilename = camCubFiles[k];  
+      
+      string overlapCamCubFile = camCubFiles[overlapIndices[k]];
+      string overlapMapCubFile = sufix_from_filename(overlapCamCubFile); 
+      overlapMapCubFile = mapCubDir+string("/")+overlapMapCubFile;
+      FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
+
+
+      string inputImgFilename = overlapCamCubFile;//camCubFiles[k];  
       string imgFilenameNoPath = sufix_from_filename(inputImgFilename);
       string imgPtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "img.txt";  
       string altitudePtsFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "alt.txt";  
@@ -303,31 +314,19 @@ int main( int argc, char *argv[] ) {
       string lolaInitTracksFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "init_lola.tif";  
       string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "init_img_lola.tif";  
       string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(imgFilenameNoPath) + "final_img_lola.tif";  
-      
-      mapCubFiles[k] = mapCubDir+string("/")+imgFilenameNoPath;
-      FindAndReplace(mapCubFiles[k], ".lev1", "_map"); 
-      cout<<"mapCubFiles="<<mapCubFiles[k]<<endl;
-     
+          
       vector<int> trackIndices;
       trackIndices.resize(trackPts.size());
       for (unsigned int i = 0; i < trackPts.size(); i++){
 	   trackIndices[i] = i;
       }
       
-      
-      //Vector2 minmax;
       Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
       SaveImagePoints(trackPts, 3, imgPtsFilename);
       SaveAltitudePoints(trackPts, 3, altitudePtsFilename);
       SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
       SaveReflectancePoints(trackPts, gain_bias, syntImgPtsFilename);
-
-      /*
-      //int numVerPts = 6000;
-      //int numHorPts = 6000;
-      //MakeGrid(trackPts, numVerPts, numHorPts, lolaInitTracksFilename, trackIndices); 
-      */
-      
+     
       Vector<float, 6> unitTransfArray;
       unitTransfArray[0]=1;
       unitTransfArray[1]=0;
@@ -336,7 +335,7 @@ int main( int argc, char *argv[] ) {
       unitTransfArray[4]=1;
       unitTransfArray[5]=0;
       ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
-			       trackIndices, mapCubFiles[k], lolaInitTracksOnImageFilename);
+			       trackIndices, overlapMapCubFile, lolaInitTracksOnImageFilename);
       
 
       //write results to image outside matching

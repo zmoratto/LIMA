@@ -15,7 +15,9 @@ using namespace vw::cartography;
 using namespace std;
 
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );
-void printOverlapList(std::vector<int>  overlapIndices);
+void PrintOverlapList(std::vector<int>  overlapIndices);
+void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
+void ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
