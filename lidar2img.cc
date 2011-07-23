@@ -157,25 +157,11 @@ int main( int argc, char *argv[] ) {
   //ComputeAverageIntraShotDistance(trackPts);
  
   //compute LOLA features - START
-  printf("numTracks = %d\n", (int)trackPts.size());
-  
-  //build crater filter - START
-  vector<float> filter;
   int windowSize = 12;//16
-  //craters of 300m diameter - seven pixels wide
-  int quartWindowSize = windowSize/4;
-  filter.resize(windowSize);
-  for (int i = 0; i < windowSize ;i++ ){
-    if ((i < quartWindowSize) || (i > windowSize-quartWindowSize-1)){
-      filter[i] = 1.0; 
-    }
-    else{
-      filter[i] = -1.0; 
-    }
-  }
-  //build crater filter -  END
   float salientFeatureThresh = 0.008;//0.015;
 
+  vector<float> filter;
+  filter =  MakeLidarFilter(windowSize);
   for (int ti = 0; ti < (int)trackPts.size(); ti++){
     cout<<"trackIndex="<<ti<<" of "<<trackPts.size()<<endl;
     ComputeSalientLOLAFeature(trackPts[ti], filter, salientFeatureThresh);
@@ -257,6 +243,15 @@ int main( int argc, char *argv[] ) {
     ComputeAllReflectance(trackPts, modelParamsArray, settings);
     cout<<"done."<<endl;
     //initialization step for LIMA - END 
+
+    vector<Vector2> matchArray;
+    Find2DMatches(trackPts, overlapMapCubFile, matchArray, settings.matchWindowHalfSize);
+    cout<<"numMatches="<<matchArray.size()<<endl;
+    
+    //for (int m = 0; m < matchArray.size(); m++){
+    //  cout<<matchArray[m]<<endl;
+    //}
+    matchArray.clear();
 
     //iterative matching step for LIMA - START
    

@@ -153,6 +153,59 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
     }  
 }
 */
+
+
+void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vector<Vector2>&matchArray, Vector2 matchWindowHalfSize)
+{
+ 
+ cout<<"FIND 2D MATCHES..."<<endl;
+ boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+ double noDataValue = rsrc->nodata_read();
+
+ DiskImageView<PixelGray<float> > img( rsrc );
+ int width = img.cols();
+ int height = img.rows();
+
+ Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+
+ int matchWindowHalfWidth = matchWindowHalfSize(0);
+ int matchWindowHalfHeight = matchWindowHalfSize(1);
+
+ for (int ti = 0; ti < trackPts.size(); ti++){//for each track
+   for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
+     if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
+
+       int x = (int)floor(trackPts[ti][si].imgPt[0].x); 
+       int y = (int)floor(trackPts[ti][si].imgPt[0].y); 
+        
+       float minDist = 10000000.0;
+       Vector2 bestMatch;
+       bestMatch(0) = x;
+       bestMatch(1) = y;
+
+       for (int k =  y - matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
+	 for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
+           if ((l > 0) && (k > 0) && (l < width) && (k < height)){
+	     if (img(l,k)!=noDataValue){
+	       float dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance - img(l,k));
+	       if (dist < minDist){
+		 minDist = dist;
+		 bestMatch(0) = l;
+		 bestMatch(1) = k;
+	       }      
+	     }
+	   }
+	 }
+       }
+
+       matchArray.push_back(bestMatch);
+     }
+   }
+ }
+
+};
+
+
 //This functions needs to be changed to generate multiple starting points for each 
 //element of the affine transform 
 void GenerateInitTransforms(vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings)
@@ -294,17 +347,13 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     vector<int> numValidPts;
     numValidPts.resize(initTransfArray.size());    
 
-    //cout<<"numInitTransf="<<initTransfArray.size()<<endl;
-
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
     double nodata_value = rsrc->nodata_read();
-    //cout<<"nodata_value="<<nodata_value<<endl;
-
+  
     DiskImageView<PixelGray<float> > isis_view( rsrc );
     int width = isis_view.cols();
     int height = isis_view.rows();
-    //cout<<"width="<<width<<", height="<<height<<endl;
-
+  
     camera::IsisCameraModel model(cubFilename);
 
     InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
@@ -315,7 +364,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
 
     //compute the scale factor between LOLA reflectance and image.
     cout<<"Computing the gain and bias ..."<<endl;
-    Vector2 gain_bias = ComputeGainBiasFactor(trackPts/*, minmax*/);
+    Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
     cout<<"gain_bias="<<gain_bias<<endl;   
 
     cout<<"Computing LOLA centroid ..."<<endl;

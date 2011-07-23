@@ -12,6 +12,8 @@
 #include <algorithm>
 using namespace std;
 
+vector<float> MakeLidarFilter(int windowSize);
+
 //this function loops through each set of track points separatly, 
 //if we see the following pattern of points (valid, in-valid, valid)
 //the non-valid point will have it's reflectance set to the average of the two valid points

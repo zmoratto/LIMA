@@ -49,6 +49,8 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
                                  vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid );
 
+void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vector<Vector2>&matchArray, Vector2 matchWindowHalfSize);
+
 void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
 			ModelParams modelParams, CoregistrationParams coregistrationParams,  
 			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 

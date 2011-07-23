@@ -1,5 +1,20 @@
 #include "featuresLOLA.h"
 
+vector<float> MakeLidarFilter(int windowSize)
+{
+  vector<float> filter;
+  int quartWindowSize = windowSize/4;
+  filter.resize(windowSize);
+  for (int i = 0; i < windowSize ;i++ ){
+    if ((i < quartWindowSize) || (i > windowSize-quartWindowSize-1)){
+      filter[i] = 1.0; 
+    }
+    else{
+      filter[i] = -1.0; 
+    }
+  }
+  return filter;
+}
 
 //this function loops through each set of track points separatly, 
 //if we see the following pattern of points (valid, in-valid, valid)
