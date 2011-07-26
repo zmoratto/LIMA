@@ -245,19 +245,19 @@ int main( int argc, char *argv[] ) {
     //initialization step for LIMA - END 
 
     vector<Vector2> matchArray;
-    Find2DMatches(trackPts, overlapMapCubFile, matchArray, settings.matchWindowHalfSize);
+    Find2DMatches(trackPts, overlapMapCubFile, matchArray, settings.matchWindowHalfSize, bestInitTransfArray, initMatchingErrorArray);
     cout<<"numMatches="<<matchArray.size()<<endl;
     
     //for (int m = 0; m < matchArray.size(); m++){
     //  cout<<matchArray[m]<<endl;
     //}
-    matchArray.clear();
+    //matchArray.clear();
 
     //iterative matching step for LIMA - START
    
-    cout<<"Initializing the affine tranformation ..."<<endl;
-    InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
-			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
+    // cout<<"Initializing the affine tranformation ..."<<endl;
+    //InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
+    //			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
    
    
     int refinedMatching = 1;

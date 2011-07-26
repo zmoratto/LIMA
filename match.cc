@@ -155,7 +155,8 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 */
 
 
-void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vector<Vector2>&matchArray, Vector2 matchWindowHalfSize)
+void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vector<Vector2>&matchArray, Vector2 matchWindowHalfSize, 
+                   vector<Vector<float, 6> > &initTransfArray, vector<float> &matchingErrorArray)
 {
  
  cout<<"FIND 2D MATCHES..."<<endl;
@@ -168,26 +169,67 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vec
 
  Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
 
+ cout<<"Computing LOLA centroid ..."<<endl;
+ float i_C = 0.0;
+ float j_C = 0.0;
+ int numPts = 0;
+ 
+ //compute the  i_C and  j_C new way - START
+ for (unsigned int ti = 0; ti < trackPts.size(); ti++){
+   for (unsigned int si = 0; si < trackPts[ti].size(); si++){
+     if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
+       //if ((float)img(trackPts[ti][si].imgPt[0].x, trackPts[ti][si].imgPt[0].y)>minmax(0)){
+	 i_C = i_C + trackPts[ti][si].imgPt[0].x;
+	 j_C = j_C + trackPts[ti][si].imgPt[0].y;
+	 numPts++;
+	 //}
+     }
+   }
+ }
+ 
+ i_C = i_C/numPts;
+ j_C = j_C/numPts;
+
  int matchWindowHalfWidth = matchWindowHalfSize(0);
  int matchWindowHalfHeight = matchWindowHalfSize(1);
+ float sum_x2 = 0.0;
+ float sum_xy = 0.0;
+ float sum_x  = 0.0;
+ float sum_y  = 0.0;
+ float sum_y2 = 0.0;
+ float sum_1  = 0.0;
 
+ float sum_kx = 0.0; 
+ float sum_ky = 0.0;
+ float sum_k  = 0.0;
+ float sum_lx = 0.0;
+ float sum_ly = 0.0;
+ float sum_l  = 0.0;
+
+ cout <<"matchWindowHalfHeight= "<<matchWindowHalfHeight<<endl;
  for (int ti = 0; ti < trackPts.size(); ti++){//for each track
    for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
      if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
 
        int x = (int)floor(trackPts[ti][si].imgPt[0].x); 
        int y = (int)floor(trackPts[ti][si].imgPt[0].y); 
+      
         
        float minDist = 10000000.0;
        Vector2 bestMatch;
        bestMatch(0) = x;
        bestMatch(1) = y;
+      if ((x > 0) && (y > 0) && (x < width) && (y < height)){
+      }
+      else{
+        cout<<"error"<<endl;
+      }
 
        for (int k =  y - matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
 	 for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
            if ((l > 0) && (k > 0) && (l < width) && (k < height)){
 	     if (img(l,k)!=noDataValue){
-	       float dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance - img(l,k));
+	       float dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance);
 	       if (dist < minDist){
 		 minDist = dist;
 		 bestMatch(0) = l;
@@ -199,9 +241,82 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vec
        }
 
        matchArray.push_back(bestMatch);
+       
+       x = x-i_C;
+       y = y-j_C;
+       bestMatch(0) = bestMatch(0)-i_C;
+       bestMatch(1) = bestMatch(1)-j_C;
+
+       sum_x2 = sum_x2 + x*x;
+       sum_xy = sum_xy + x*y;
+       sum_x  = sum_x  + x;
+       sum_y  = sum_y  + y;
+       sum_y2 = sum_y2 + y*y;
+       sum_1  = sum_1 + 1;
+
+       sum_lx = sum_lx + bestMatch(0)*x;
+       sum_ly = sum_ly + bestMatch(0)*y;
+       sum_l  = sum_l  + bestMatch(0);
+       
+       sum_kx = sum_kx + bestMatch(1)*x; 
+       sum_ky = sum_ky + bestMatch(1)*y;
+       sum_k  = sum_k  + bestMatch(1);
      }
    }
  }
+
+ //TO DO: compute the affine transform
+ Matrix<float,3,3> rhs;
+ Vector<float,3> lhs;
+ rhs(0,0) = sum_x2/sum_1;
+ rhs(0,1) = sum_xy/sum_1;
+ rhs(0,2) = sum_x/sum_1;
+
+ rhs(1,0) = sum_xy/sum_1;
+ rhs(1,1) = sum_y2/sum_1;
+ rhs(1,2) = sum_y/sum_1;
+
+ rhs(2,0) = sum_x/sum_1;
+ rhs(2,1) = sum_y/sum_1;
+ rhs(2,2) = sum_1/sum_1;
+
+ lhs(0) = sum_lx/sum_1;
+ lhs(1) = sum_ly/sum_1;
+ lhs(2) = sum_l/sum_1;
+ solve_symmetric_nocopy(rhs,lhs);
+
+
+ initTransfArray.resize(1);
+ initTransfArray[0][0] = lhs(0); 
+ initTransfArray[0][1] = lhs(1);
+ initTransfArray[0][2] = lhs(2);
+
+
+ lhs(0) = sum_kx/sum_1;
+ lhs(1) = sum_ky/sum_1;
+ lhs(2) = sum_k/sum_1;
+
+ rhs(0,0) = sum_x2/sum_1;
+ rhs(0,1) = sum_xy/sum_1;
+ rhs(0,2) = sum_x/sum_1;
+
+ rhs(1,0) = sum_xy/sum_1;
+ rhs(1,1) = sum_y2/sum_1;
+ rhs(1,2) = sum_y/sum_1;
+
+ rhs(2,0) = sum_x/sum_1;
+ rhs(2,1) = sum_y/sum_1;
+ rhs(2,2) = sum_1/sum_1;
+
+ solve_symmetric_nocopy(rhs,lhs);
+
+ initTransfArray[0][3] = lhs(0); 
+ initTransfArray[0][4] = lhs(1);
+ initTransfArray[0][5] = lhs(2);
+
+ cout<<initTransfArray[0]<<endl;
+ matchingErrorArray.resize(1);
+ matchingErrorArray[0] = 1000000.0;
 
 };
 
