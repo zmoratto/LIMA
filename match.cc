@@ -155,11 +155,14 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 */
 
 
-void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vector<Vector2>&matchArray, Vector2 matchWindowHalfSize, 
+void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 
                    vector<Vector<float, 6> > &initTransfArray, vector<float> &matchingErrorArray)
 {
  
+
  cout<<"FIND 2D MATCHES..."<<endl;
+ vector<Vector2> matchArray;
+
  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
  double noDataValue = rsrc->nodata_read();
 
@@ -318,7 +321,7 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vec
  cout<<initTransfArray[0]<<endl;
  matchingErrorArray.resize(1);
  matchingErrorArray[0] = 1000000.0;
-
+ matchArray.clear();
 };
 
 
@@ -936,7 +939,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 
 
 
-
+#if 0
 //determines the best finalTransfArray from all initTransfArrays
 //it assumes that each image is transformed by one affine transform
 //in the future we can investigate the use of one affine transform per track. 
@@ -1027,7 +1030,7 @@ void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,
     } 
     *matchingError = minError;
 }
-
+#endif
 
 #if 0
 //image to lidar coregistration

@@ -206,13 +206,14 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
-vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
+//vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
 //computes the scale factor for all tracks at once
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 
-float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+//float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts);
-void  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
+int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
+int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename);
@@ -235,7 +236,7 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 //this function does not belong here
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 
-void GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
+
 
 template <class ViewT>
 void 

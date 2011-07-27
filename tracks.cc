@@ -264,8 +264,7 @@ Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
   return minmax;
 }
 
-void 
-GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
+int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 {
 
   vector<pointCloud> LOLAPts;
@@ -284,6 +283,8 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 
   float minTrackVal = 1000000.0;
   float maxTrackVal = -1000000.0;
+
+  int numValidImgPts = 0;
 
   InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
     = interpolate(isis_view, BilinearInterpolation(), ConstantEdgeExtension());
@@ -321,6 +322,7 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 		 if(interpImg(x,y) > maxTrackVal){
 		    maxTrackVal = interpImg(x,y);
                  }
+                 numValidImgPts++;
 	      }
               else{//invalidate the point
                  trackPts[k][i].valid = 0;
@@ -345,6 +347,8 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
     }//i  
   }//k
   cout <<"minTrackVal="<<minTrackVal<<", maxTrackVal="<<maxTrackVal<<endl;
+  
+  return numValidImgPts;
 }
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
@@ -476,11 +480,11 @@ Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
   return normal;
 
 }
-void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
+int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
 {
 
   vector<pointCloud> LOLAPts;
-
+  int numValidReflPts = 0;
 
   GlobalParams globalParams;
   globalParams.reflectanceType = coregistrationParams.reflectanceType;
@@ -518,12 +522,16 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
         Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
 
         allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-        if ((allTracks[k][i].reflectance < minReflectance) && (allTracks[k][i].reflectance != 0)){
+        if (allTracks[k][i].reflectance != 0){ 
+	  if (allTracks[k][i].reflectance < minReflectance){
 	    minReflectance = allTracks[k][i].reflectance;
-        } 
-        if ((allTracks[k][i].reflectance > maxReflectance) && (allTracks[k][i].reflectance != 0)){
+	  } 
+	  if (allTracks[k][i].reflectance > maxReflectance){
 	    maxReflectance = allTracks[k][i].reflectance;
-        }
+	  }
+          numValidReflPts++;
+	}
+        
       }
       else{
         allTracks[k][i].reflectance = -1;
@@ -532,6 +540,8 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
   }//k
  
   cout<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
+
+  return numValidReflPts;
 }
 
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)

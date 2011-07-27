@@ -236,50 +236,49 @@ int main( int argc, char *argv[] ) {
 
     //initialization step for LIMA - START  
     cout<<"GetAllPtsFromCub "<<endl; 
-    GetAllPtsFromCub(trackPts, overlapMapCubFile);
+    int numValidImgPts = GetAllPtsFromCub(trackPts, overlapMapCubFile);
+    cout<<"numValidImgPts="<<numValidImgPts<<endl;
     cout<<"done."<<endl; 
   
     cout << "ComputeTrackReflectance..." << endl;
-    ComputeAllReflectance(trackPts, modelParamsArray, settings);
+    int numValidReflPts = ComputeAllReflectance(trackPts, modelParamsArray, settings);
+    cout<<"numValidReflPts="<<numValidReflPts<<endl;
     cout<<"done."<<endl;
     //initialization step for LIMA - END 
 
-    vector<Vector2> matchArray;
-    Find2DMatches(trackPts, overlapMapCubFile, matchArray, settings.matchWindowHalfSize, bestInitTransfArray, initMatchingErrorArray);
-    cout<<"numMatches="<<matchArray.size()<<endl;
-    
-    //for (int m = 0; m < matchArray.size(); m++){
-    //  cout<<matchArray[m]<<endl;
-    //}
-    //matchArray.clear();
-
-    //iterative matching step for LIMA - START
-   
-    // cout<<"Initializing the affine tranformation ..."<<endl;
-    //InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
-    //			      initTransfArray, bestInitTransfArray, initMatchingErrorArray);
-   
-   
-    int refinedMatching = 1;
-
-    if (refinedMatching == 1){
-      cout<<"Computing the affine tranformation ..."<<endl;
-      UpdateMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings.maxNumIter,  
-				  bestInitTransfArray, initMatchingErrorArray,
-                                  finalTransfArray, finalMatchingErrorArray, transfCentroid);
-      cout<<"done."<<endl;
-    }
-    else{
-       finalTransfArray = bestInitTransfArray;
-       finalMatchingErrorArray = initMatchingErrorArray;
-    }
-
-    GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
-    //iterative matching step for LIMA - END
-
-    //save to GCP structure. 
-    UpdateGCP(trackPts, optimalTransfArray[k], overlapCamCubFile, overlapMapCubFile, gcpArray, transfCentroid, 4.0);
   
+    if (numValidReflPts > 100){
+      //param init LIMA - START 
+      Find2DMatches(trackPts, overlapMapCubFile,settings.matchWindowHalfSize, bestInitTransfArray, initMatchingErrorArray);
+      
+      // cout<<"Initializing the affine tranformation ..."<<endl;
+      //InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
+      //			        initTransfArray, bestInitTransfArray, initMatchingErrorArray);
+    
+
+      //param init LIMA - END
+      
+      //iterative matching step for LIMA - START
+      int refinedMatching = 1;
+      
+      if (refinedMatching == 1){
+	cout<<"Computing the affine tranformation ..."<<endl;
+	UpdateMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings.maxNumIter,  
+				    bestInitTransfArray, initMatchingErrorArray,
+				    finalTransfArray, finalMatchingErrorArray, transfCentroid);
+	cout<<"done."<<endl;
+      }
+      else{
+	finalTransfArray = bestInitTransfArray;
+	finalMatchingErrorArray = initMatchingErrorArray;
+      }
+      
+      GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
+      //iterative matching step for LIMA - END
+      
+      //save to GCP structure. 
+      UpdateGCP(trackPts, optimalTransfArray[k], overlapCamCubFile, overlapMapCubFile, gcpArray, transfCentroid, 4.0);
+    }
   }  
   //end matching
  
