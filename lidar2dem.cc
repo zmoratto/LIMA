@@ -323,7 +323,15 @@ if( verbose > 0 ){ cout << settings << endl; }
                  << "Axis Angle = " << axis_angle << ", " << axis_angle_deg << " degrees" << endl
                  << "Scale factors = " << scale << endl
                  //<< "Center = " << center << endl;
-                 << "Centroid = " << modelCentroid << endl;
+                 << "Centroid = " << modelCentroid << endl
+                 << "allin1linehead: Translation xyz\tTraslation llr\tMatching Error\tEuler Angles xyz\tAxis Angle degrees\tScale Factors\tCentroid" << endl
+                 << "alldatain1line: " << currTranslation << "\t" 
+                                         << translation_llr << "\t" 
+                                         << errorArray.sum()/errorArray.size() << "\t" 
+                                         << euler_angles << "\t" 
+                                         << axis_angle << " " << axis_angle_deg << "\t" 
+                                         << scale << "\t" 
+                                         << modelCentroid << endl;
 		}
   }
 
