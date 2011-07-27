@@ -272,7 +272,8 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
   
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
   double nodata_value = rsrc->nodata_read();
- 
+  cout<<"no_data_val="<<nodata_value<<endl; 
+
   DiskImageView<PixelGray<float> > isis_view( rsrc );
   int width = isis_view.cols();
   int height = isis_view.rows();
@@ -284,10 +285,8 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
   float minTrackVal = 1000000.0;
   float maxTrackVal = -1000000.0;
 
-  ImageViewRef<float> interpImg;
-  interpImg = pixel_cast<float>(interpolate(edge_extend(isis_view,
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
+  InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
+    = interpolate(isis_view, BilinearInterpolation(), ConstantEdgeExtension());
   
   for(unsigned int k = 0; k < trackPts.size();k++){
     for(unsigned int i = 0; i < trackPts[k].size(); i++){
@@ -313,13 +312,13 @@ GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 	    if ((x>=0) && (y>=0) && (x<width) && (y<height)){//valid position  
               //check for valid data as well
               if (interpImg(x, y)>minmax(0)){//valid values
-		trackPts[k][i].imgPt[j].val = interpImg(x, y)/* - minmax(0)*/;
+		 trackPts[k][i].imgPt[j].val = interpImg(x, y);
 	         trackPts[k][i].imgPt[j].x = cub_pix[0];
 	         trackPts[k][i].imgPt[j].y = cub_pix[1];
                  if(interpImg(x,y)<minTrackVal){
 		     minTrackVal = interpImg(x,y);
                  }
-		 if(interpImg(x,y)>maxTrackVal){
+		 if(interpImg(x,y) > maxTrackVal){
 		    maxTrackVal = interpImg(x,y);
                  }
 	      }
@@ -519,11 +518,11 @@ void ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
         Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
 
         allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-        if (allTracks[k][i].reflectance < minReflectance){
-	  minReflectance = allTracks[k][i].reflectance;
-        }
-        if (allTracks[k][i].reflectance > maxReflectance){
-	  maxReflectance = allTracks[k][i].reflectance;
+        if ((allTracks[k][i].reflectance < minReflectance) && (allTracks[k][i].reflectance != 0)){
+	    minReflectance = allTracks[k][i].reflectance;
+        } 
+        if ((allTracks[k][i].reflectance > maxReflectance) && (allTracks[k][i].reflectance != 0)){
+	    maxReflectance = allTracks[k][i].reflectance;
         }
       }
       else{

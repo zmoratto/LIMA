@@ -266,6 +266,7 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename,  vec
  }
 
  //TO DO: compute the affine transform
+ cout<<"numsamples = "<<sum_1<<endl;
  Matrix<float,3,3> rhs;
  Vector<float,3> lhs;
  rhs(0,0) = sum_x2/sum_1;
