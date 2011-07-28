@@ -119,7 +119,7 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
           ||((currCorners(2)>corners(2)) && (currCorners(2)<corners(3))) //minlat corners in interval of currCorners
 	  ||((currCorners(3)>corners(2)) && (currCorners(3)<corners(3)))) //maxlat corners in interval of currCorners
 	
-       {
+       { 
          latOverlap = 1;
        }
     
@@ -137,20 +137,27 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
 void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
 {
    ofstream file( filename.c_str() );
-   for (int i = 0; i < overlapIndices.size()-1; i++){
+   //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
+   if (overlapIndices.size() > 0){
+     for (int i = 0; i < overlapIndices.size()-1; i++){
        file<<overlapIndices[i]<<endl;
+     }
+   
+     file<<overlapIndices[overlapIndices.size()-1];
    }
-   file<<overlapIndices[overlapIndices.size()-1];
+   else{
+      file<<-1;
+   }
    file.close();
    
 }
 int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
 {
    int fileFound = 0;
+   overlapIndices.clear();
    ifstream file( filename.c_str() );
    if (!file){
      cout<<"file not found"<<endl;
-     overlapIndices.clear();
      return fileFound;
    }
    else{
@@ -158,7 +165,7 @@ int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
      fileFound = 1;
      while (!file.eof()){
        int index;
-       file>>index;
+       file>>index;  
        overlapIndices.push_back(index);
      }
      file.close();

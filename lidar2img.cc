@@ -148,7 +148,14 @@ int main( int argc, char *argv[] ) {
   }
 
   PrintOverlapList(overlapIndices);
-  int numOverlappingImages = (int)overlapIndices.size();
+  int numOverlappingImages;
+  if ((overlapIndices.size() == 1) && (overlapIndices[0] == -1)){
+    numOverlappingImages = 0;
+  }
+  else{
+     numOverlappingImages = (int)overlapIndices.size();
+  }
+  cout<<"numOverlapImages="<<numOverlappingImages<<endl;
   cout<<"done."<<endl;
 
   //select the overlapping images - END
@@ -253,7 +260,7 @@ int main( int argc, char *argv[] ) {
       
       // cout<<"Initializing the affine tranformation ..."<<endl;
       //InitMatchingParamsFromCub(trackPts, overlapMapCubFile, modelParamsArray, settings,  
-      //			        initTransfArray, bestInitTransfArray, initMatchingErrorArray);
+      //			  initTransfArray, bestInitTransfArray, initMatchingErrorArray);
     
 
       //param init LIMA - END
