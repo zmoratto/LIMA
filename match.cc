@@ -268,10 +268,12 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
    }
  }
 
- //TO DO: compute the affine transform
+ //compute the affine transform
  cout<<"numsamples = "<<sum_1<<endl;
  Matrix<float,3,3> rhs;
  Vector<float,3> lhs;
+ initTransfArray.resize(1);
+
  rhs(0,0) = sum_x2/sum_1;
  rhs(0,1) = sum_xy/sum_1;
  rhs(0,2) = sum_x/sum_1;
@@ -287,14 +289,22 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
  lhs(0) = sum_lx/sum_1;
  lhs(1) = sum_ly/sum_1;
  lhs(2) = sum_l/sum_1;
- solve_symmetric_nocopy(rhs,lhs);
-
-
- initTransfArray.resize(1);
- initTransfArray[0][0] = lhs(0); 
- initTransfArray[0][1] = lhs(1);
- initTransfArray[0][2] = lhs(2);
-
+ 
+ try {
+        solve_symmetric_nocopy(rhs,lhs);
+        initTransfArray[0][0] = lhs(0); 
+	initTransfArray[0][1] = lhs(1);
+	initTransfArray[0][2] = lhs(2);
+      } catch (ArgumentErr &/*e*/) {
+        //             std::cout << "Error @ " << x << " " << y << "\n";
+        //             std::cout << "Exception caught: " << e.what() << "\n";
+        //             std::cout << "PRERHS: " << pre_rhs << "\n";
+        //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+        //             std::cout << "RHS: " << rhs << "\n";
+        //             std::cout << "LHS: " << lhs << "\n\n";
+        //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+        //             exit(0);
+      }
 
  lhs(0) = sum_kx/sum_1;
  lhs(1) = sum_ky/sum_1;
@@ -312,11 +322,23 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
  rhs(2,1) = sum_y/sum_1;
  rhs(2,2) = sum_1/sum_1;
 
- solve_symmetric_nocopy(rhs,lhs);
+ try {
+   solve_symmetric_nocopy(rhs,lhs);
+   initTransfArray[0][3] = lhs(0); 
+   initTransfArray[0][4] = lhs(1);
+   initTransfArray[0][5] = lhs(2);
+ } catch (ArgumentErr &/*e*/) {
+        //             std::cout << "Error @ " << x << " " << y << "\n";
+        //             std::cout << "Exception caught: " << e.what() << "\n";
+        //             std::cout << "PRERHS: " << pre_rhs << "\n";
+        //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+        //             std::cout << "RHS: " << rhs << "\n";
+        //             std::cout << "LHS: " << lhs << "\n\n";
+        //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+        //             exit(0);
+ }
 
- initTransfArray[0][3] = lhs(0); 
- initTransfArray[0][4] = lhs(1);
- initTransfArray[0][5] = lhs(2);
+
 
  cout<<initTransfArray[0]<<endl;
  matchingErrorArray.resize(1);
