@@ -27,8 +27,8 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace vw::photometry;
-
 using namespace std;
+
 #include <math.h>
 #include "tracks.h"
 #include "match.h"

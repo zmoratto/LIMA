@@ -82,6 +82,8 @@ typedef struct gcp{
   float sigma_lat;
   float sigma_rad;
   vector<string> filename;
+  int trackIndex;
+  int featureIndex;
   vector<float> x;
   vector<float> y;
   vector<float> x_before;

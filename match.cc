@@ -17,7 +17,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Photometry.h>
+//#include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 #include <asp/IsisIO.h>
@@ -28,14 +28,14 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
+//using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
 #include "coregister.h"
 #include "tracks.h"
 #include "weights.h"
-
+#include "util.h"
 
 #define CHUNKSIZE   1
 
@@ -154,14 +154,158 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 }
 */
 
+vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, int numSamples)
+{
+    vector<Vector4> matchArray;
+   
+    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+    double noDataValue = rsrc->nodata_read();
 
-void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 
-                   vector<Vector<float, 6> > &initTransfArray, vector<float> &matchingErrorArray)
+    DiskImageView<PixelGray<float> > img( rsrc );
+    int width = img.cols();
+    int height = img.rows();
+
+    Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+    
+    int matchWindowHalfWidth = matchWindowHalfSize(0);
+    int matchWindowHalfHeight = matchWindowHalfSize(1);
+
+    for (int ti = 0; ti < trackPts.size(); ti++){//for each track
+      for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
+	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){//valid track, reflectance and featurePt
+	  
+          float minDist = 10000000.0;
+	  Vector2 bestMatch;
+	  bestMatch(0) = 0;
+	  bestMatch(1) = 0;
+	  
+	  int firstSample = si-numSamples/2;
+	  if (firstSample < 0){
+	    firstSample = 0;
+	  }
+	  int lastSample = si+numSamples/2;
+	  if (lastSample > trackPts[ti].size()-1){
+	    lastSample = trackPts[ti].size()-1;
+	  }
+
+	  for (int k =  -matchWindowHalfHeight; k < matchWindowHalfHeight+1; k++){
+	    for (int l = -matchWindowHalfWidth; l < matchWindowHalfWidth+1; l++){
+
+              float dist = 0.0;   
+              int numValidSamples = 0;
+
+	      for (int i = firstSample; i< lastSample; i++){
+		int x = (int)floor(trackPts[ti][i].imgPt[0].x); 
+		int y = (int)floor(trackPts[ti][i].imgPt[0].y); 
+		 
+		if ((x+l > 0) && (y+k > 0) && (x+l < width) && (y+k < height)){
+		  if (img(x+l,y+k)!=noDataValue){
+		
+		    dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance);
+		    //dist = dist + fabs(img(x+l,y+k) - trackPts[ti][i].reflectance);
+                    numValidSamples++;
+		  }
+		}
+
+	      }//i
+
+              if (numValidSamples > numSamples/2){ 
+                dist = dist/numValidSamples;
+		//cout<<"dist="<<dist<<", l="<<l<<", k="<<k<<endl;
+		if (dist < minDist){
+		  minDist = dist;
+		  bestMatch(0) = l;
+		  bestMatch(1) = k;
+		  cout<<"minDist="<<minDist<<", l="<<l<<", k="<<k<<endl;   
+		}      
+              }
+
+	    }//k	
+	  }//l
+
+	  for (int i = firstSample; i< lastSample; i++){
+	    Vector4 feature_match;
+	    feature_match(0) = trackPts[ti][i].imgPt[0].x;
+	    feature_match(1) = trackPts[ti][i].imgPt[0].y;
+	    feature_match(2) = feature_match(0) + bestMatch(0);
+	    feature_match(3) = feature_match(1) + bestMatch(1);
+	    matchArray.push_back(feature_match);
+	  }
+	 
+	}
+      }
+    }
+
+    return matchArray;
+}
+
+vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize)
+{
+    vector<Vector4> matchArray;
+   
+    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+    double noDataValue = rsrc->nodata_read();
+
+    DiskImageView<PixelGray<float> > img( rsrc );
+    int width = img.cols();
+    int height = img.rows();
+
+    Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+    
+    int matchWindowHalfWidth = matchWindowHalfSize(0);
+    int matchWindowHalfHeight = matchWindowHalfSize(1);
+
+    for (int ti = 0; ti < trackPts.size(); ti++){//for each track
+      for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
+	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
+	  
+	  int x = (int)floor(trackPts[ti][si].imgPt[0].x); 
+	  int y = (int)floor(trackPts[ti][si].imgPt[0].y); 
+	  
+	  float minDist = 10000000.0;
+	  Vector2 bestMatch;
+	  bestMatch(0) = x;
+	  bestMatch(1) = y;
+	
+	  for (int k =  y - matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
+	    for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
+	      if ((l > 0) && (k > 0) && (l < width) && (k < height)){
+		if (img(l,k)!=noDataValue){
+		  //float dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance);
+		  float dist = fabs(img(l,k) - trackPts[ti][si].reflectance);
+		  if (dist < minDist){
+		    minDist = dist;
+		    bestMatch(0) = l;
+		    bestMatch(1) = k;
+		  }      
+		}
+	      }
+	    }
+	  }	
+  
+          Vector4 feature_match;
+          feature_match(0)=trackPts[ti][si].imgPt[0].x;
+          feature_match(1)=trackPts[ti][si].imgPt[0].y;
+          feature_match(2)=bestMatch(0);
+          feature_match(3)=bestMatch(1);
+	  
+          matchArray.push_back(feature_match);
+        
+	}
+      }
+    }
+
+    return matchArray;
+}
+
+
+void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 
+                                   vector<Vector<float, 6> > &initTransfArray, vector<float> &matchingErrorArray)
 {
  
 
- cout<<"FIND 2D MATCHES..."<<endl;
- vector<Vector2> matchArray;
+ cout<<"Estimate matching params from cub..."<<endl;
+ 
 
  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
  double noDataValue = rsrc->nodata_read();
@@ -209,46 +353,19 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
  float sum_ly = 0.0;
  float sum_l  = 0.0;
 
- cout <<"matchWindowHalfHeight= "<<matchWindowHalfHeight<<endl;
- for (int ti = 0; ti < trackPts.size(); ti++){//for each track
-   for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
-     if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
+ vector<Vector4> matchArray = FindMatches2D(trackPts, cubFilename, matchWindowHalfSize, 20);
 
-       int x = (int)floor(trackPts[ti][si].imgPt[0].x); 
-       int y = (int)floor(trackPts[ti][si].imgPt[0].y); 
-      
-        
-       float minDist = 10000000.0;
+ cout<<"num_matches="<<matchArray.size()<<endl;
+
+ for (int i = 0; i < matchArray.size(); i++){
+
        Vector2 bestMatch;
-       bestMatch(0) = x;
-       bestMatch(1) = y;
-      if ((x > 0) && (y > 0) && (x < width) && (y < height)){
-      }
-      else{
-        cout<<"error"<<endl;
-      }
+       float x, y;
 
-       for (int k =  y - matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
-	 for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
-           if ((l > 0) && (k > 0) && (l < width) && (k < height)){
-	     if (img(l,k)!=noDataValue){
-	       float dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance);
-	       if (dist < minDist){
-		 minDist = dist;
-		 bestMatch(0) = l;
-		 bestMatch(1) = k;
-	       }      
-	     }
-	   }
-	 }
-       }
-
-       matchArray.push_back(bestMatch);
-       
-       x = x-i_C;
-       y = y-j_C;
-       bestMatch(0) = bestMatch(0)-i_C;
-       bestMatch(1) = bestMatch(1)-j_C;
+       x = matchArray[i](0)-i_C;
+       y = matchArray[i](1)-j_C;
+       bestMatch(0) = matchArray[i](2)-i_C;
+       bestMatch(1) = matchArray[i](3)-j_C;
 
        sum_x2 = sum_x2 + x*x;
        sum_xy = sum_xy + x*y;
@@ -264,8 +381,6 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
        sum_kx = sum_kx + bestMatch(1)*x; 
        sum_ky = sum_ky + bestMatch(1)*y;
        sum_k  = sum_k  + bestMatch(1);
-     }
-   }
  }
 
  //compute the affine transform
@@ -344,6 +459,7 @@ void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vect
  matchingErrorArray.resize(1);
  matchingErrorArray[0] = 1000000.0;
  matchArray.clear();
+
 };
 
 
@@ -472,7 +588,7 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
 //it assumes that each image is transformed by one affine transform
 //in the future we can investigate the use of one affine transform per track. 
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
+			       /*ModelParams modelParams,*/ CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
 			       vector<float> &matchingErrorArray)
 {
@@ -615,7 +731,7 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
 
 //image to lidar coregistration
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			         ModelParams modelParams,  int numMaxIter, 
+			         /*ModelParams modelParams,*/  int numMaxIter, 
 			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
                                  vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid)
 {
@@ -648,10 +764,11 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   //DiskCacheImageView<float> x_deriv = derivative_filter(DRG,1,0);
   //DiskCacheImageView<float> y_deriv = derivative_filter(DRG,0,1);
 
-  std::string temp = sufix_from_filename(cubFilename);
+  //std::string temp = sufix_from_filename(cubFilename);
+  std::string temp = GetFilenameNoPath(cubFilename);
 
-  std::string xDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
-  std::string yDerivFilename = "../results" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
+  std::string xDerivFilename = "../aux/" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
+  std::string yDerivFilename = "../aux/" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
 
   cout<<xDerivFilename<<endl;
   cout<<yDerivFilename<<endl;

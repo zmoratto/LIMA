@@ -214,6 +214,7 @@ Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts);
 int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
 int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
+int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks,  Vector3 cameraPosition, Vector3 lightPosition, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename);

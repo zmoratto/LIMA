@@ -190,131 +190,6 @@ void ShowFinalTrackPtsOnImage(vector<vector<LOLAShot> >trackPts, Vector<float, 6
 }
 
 //displays info in GCP file
-void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename)
-{
- 
-  // Open GCP file
-  vector<float> xPosArray;
-  vector<float> yPosArray;
-  vector<string> cubFilenameArray;
-  float lon, lat, rad, sigma_x, sigma_y, sigma_z; 
-  vw_out() << " -> Opening \"" << GCPFilename << "\".\n";
-  std::ifstream ifile( GCPFilename.c_str() );
-  if ( !ifile.is_open() )
-      vw_throw( ArgumentErr() << "Unable to open GCP file!\n" );
-  size_t count = 0;
-  
-    while (!ifile.eof()) {
-      if ( count == 0 ) {
-        //Vector3 eh, ei;
-        ifile >> lon >> lat >> rad >> sigma_x >> sigma_y >> sigma_z;
-      } else {
-        std::string file_name;
-        Vector2 location;
-        ifile >> file_name >> location[0] >> location[1];
-        cubFilenameArray.push_back(file_name);
-        xPosArray.push_back(location[0]);
-        yPosArray.push_back(location[1]);
-      }
-      count++;
-    }
-  
-  ifile.close();
-  
-  //create the assembled image;
-
-  int numHorBlocks = 4;
-  int numVerBlocks = 4;
-  int index = 0;
-  int colIndex = 0;
-  int rowIndex = 0;
-  int blockWidth = 200;
-  int blockHeight = 200;
-  int point_size = 7;
-
-  ImageView<PixelRGB<uint8> > assembledImg(numHorBlocks*blockWidth, numVerBlocks*blockHeight);
-
-  for (unsigned int i = 0; i < cubFilenameArray.size(); i++){
-    
-    string cubFilename = cubDirname+string("/")+cubFilenameArray[i];
-    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-    double nodataVal = rsrc->nodata_read();
-    cout<<"nodaval:"<<nodataVal<<endl;
-    DiskImageView<PixelGray<float> > cub( rsrc );
-    camera::IsisCameraModel model(cubFilename);
-    int width = cub.cols();
-    int height = cub.rows();
-  
-    //TO DO:determine the 3D point location in the current image
-    Vector3 lon_lat_rad (lon,lat,rad);
-    Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
-    Vector2 DRG_pix = model.point_to_pixel(xyz);
-    float x = DRG_pix[0];
-    float y = DRG_pix[1];
-   
-
-    cout<<"before_x="<<x<<" before_y="<<y<<endl;
-    cout<<"after_x="<<xPosArray[i]<<" after_y="<<yPosArray[i]<<endl;
-
-    float minX, minY, maxX, maxY;
-    /*
-    //centered around the aligned features
-    minX = xPosArray[i]-blockWidth/2;
-    maxX = xPosArray[i]+blockWidth/2;
-    minY = yPosArray[i]-blockHeight/2;
-    maxY = yPosArray[i]+blockHeight/2;
-    */
-   
-    //centered around the original features
-    minX = x-blockWidth/2;
-    maxX = x+blockWidth/2;
-    minY = y-blockHeight/2;
-    maxY = y+blockHeight/2;
-
-    int adjustedBlockWidth = blockWidth;
-    int adjustedBlockHeight = blockHeight; 
-    int w = point_size;
-    int h = point_size;
-    int xl, yt;
-
-    if (maxY > height-1){adjustedBlockHeight = blockHeight-(maxY-height+1);}   
-    if (maxX > width-1){adjustedBlockWidth = blockWidth - (maxX-width+1);}
-    if (minY < 0){minY = 0;}
-    if (minX < 0){minX = 0;}
-    
-    cout<<minX<<" "<<minY<<" "<<maxX<<" "<<maxY<<" "<<adjustedBlockWidth<<" "<<adjustedBlockHeight<<endl;
-    if ((adjustedBlockHeight > 0) && (adjustedBlockWidth > 0)){
-      
-      crop( assembledImg, colIndex*blockWidth, rowIndex*blockHeight, adjustedBlockWidth, adjustedBlockHeight ) = 
-      crop(apply_mask(normalize(create_mask(cub,nodataVal))*255,0), int32(minX), int32(minY), adjustedBlockWidth, adjustedBlockHeight); 
-    
-      //draw the interest point before alignment
-      xl = int32(x) - minX - point_size + colIndex*blockWidth;
-      yt = int32(y) - minY - point_size + rowIndex*blockHeight;    
-      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
-        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(255, 0, 0));
-      }
-
-      //draw the interest point after alignment
-      xl = int32(xPosArray[i]) - minX - point_size + colIndex*blockWidth;
-      yt = int32(yPosArray[i]) - minY - point_size + rowIndex*blockHeight;
-      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
-        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
-      }
-
-    }
-
-    index++;
-    rowIndex = index/numHorBlocks;
-    colIndex = index - rowIndex*numHorBlocks;
-  }
-
-  //save the assembled image to file
-  write_image(assembledImgFilename, assembledImg);
-
-}
-
-//displays info in GCP file
 void SaveGCPImages(struct gcp this_gcp, string assembledImgFilename)
 {
  
@@ -329,7 +204,11 @@ void SaveGCPImages(struct gcp this_gcp, string assembledImgFilename)
   int blockHeight = 200;
   int point_size = 7;
 
-  numVerBlocks = (this_gcp.filename.size()/numHorBlocks)+1;
+  numVerBlocks = (this_gcp.filename.size()/numHorBlocks);
+  if (numVerBlocks*numHorBlocks < this_gcp.filename.size()){
+    numVerBlocks = numVerBlocks + 1;
+  }
+
   ImageView<PixelRGB<uint8> > assembledImg(numHorBlocks*blockWidth, numVerBlocks*blockHeight);
 
   for (unsigned int i = 0; i < this_gcp.filename.size(); i++){
@@ -397,6 +276,8 @@ void SaveGCPImages(struct gcp this_gcp, string assembledImgFilename)
     index++;
     rowIndex = index/numHorBlocks;
     colIndex = index - rowIndex*numHorBlocks;
+     
+   
   }
 
   //save the assembled image to file
@@ -470,3 +351,131 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
 
 
 
+//=========remove these functions - START =========
+/*
+//displays info in GCP file
+void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename)
+{
+ 
+  // Open GCP file
+  vector<float> xPosArray;
+  vector<float> yPosArray;
+  vector<string> cubFilenameArray;
+  float lon, lat, rad, sigma_x, sigma_y, sigma_z; 
+  vw_out() << " -> Opening \"" << GCPFilename << "\".\n";
+  std::ifstream ifile( GCPFilename.c_str() );
+  if ( !ifile.is_open() )
+      vw_throw( ArgumentErr() << "Unable to open GCP file!\n" );
+  size_t count = 0;
+  
+    while (!ifile.eof()) {
+      if ( count == 0 ) {
+        //Vector3 eh, ei;
+        ifile >> lon >> lat >> rad >> sigma_x >> sigma_y >> sigma_z;
+      } else {
+        std::string file_name;
+        Vector2 location;
+        ifile >> file_name >> location[0] >> location[1];
+        cubFilenameArray.push_back(file_name);
+        xPosArray.push_back(location[0]);
+        yPosArray.push_back(location[1]);
+      }
+      count++;
+    }
+  
+  ifile.close();
+  
+  //create the assembled image;
+
+  int maxNumHorBlocks = 4;
+  int maxNumVerBlocks = 1;
+  
+  int index = 0;
+  int colIndex = 0;
+  int rowIndex = 0;
+  int blockWidth = 200;
+  int blockHeight = 200;
+  int point_size = 7;
+ 
+  ImageView<PixelRGB<uint8> > assembledImg(maxNumHorBlocks*blockWidth, maxNumVerBlocks*blockHeight);
+
+  for (unsigned int i = 0; i < cubFilenameArray.size(); i++){
+    
+    string cubFilename = cubDirname+string("/")+cubFilenameArray[i];
+    boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+    double nodataVal = rsrc->nodata_read();
+    //cout<<"nodaval:"<<nodataVal<<endl;
+    DiskImageView<PixelGray<float> > cub( rsrc );
+    camera::IsisCameraModel model(cubFilename);
+    int width = cub.cols();
+    int height = cub.rows();
+  
+    //TO DO:determine the 3D point location in the current image
+    Vector3 lon_lat_rad (lon,lat,rad);
+    Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+    Vector2 DRG_pix = model.point_to_pixel(xyz);
+    float x = DRG_pix[0];
+    float y = DRG_pix[1];
+   
+    //cout<<"before_x="<<x<<" before_y="<<y<<endl;
+    //cout<<"after_x="<<xPosArray[i]<<" after_y="<<yPosArray[i]<<endl;
+
+    float minX, minY, maxX, maxY;
+    
+    //centered around the aligned features
+    //minX = xPosArray[i]-blockWidth/2;
+    //maxX = xPosArray[i]+blockWidth/2;
+    //minY = yPosArray[i]-blockHeight/2;
+    //maxY = yPosArray[i]+blockHeight/2;
+    
+    //centered around the original features
+    minX = x-blockWidth/2;
+    maxX = x+blockWidth/2;
+    minY = y-blockHeight/2;
+    maxY = y+blockHeight/2;
+
+    int adjustedBlockWidth = blockWidth;
+    int adjustedBlockHeight = blockHeight; 
+    int w = point_size;
+    int h = point_size;
+    int xl, yt;
+
+    if (maxY > height-1){adjustedBlockHeight = blockHeight-(maxY-height+1);}   
+    if (maxX > width-1){adjustedBlockWidth = blockWidth - (maxX-width+1);}
+    if (minY < 0){minY = 0;}
+    if (minX < 0){minX = 0;}
+    
+    //cout<<minX<<" "<<minY<<" "<<maxX<<" "<<maxY<<" "<<adjustedBlockWidth<<" "<<adjustedBlockHeight<<endl;
+    if ((adjustedBlockHeight > 0) && (adjustedBlockWidth > 0)){
+      
+      crop( assembledImg, colIndex*blockWidth, rowIndex*blockHeight, adjustedBlockWidth, adjustedBlockHeight ) = 
+      crop(apply_mask(normalize(create_mask(cub,nodataVal))*255,0), int32(minX), int32(minY), adjustedBlockWidth, adjustedBlockHeight); 
+    
+      //draw the interest point before alignment
+      xl = int32(x) - minX - point_size + colIndex*blockWidth;
+      yt = int32(y) - minY - point_size + rowIndex*blockHeight;    
+      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
+        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(255, 0, 0));
+      }
+
+      //draw the interest point after alignment
+      xl = int32(xPosArray[i]) - minX - point_size + colIndex*blockWidth;
+      yt = int32(yPosArray[i]) - minY - point_size + rowIndex*blockHeight;
+      if ((xl>0) && (yt>0) && (xl < assembledImg.cols()-point_size-1) && (yt < assembledImg.rows()-point_size-1)){
+        fill(crop(assembledImg, xl, yt, w, h), PixelRGB<uint8>(0, 0, 255));
+      }
+
+    }
+
+    rowIndex = index/maxNumHorBlocks;
+    colIndex = index - rowIndex*maxNumHorBlocks;
+
+    index++;
+  }
+
+  //save the assembled image to file
+  write_image(assembledImgFilename, assembledImg);
+
+}
+*/
+//=========remove these functions -END =============

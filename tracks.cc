@@ -4,9 +4,12 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
 #include <boost/tokenizer.hpp>
+#include <vw/Core.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Cartography.h>
+#include <vw/Cartography/SimplePointImageManipulation.h>
+#include <vw/FileIO.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
@@ -15,8 +18,10 @@
 #include "display.h"
 #include "util.h"
 #include "tracks.h"
-//#include "map2cam.h"
 
+using namespace vw;
+using namespace vw::cartography;
+using namespace vw::math;
 
 //needed for map to cam back projection - START
 #include <Camera.h>
@@ -281,7 +286,7 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
   //calculate the min max value of the image
   Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
 
-  float minTrackVal = 1000000.0;
+  float minTrackVal =  1000000.0;
   float maxTrackVal = -1000000.0;
 
   int numValidImgPts = 0;
@@ -305,7 +310,7 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 	    float rad = LOLAPts[j].z();
             
             Vector3 lon_lat_rad (lon,lat,rad*1000);
-            Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+            Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
             Vector2 cub_pix = model.point_to_pixel(xyz);
             float x = cub_pix[0];
             float y = cub_pix[1];
@@ -316,11 +321,11 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 		 trackPts[k][i].imgPt[j].val = interpImg(x, y);
 	         trackPts[k][i].imgPt[j].x = cub_pix[0];
 	         trackPts[k][i].imgPt[j].y = cub_pix[1];
-                 if(interpImg(x,y)<minTrackVal){
+                 if (interpImg(x,y) < minTrackVal){
 		     minTrackVal = interpImg(x,y);
                  }
-		 if(interpImg(x,y) > maxTrackVal){
-		    maxTrackVal = interpImg(x,y);
+		 if (interpImg(x,y) > maxTrackVal){
+		     maxTrackVal = interpImg(x,y);
                  }
                  numValidImgPts++;
 	      }
@@ -333,17 +338,17 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
             }
 	
       }
+      /*
+      // this must go to computeReflectance function - START
       //check for valid shot with 3 points to compute reflectance
       pointCloud centerPt  = GetPointFromIndex( LOLAPts, 1);
       pointCloud topPt     = GetPointFromIndex( LOLAPts, 3);
       pointCloud leftPt    = GetPointFromIndex( LOLAPts, 2);
-      //cout<<"before "<<trackPts[k][i].valid<<endl;
-      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() >5)){//invalid LOLA shot
+      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() > 5)){//invalid LOLA shot
           trackPts[k][i].valid = 0; 
       }
-      
-      //cout<<"center "<<centerPt.s<<"top "<<topPt.s<<"left "<<leftPt.s<<endl;
-
+      // this must go to computeReflectance function - END
+      */
     }//i  
   }//k
   cout <<"minTrackVal="<<minTrackVal<<", maxTrackVal="<<maxTrackVal<<endl;
@@ -480,6 +485,153 @@ Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
   return normal;
 
 }
+
+Vector3 ComputeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3) {
+  return -normalize(cross_prod(p2-p1,p3-p1));
+}
+
+float ComputeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz, Vector3 normal) 
+{
+  float reflectance;
+  float L;
+
+  //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
+  //sun coordinates relative to the xyz point on the Moon surface
+  //Vector3 sunDirection = -normalize(sunPos-xyz);
+  Vector3 sunDirection = normalize(sunPos-xyz);
+  float mu_0 = dot_prod(sunDirection,normal);
+
+  //compute  /mu = cosine of the angle between the viewer direction and the surface normal.
+  //viewer coordinates relative to the xyz point on the Moon surface
+  Vector3 viewDirection = normalize(viewPos-xyz);
+  float mu = dot_prod(viewDirection,normal);
+
+  //compute the phase angle /alpha between the viewing direction and the light source direction
+  float rad_alpha, deg_alpha;
+  float cos_alpha;
+
+  cos_alpha = dot_prod(sunDirection,viewDirection);
+  if ((cos_alpha > 1)||(cos_alpha< -1)){
+    printf("cos_alpha error\n");
+  }
+
+  rad_alpha = acos(cos_alpha);
+  deg_alpha = rad_alpha*180.0/M_PI;
+
+  //printf("deg_alpha = %f\n", deg_alpha);
+
+  //Bob Gaskell's model
+  //L = exp(-deg_alpha/60.0);
+
+#if 0 // trey
+  // perfectly valid for alpha to be greater than 90?
+  if (deg_alpha > 90){
+    //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
+    return(0.0);
+  }
+  if (deg_alpha < -90){
+    //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
+    return(0.0);
+  }
+#endif
+
+  //Alfred McEwen's model
+  float A = -0.019;
+  float B =  0.000242;//0.242*1e-3;
+  float C = -0.00000146;//-1.46*1e-6;
+
+  L = 1.0 + A*deg_alpha + B*deg_alpha*deg_alpha + C*deg_alpha*deg_alpha*deg_alpha;
+
+  //        std::cout << " sun direction " << sunDirection << " view direction " << viewDirection << " normal " << normal;
+  //        std::cout << " cos_alpha " << cos_alpha << " incident " << mu_0 << " emission " << mu;
+  //printf(" deg_alpha = %f, L = %f\n", deg_alpha, L);
+
+  //if (mu_0 < 0.15){ //incidence angle is close to 90 deg
+  if (mu_0 < 0.0){
+    //mu_0 = 0.15;
+    return (0.0);
+  }
+
+  if (mu < 0.0){ //emission angle is > 90
+    mu = 0.0;
+    //return (0.0);
+  }
+
+  if (mu_0 + mu == 0){
+    //printf("negative reflectance\n");
+    reflectance = 0.0;
+  }
+  else{
+    reflectance = 2*L*mu_0/(mu_0+mu) + (1-L)*mu_0;
+  }
+  if (reflectance < 0){
+    //printf("negative reflectance\n");
+    reflectance = 0;
+  }
+  return reflectance;
+}
+
+int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks,  Vector3 cameraPosition, Vector3 lightPosition, CoregistrationParams coregistrationParams)
+{
+
+  vector<pointCloud> LOLAPts;
+  int numValidReflPts = 0;
+
+  float minReflectance =  10000.0;
+  float maxReflectance = -10000.0;
+ 
+  for (unsigned int k = 0; k < allTracks.size(); k++ ){
+    for (unsigned int i = 0; i < allTracks[k].size(); i++){
+      LOLAPts = allTracks[k][i].LOLAPt;
+      
+      /*
+      //old
+      pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
+      pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
+      pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
+      */
+      
+      //new
+      pointCloud centerPt = GetPointFromIndex(LOLAPts, 1);
+      pointCloud topPt = GetPointFromIndex(LOLAPts, 3);
+      pointCloud leftPt = GetPointFromIndex(LOLAPts, 2);
+      
+      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) /*&& (allTracks[k][i].valid == 1)*/ && ((LOLAPts.size() <= 5))){
+
+        centerPt.z() = centerPt.z()*1000;
+        topPt.z() = topPt.z()*1000;
+        leftPt.z() = leftPt.z()*1000;
+        
+        Vector3 xyz = lon_lat_radius_to_xyz(centerPt);
+        Vector3 xyzTop = lon_lat_radius_to_xyz(topPt);
+        Vector3 xyzLeft = lon_lat_radius_to_xyz(leftPt);
+
+   
+        Vector3 normal = ComputeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
+
+        allTracks[k][i].reflectance = ComputeLunarLambertianReflectanceFromNormal(lightPosition, cameraPosition, xyz, normal); 
+        
+        if (allTracks[k][i].reflectance != 0){ 
+	  if (allTracks[k][i].reflectance < minReflectance){
+	    minReflectance = allTracks[k][i].reflectance;
+	  } 
+	  if (allTracks[k][i].reflectance > maxReflectance){
+	    maxReflectance = allTracks[k][i].reflectance;
+	  }
+          numValidReflPts++;
+	}        
+      }
+      else{
+        allTracks[k][i].reflectance = -1;
+      }
+    }//i
+  }//k
+ 
+  cout<<"NEW:"<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
+
+  return numValidReflPts;
+}
+
 int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
 {
 
@@ -508,9 +660,11 @@ int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
       pointCloud topPt = GetPointFromIndex(LOLAPts, 3);
       pointCloud leftPt = GetPointFromIndex(LOLAPts, 2);
 
-      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) && (allTracks[k][i].valid == 1)){
+      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) /*&& (allTracks[k][i].valid == 1)*/ && ((LOLAPts.size() <= 5))){
+
         Datum moon;
         moon.set_well_known_datum("D_MOON");
+
 
         centerPt.z() = (centerPt.z()-1737.4)*1000;
         topPt.z() = (topPt.z()-1737.4)*1000;
@@ -615,14 +769,14 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, str
 }
 
 
-void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename)
+void SaveReflectancePoints(vector< vector<LOLAShot> >  &trackPts, Vector2 gain_bias, string filename)
 {
 
   FILE *fp;
   float gain = gain_bias(0);
   float bias = gain_bias(1);
  
-  for (unsigned int k = 0; k < allTracks.size(); k++ ){
+  for (unsigned int k = 0; k < trackPts.size(); k++ ){
 
     string prefixTrackFilename =  prefix_from_filename(filename);  
     char* trackFilename = new char[500];
@@ -630,9 +784,10 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_
     fp = fopen(trackFilename, "w");
 
 
-    for (unsigned int i = 0; i < allTracks[k].size(); i++){
-      if (allTracks[k][i].valid == 1){
-        fprintf(fp, "%f\n", gain*allTracks[k][i].reflectance + bias);
+    for (unsigned int i = 0; i < trackPts[k].size(); i++){
+      //if (allTracks[k][i].valid == 1){
+      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
+        fprintf(fp, "%f\n", gain*trackPts[k][i].reflectance + bias);
       }
       else{
         fprintf(fp, "-1\n");
@@ -680,30 +835,31 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 
 }
 
-//saves the image points corresponding to a detectNum
-void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
+//saves the altitude  points (LOLA) corresponding to a sensor ID = detectNum
+void SaveAltitudePoints(vector< vector<LOLAShot> >  &tracks, int detectNum, string filename)
 {
 
   FILE *fp;
 
-  for (unsigned int k = 0; k < allTracks.size(); k++ ){
+  for (unsigned int t = 0; t < tracks.size(); t++ ){
 
     string prefixTrackFilename = prefix_from_filename(filename); 
     char* trackFilename = new char[500];
-    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
+    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), t);
     fp = fopen(trackFilename, "w");
 
-    for (unsigned int i = 0; i < allTracks[k].size(); i++){
+    for (unsigned int s = 0; s < tracks[t].size(); s++){
 
       int found = 0;
-      for (unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
-        if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
-          found = 1;
-          fprintf(fp, "%f\n", allTracks[k][i].LOLAPt[j].z());
-        }
+      for (unsigned int j = 0; j < tracks[t][s].LOLAPt.size(); j++){
+         if ((tracks[t][s].LOLAPt[j].s == detectNum) && (tracks[t][s].valid == 1)){
+             found = 1;
+             fprintf(fp, "%f\n", tracks[t][s].LOLAPt[j].z());
+         }
       }
+
       if (found == 0){
-        fprintf(fp, "-1\n");
+          fprintf(fp, "-1\n");
       }
 
     }
@@ -721,9 +877,10 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 
    int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
+      //int featureIndex = 0;
       for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
-	if (trackPts[t][s].featurePtLOLA==1){
-          if (trackPts[t][s].valid ==1){          
+	if ( (trackPts[t][s].featurePtLOLA == 1)/* && (trackPts[t][s].valid ==1 )*/){
+          if (trackPts[t][s].valid == 1){          
 	    gcpArray[index].filename.push_back(cubFile);
          
 	    float i = (optimalTransfArray[0]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
@@ -737,8 +894,10 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 	    gcpArray[index].y.push_back(j);
 	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
 	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
-            //cout<<"UpdateGCP: "<<index<<", numElements: "<<gcpArray[index].filename.size()<<endl;
-          }
+            gcpArray[index].trackIndex = t;
+            gcpArray[index].featureIndex = s;//featureIndex;
+	  }
+          //featureIndex++;
           index++;
 	}
       }
@@ -770,9 +929,10 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
   
    int index = 0;
     for (unsigned int t=0; t<trackPts.size(); t++){
+      //int featureIndex = 0;
       for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
-	if (trackPts[t][s].featurePtLOLA==1){
-          if (trackPts[t][s].valid ==1){          
+	if ((trackPts[t][s].featurePtLOLA == 1)/* && (trackPts[t][s].valid ==1)*/){
+          if (trackPts[t][s].valid == 1){          
 	    gcpArray[index].filename.push_back(camCubFile);
          
 	    float i = (optimalTransfArray[0]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
@@ -787,7 +947,6 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 
             // convert a map projected pixel location to the
             // original image coordinate system.
-            
              
             camera->SetImage(map_pixel[0], map_pixel[1]);
             cam_pixel[0] = camera->DetectorMap()->ParentSample();
@@ -806,10 +965,13 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
        
             gcpArray[index].x_before.push_back(cam_pixel_init[0]/downsample_factor);
 	    gcpArray[index].y_before.push_back(cam_pixel_init[1]/downsample_factor);
-
+            gcpArray[index].trackIndex = t;
+            gcpArray[index].featureIndex = s;//featureIndex;
             //cout<<"UpdateGCP: "<<index<<", numElements: "<<gcpArray[index].filename.size()<<endl;
-          }
-          index++;
+
+	  }//valid==1
+	  //featureIndex++;
+	  index++;
 	}
       }
     }
@@ -829,8 +991,14 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
        if (numFiles > 0){
 	   stringstream ss;
 	   ss<<i;
-	   string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
-	 
+
+           stringstream featureIndexString;
+           featureIndexString<<gcpArray[i].featureIndex;
+           stringstream trackIndexString;
+	   trackIndexString<<gcpArray[i].trackIndex;
+           //string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
+	   
+           string this_gcpFilename = gcpFilename+"_"+trackIndexString.str()+"_"+featureIndexString.str()+".gcp";
 	   FILE *fp = fopen(this_gcpFilename.c_str(), "w");
 	 
 	   fprintf(fp, "%f %f %f %f %f %f\n", 
@@ -838,12 +1006,14 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 		   gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
 	 
 	   for (int j = 0; j < numFiles-1; j++){
-              string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[j]);
+	     //string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[j]);
+              string imgFilenameNoPath = GetFilenameNoPath(gcpArray[i].filename[j]);
 	      fprintf(fp,"%s %f %f\n", 
 		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
 	   }
 	   if (numFiles > 0){
-	      string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[numFiles-1]);
+	     //string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[numFiles-1]);
+              string imgFilenameNoPath = GetFilenameNoPath(gcpArray[i].filename[numFiles-1]);
 	      fprintf(fp, "%s %f %f", 
 		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
 	   }
@@ -917,7 +1087,7 @@ void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
         lon_lat_rad(0) = lon;
         lon_lat_rad(1) = lat;
         //lon_lat_rad(2) = 1000*rad;
-        //Vector3 prev_xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+        //Vector3 prev_xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
 
         lon_lat_rad(2) = (rad-1737.4)*1000;
         Vector3 prev_xyz = moon.geodetic_to_cartesian(lon_lat_rad);
@@ -929,7 +1099,7 @@ void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
         lon_lat_rad(0) = lon;
         lon_lat_rad(1) = lat;
         //lon_lat_rad(2) = 1000*rad;
-        //Vector3 xyz = lon_lat_radius_to_xyz(lon_lat_rad);
+        //Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
         
         lon_lat_rad(2) = (rad-1737.4)*1000;
         Vector3 xyz = moon.geodetic_to_cartesian(lon_lat_rad);
@@ -977,7 +1147,7 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
 	  lon_lat_rad(0) = lon;
 	  lon_lat_rad(1) = lat;
 	  lon_lat_rad(2) = 1000*rad;
-	  xyzArray[k] = lon_lat_radius_to_xyz(lon_lat_rad);
+	  xyzArray[k] = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
 	}
      
         for (unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){

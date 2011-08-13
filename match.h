@@ -18,13 +18,13 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Photometry.h>
+//#include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
+//using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
@@ -40,37 +40,17 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
                       Vector<float, 6> &optimalTransf, float &optimalError);
 
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			       ModelParams modelParams, CoregistrationParams coregistrationParams,  
+			       /*ModelParams modelParams,*/ CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransf, 
 			       vector<float> &matchingError/*float *matchingError*/);
 
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			         ModelParams modelParams,  int numMaxIter, 
+			         /*ModelParams modelParams,*/  int numMaxIter, 
 			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
                                  vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid );
 
-void Find2DMatches(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 
+void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 
                    vector<Vector<float, 6> > &initTransfArray,  vector<float> &matchingErrorArray);
-
-void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			ModelParams modelParams, CoregistrationParams coregistrationParams,  
-			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
-			float *matchingError);
-
-void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename, 
-                     ModelParams modelParams,  int numMaxIter, 
-                     vector<Vector<float, 6> > initTransfArray,  vector<Vector<float, 6> >&finalTransfArray, 
-                     vector<float> &errorArray);
-/*
-void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-				 ModelParams modelParams, CoregistrationParams coregistrationParams,
-				 vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-				 vector<float> &errorArray );
-*/
-void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
-			          ModelParams modelParams, CoregistrationParams coregistrationParams,
-			          vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
-				  vector<float> &errorArray );
 
 float ComputeMatchingError(vector<float> reflectancePts, vector<float>imgPts);
 
@@ -79,7 +59,27 @@ void SaveReportFile(vector<vector<LOLAShot> > &trackPts, vector<Vector<float, 6>
                     vector<float> errorArray, string matchResultsFilename);
 
 /*
-void SaveImagePts(vector<vector<LOLAShot> > &trackPts, Vector<float, 6> finalTransfArray, float error,  
-                  string matchResultsFilename);
+void InitMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+			ModelParams modelParams, CoregistrationParams coregistrationParams,  
+			vector<Vector<float, 6> >initTransfArray, Vector<float, 6> &finalTransf, 
+			float *matchingError);
+*/
+/*
+void UpdateMatchingParams(vector<vector<LOLAShot> > &trackPts, string DRGFilename, 
+                     ModelParams modelParams,  int numMaxIter, 
+                     vector<Vector<float, 6> > initTransfArray,  vector<Vector<float, 6> >&finalTransfArray, 
+                     vector<float> &errorArray);
+*/
+/*
+void UpdateMatchingParamsLIMA_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+				 ModelParams modelParams, CoregistrationParams coregistrationParams,
+				 vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+				 vector<float> &errorArray );
+*/
+/*
+void UpdateMatchingParamsLIDEM_MP(vector<vector<LOLAShot> > &trackPts, string DRGFilename,  
+			          ModelParams modelParams, CoregistrationParams coregistrationParams,
+			          vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransfArray, 
+				  vector<float> &errorArray );
 */
 #endif//MATCH_H
