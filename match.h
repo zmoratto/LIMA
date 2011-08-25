@@ -10,6 +10,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <stdio.h>
+#include <math.h>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,18 +20,20 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-//#include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
+#include <asp/IsisIO.h>
+#include <asp/IsisIO/IsisCameraModel.h>
+
+#include "coregister.h"
+#include "tracks.h"
+#include "weights.h"
+#include "util.h"
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-//using namespace vw::photometry;
-
 using namespace std;
-#include <math.h>
-#include "coregister.h"
-#include "tracks.h"
 
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
@@ -40,13 +44,17 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
                       Vector<float, 6> &optimalTransf, float &optimalError);
 
 void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			       /*ModelParams modelParams,*/ CoregistrationParams coregistrationParams,  
+			       CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> >&finalTransf, 
-			       vector<float> &matchingError/*float *matchingError*/);
+			       vector<float> &matchingError);
+
+vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, 
+                              Vector2 matchWindowHalfSize, int numSamples, vector<float> &errorArray);
+void EstimateAffineTransform(vector<Vector<float, 6> > &initTransfArray, vector<vector<LOLAShot> > &trackPts, 
+                             vector<Vector4> matchArray, vector<float> errorArray);
 
 void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			         /*ModelParams modelParams,*/  int numMaxIter, 
-			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
+			         int numMaxIter, vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
                                  vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid );
 
 void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, 

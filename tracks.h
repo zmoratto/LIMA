@@ -228,6 +228,11 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
                string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
                float downsample_factor);
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, 
+               vector<Vector4> matchArray, vector<float> errorArray,
+               string camCubFile, string mapCubFile, 
+               vector<gcp> &gcpArray, float downsample_factor);
+
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);

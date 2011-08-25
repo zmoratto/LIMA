@@ -10,33 +10,31 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <math.h>
 
+//boost
 #include <boost/operators.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+//VW
 #include <vw/Core.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 
+//ATK
+#include "tracks.h"
+#include "coregister.h"
+#include "icp.h"
+#include "util.h"
+
+using namespace std;
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
-using namespace std;
-
-#include <math.h>
-#include "tracks.h"
-#include "match.h"
-#include "coregister.h"
-#include "display.h"
-#include "weights.h"
-#include "icp.h"
-#include "util.h"
 
 int main( int argc, char *argv[] )
 {
@@ -50,7 +48,7 @@ std::string resDir;
  
 po::options_description general_options("Options");
 general_options.add_options()
-	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
+    ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("DEMFiles,d", po::value<std::vector<std::string> >(&DEMFiles))
     ("results-directory,r", 
 		po::value<std::string>(&resDir)->default_value("../results"), 
@@ -113,63 +111,46 @@ vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
 
  
 struct CoregistrationParams settings;
-if( ReadConfigFile(configFilename, &settings) && verbose > 0 )
-	{
-	cout << "Config file " << configFilename << " found." << endl;
-	}
-else if( verbose > 0 )
-	{
-	cout << "Config file " << configFilename << " not found, using defaults." << endl;
-	}
+if( ReadConfigFile(configFilename, &settings) && verbose > 0 ){
+  cout << "Config file " << configFilename << " found." << endl;
+}
+else if( verbose > 0 ){
+  cout << "Config file " << configFilename << " not found, using defaults." << endl;
+ }
 //PrintGlobalParams(&settings);
-if( verbose > 0 ){ cout << settings << endl; }
+if( verbose > 0 ){ 
+  cout << settings << endl; 
+}
 
   //read LOLA tracks
   vector<vector<LOLAShot> > trackPts;
-  try
-	{
-	trackPts =  CSVFileRead(inputCSVFilename);
-	if( verbose > 0 ){ cout << "Tracks file: " << inputCSVFilename << endl; }
-	}
-  catch (const vw::IOErr& error)
-	{
-	cerr << error.what() << endl;
-	exit(1);
-	}
-
+  try{
+    trackPts =  CSVFileRead(inputCSVFilename);
+    if( verbose > 0 ){ cout << "Tracks file: " << inputCSVFilename << endl; }
+  }
+  catch (const vw::IOErr& error){
+    cerr << error.what() << endl;
+    exit(1);
+  }
 
   for (unsigned int index = 0; index <  DEMFiles.size(); index++){
 
       string inputDEMFilename = DEMFiles[index];
-      if( verbose > 0 ){ cout <<"DEM filename: " << inputDEMFilename << endl; }
+      if (verbose > 0 ){ 
+         cout <<"DEM filename: " << inputDEMFilename << endl; 
+      }
 
-	/* Re-implement this once we figure out what needs to be written out.
-      //create the results directory and prepare the output filenames - START
-      system( resDir.insert(0,"mkdir ").c_str() );
-
-      string DEMFilenameNoPath = sufix_from_filename(inputDEMFilename);
-      
-      string altitudePtsFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "alt.txt";
-      string demPtsFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "dem.txt";
-      string lolaTracksFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_lola.tif";  
-      string lolaFeaturesFilename = resDir + prefix_less3_from_filename(DEMFilenameNoPath) + "_features_lola.txt";  
-      //create the results directory and prepare the output filenames - END
-	*/ 
-
-  
-      //read DEM file
-      
+      //read DEM file      
       boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(inputDEMFilename) );
       if (rsrc->has_nodata_read()){
         settings.noDataVal = rsrc->nodata_read();
-		if( verbose > 0 )
-			{
-			cout 	<< "Found nodata value, " << settings.noDataVal 
-					<< ", in " << inputDEMFilename << endl;
-			}
+	if( verbose > 0 ){
+	  cout 	<< "Found nodata value, " << settings.noDataVal 
+		<< ", in " << inputDEMFilename << endl;
+	}
       }
       else if( verbose > 0 ){
-		cout << "Using default nodata value: " << settings.noDataVal << endl;
+	cout << "Using default nodata value: " << settings.noDataVal << endl;
       }
  
       DiskImageView<PixelGray<float> > DEM( rsrc );
@@ -184,15 +165,6 @@ if( verbose > 0 ){ cout << settings << endl; }
       //select DEM points closes to LOLA tracks
       GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo, settings.noDataVal);
 
-      //initialization step for LIDEM - END
-      /*
-      if (settings.analyseFlag == 1){
-         SaveDEMPoints(trackPts, inputDEMFilename, demPtsFilename);
-         int numVerPts = 6000;
-         int numHorPts = 6000;
-         MakeGrid(trackPts, numVerPts, numHorPts, lolaTracksFilename, trackIndices);
-      }
-      */
   
       Vector3 currTranslation;
       Matrix<float, 3,3 > currRotation;
@@ -203,39 +175,24 @@ if( verbose > 0 ){ cout << settings << endl; }
       currRotation[0][0] = 1.0;
       currRotation[1][1] = 1.0;
       currRotation[2][2] = 1.0;
-      //Vector3 center;
-
+  
       //copy info to featureArray and modelArray
       for(unsigned int k = 0; k < trackPts.size();k++){
 	for(unsigned int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
        
 	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
 	    Vector3 model;
-	    // Vector3 feature;
-         
-	    //this is the LOLA data
-        //    float radius = DEMGeo.datum().semi_major_axis();
+	
 	    model = trackPts[k][i].LOLAPt[2];
-
-		model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
+	    model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           
-
 	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){
-			if( verbose > 1 ){ cout<<"altitude="<<model[2]<<endl; }
-	      /*
-              feature[0] = trackPts[k][i].LOLAPt[2].coords(0); 
-	      feature[1] = trackPts[k][i].LOLAPt[2].coords(1); 
-	      feature[2] = trackPts[k][i].DEMPt[2].val;
-	      */
-	      //copy the model and features into cartesian coordinates
-	      //feature = DEMGeo.datum().geodetic_to_cartesian(feature);
-	      
-	      //model = DEMGeo.datum().geodetic_to_cartesian(model);
-	      Vector3 modelxyz = lon_lat_radius_to_xyz(model);
-
-	      //featureArray.push_back(feature);
-	      modelArray.push_back( modelxyz );
-	      modelArrayLatLon.push_back(model);
+	       if (verbose > 1){ 
+                   cout<<"altitude="<<model[2]<<endl; 
+               }
+	       Vector3 modelxyz = lon_lat_radius_to_xyz(model);
+	       modelArray.push_back( modelxyz );
+	       modelArrayLatLon.push_back(model);
 	    }
 	  }
 	}
@@ -244,10 +201,9 @@ if( verbose > 0 ){ cout << settings << endl; }
       featureArray.resize(modelArray.size());
       errorArray.resize(modelArray.size());
 
-      if( verbose > 0 )
-		{
-		cout << "Number of points to be compared: " << modelArray.size() << endl;
-		}
+      if( verbose > 0 ){
+	  cout << "Number of points to be compared: " << modelArray.size() << endl;
+      }
 
       Vector3 modelCentroid = find_centroid( modelArray );
 
@@ -255,18 +211,16 @@ if( verbose > 0 ){ cout << settings << endl; }
       ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, modelArrayLatLon, settings, 
                       currTranslation, currRotation, modelCentroid, errorArray);
 
-      if( vm.count("error-filename") )
-        {
-		vector<string> titles(4);
-		titles[0] = "Latitude";
-		titles[1] = "Longitude";
-		titles[2] = "Radius (m)";
-		titles[3] = "Errors";
-        writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
-        }
+      if( vm.count("error-filename") ){
+	 vector<string> titles(4);
+	 titles[0] = "Latitude";
+	 titles[1] = "Longitude";
+	 titles[2] = "Radius (m)";
+	 titles[3] = "Errors";
+         writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
+      }
      
-      if( verbose >= 0 )
-		{ 
+      if( verbose >= 0 ){ 
           int DEMcenterCol = interpDEM.cols() / 2;
           int DEMcenterRow = interpDEM.rows() / 2;
           Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(DEMcenterCol,DEMcenterRow) );

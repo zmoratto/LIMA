@@ -24,10 +24,10 @@ LDFLAGS_CAM2MAP  = -L$(ISISROOT)/3rdParty/lib -L$(ISISSUPPORTDIR)/lib -L$(ISISRO
 CXXFLAGS += -arch i386
 LDFLAGS += -arch i386
 
-
 #lidar2image
 lidar2img: lidar2img.cc
 	g++ -arch i386 -fopenmp $(CXXFLAGS) $(CXXFLAGS_ISIS) $(CXXFLAGS_CAM2MAP) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(LDFLAGS_CAM2MAP) $(OPTIONS) tracks.cc match.cc coregister.cc display.cc weights.cc featuresLOLA.cc util.cc lidar2img.cc map2cam.cc -o lidar2img 
+
 #dem2dem
 assembler: assembler.cc
 	g++ -arch i386 $(CXXFLAGS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  coregister.cc icp.cc  assembler.cc -o assembler 
@@ -38,7 +38,7 @@ dem2dem: dem2dem.cc
 
 #lidar2dem
 lidar2dem: lidar2dem.cc
-	g++ -arch i386 $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  coregister.cc tracks.cc  display.cc weights.cc featuresLOLA.cc lidar2dem.cc -o lidar2dem 
+	g++ -arch i386 $(CXXFLAGS) $(CXXFLAGS_ISIS) $(CXXFLAGS_CAM2MAP) $(INCPATH) $(LIBPATH) $(LDFLAGS)  $(LDFLAGS_CAM2MAP) $(OPTIONS)  icp.cc  coregister.cc tracks.cc  util.cc lidar2dem.cc -o lidar2dem 
 
 
 clean:

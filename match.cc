@@ -6,9 +6,12 @@
 
 
 #include <omp.h>
+
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <stdio.h>
+#include <math.h>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -17,25 +20,22 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-//#include <vw/Photometry.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
-#include <stdio.h>
-
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-//using namespace vw::photometry;
-
-using namespace std;
-#include <math.h>
 #include "coregister.h"
 #include "tracks.h"
 #include "weights.h"
 #include "util.h"
+
+using namespace vw;
+using namespace vw::math;
+using namespace vw::cartography;
+using namespace std;
+
+
 
 #define CHUNKSIZE   1
 
@@ -154,9 +154,11 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 }
 */
 
-vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize, int numSamples)
+vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, 
+                              Vector2 matchWindowHalfSize, int numSamples, vector<float> &errorArray)
 {
     vector<Vector4> matchArray;
+    //vector<float>   errorArray;
    
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
     double noDataValue = rsrc->nodata_read();
@@ -172,7 +174,8 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 
     for (int ti = 0; ti < trackPts.size(); ti++){//for each track
       for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
-	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){//valid track, reflectance and featurePt
+	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){
+          //valid track, reflectance and featurePt
 	  
           float minDist = 10000000.0;
 	  Vector2 bestMatch;
@@ -188,6 +191,7 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	    lastSample = trackPts[ti].size()-1;
 	  }
 
+	  
 	  for (int k =  -matchWindowHalfHeight; k < matchWindowHalfHeight+1; k++){
 	    for (int l = -matchWindowHalfWidth; l < matchWindowHalfWidth+1; l++){
 
@@ -195,6 +199,7 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
               int numValidSamples = 0;
 
 	      for (int i = firstSample; i< lastSample; i++){
+
 		int x = (int)floor(trackPts[ti][i].imgPt[0].x); 
 		int y = (int)floor(trackPts[ti][i].imgPt[0].y); 
 		 
@@ -210,19 +215,27 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	      }//i
 
               if (numValidSamples > numSamples/2){ 
-                dist = dist/numValidSamples;
-		//cout<<"dist="<<dist<<", l="<<l<<", k="<<k<<endl;
-		if (dist < minDist){
-		  minDist = dist;
-		  bestMatch(0) = l;
-		  bestMatch(1) = k;
-		  cout<<"minDist="<<minDist<<", l="<<l<<", k="<<k<<endl;   
-		}      
+                 dist = dist/numValidSamples;
+		 if (dist < minDist){
+		   minDist = dist;
+		   bestMatch(0) = l;
+		   bestMatch(1) = k;
+		   //cout<<"minDist="<<minDist<<", l="<<l<<", k="<<k<<endl;   
+		 }      
               }
 
 	    }//k	
 	  }//l
-
+          
+          Vector4 feature_match;
+	  feature_match(0) = trackPts[ti][si].imgPt[0].x;
+	  feature_match(1) = trackPts[ti][si].imgPt[0].y;
+	  feature_match(2) = feature_match(0) + bestMatch(0);
+	  feature_match(3) = feature_match(1) + bestMatch(1);
+	  matchArray.push_back(feature_match);
+          errorArray.push_back(minDist);
+          
+          /*
 	  for (int i = firstSample; i< lastSample; i++){
 	    Vector4 feature_match;
 	    feature_match(0) = trackPts[ti][i].imgPt[0].x;
@@ -230,8 +243,10 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	    feature_match(2) = feature_match(0) + bestMatch(0);
 	    feature_match(3) = feature_match(1) + bestMatch(1);
 	    matchArray.push_back(feature_match);
+            errorArray.push_back(minDist);
 	  }
-	 
+	  */
+
 	}
       }
     }
@@ -288,7 +303,6 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
           feature_match(1)=trackPts[ti][si].imgPt[0].y;
           feature_match(2)=bestMatch(0);
           feature_match(3)=bestMatch(1);
-	  
           matchArray.push_back(feature_match);
         
 	}
@@ -353,9 +367,11 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  float sum_ly = 0.0;
  float sum_l  = 0.0;
 
- vector<Vector4> matchArray = FindMatches2D(trackPts, cubFilename, matchWindowHalfSize, 20);
+ vector<float> errorArray;
+ vector<Vector4> matchArray = FindMatches2D(trackPts, cubFilename, matchWindowHalfSize, 20, errorArray);
 
  cout<<"num_matches="<<matchArray.size()<<endl;
+
 
  for (int i = 0; i < matchArray.size(); i++){
 
@@ -366,6 +382,7 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
        y = matchArray[i](1)-j_C;
        bestMatch(0) = matchArray[i](2)-i_C;
        bestMatch(1) = matchArray[i](3)-j_C;
+       cout<<"error="<<errorArray[i]<<endl;       
 
        sum_x2 = sum_x2 + x*x;
        sum_xy = sum_xy + x*y;
@@ -462,6 +479,172 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
 
 };
 
+void EstimateAffineTransform(vector<Vector<float, 6> > &initTransfArray, vector<vector<LOLAShot> > &trackPts, 
+                             vector<Vector4> matchArray, vector<float> errorArray)
+{
+ 
+
+ cout<<"Estimate affine transform params ..."<<endl;
+ 
+ /*
+ boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
+ double noDataValue = rsrc->nodata_read();
+
+ DiskImageView<PixelGray<float> > img( rsrc );
+ int width = img.cols();
+ int height = img.rows();
+
+ Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+ */
+ cout<<"Computing LOLA centroid ..."<<endl;
+ float i_C = 0.0;
+ float j_C = 0.0;
+ int numPts = 0;
+ 
+ //compute the  i_C and  j_C new way - START
+ for (unsigned int ti = 0; ti < trackPts.size(); ti++){
+   for (unsigned int si = 0; si < trackPts[ti].size(); si++){
+     if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
+       //if ((float)img(trackPts[ti][si].imgPt[0].x, trackPts[ti][si].imgPt[0].y)>minmax(0)){
+	 i_C = i_C + trackPts[ti][si].imgPt[0].x;
+	 j_C = j_C + trackPts[ti][si].imgPt[0].y;
+	 numPts++;
+	 //}
+     }
+   }
+ }
+ 
+ i_C = i_C/numPts;
+ j_C = j_C/numPts;
+
+
+ float sum_x2 = 0.0;
+ float sum_xy = 0.0;
+ float sum_x  = 0.0;
+ float sum_y  = 0.0;
+ float sum_y2 = 0.0;
+ float sum_1  = 0.0;
+
+ float sum_kx = 0.0; 
+ float sum_ky = 0.0;
+ float sum_k  = 0.0;
+ float sum_lx = 0.0;
+ float sum_ly = 0.0;
+ float sum_l  = 0.0;
+ /*
+ int matchWindowHalfWidth = matchWindowHalfSize(0);
+ int matchWindowHalfHeight = matchWindowHalfSize(1);
+ vector<float> errorArray;
+ vector<Vector4> matchArray = FindMatches2D(trackPts, cubFilename, matchWindowHalfSize, 20, errorArray);
+ */
+ cout<<"num_matches="<<matchArray.size()<<endl;
+
+
+ for (int i = 0; i < matchArray.size(); i++){
+
+       Vector2 bestMatch;
+       float x, y;
+
+       x = matchArray[i](0)-i_C;
+       y = matchArray[i](1)-j_C;
+       bestMatch(0) = matchArray[i](2)-i_C;
+       bestMatch(1) = matchArray[i](3)-j_C;
+       //cout<<"error="<<errorArray[i]<<endl;       
+
+       sum_x2 = sum_x2 + x*x;
+       sum_xy = sum_xy + x*y;
+       sum_x  = sum_x  + x;
+       sum_y  = sum_y  + y;
+       sum_y2 = sum_y2 + y*y;
+       sum_1  = sum_1 + 1;
+
+       sum_lx = sum_lx + bestMatch(0)*x;
+       sum_ly = sum_ly + bestMatch(0)*y;
+       sum_l  = sum_l  + bestMatch(0);
+       
+       sum_kx = sum_kx + bestMatch(1)*x; 
+       sum_ky = sum_ky + bestMatch(1)*y;
+       sum_k  = sum_k  + bestMatch(1);
+ }
+
+ //compute the affine transform
+ cout<<"numsamples = "<<sum_1<<endl;
+ Matrix<float,3,3> rhs;
+ Vector<float,3> lhs;
+ initTransfArray.resize(1);
+
+ rhs(0,0) = sum_x2/sum_1;
+ rhs(0,1) = sum_xy/sum_1;
+ rhs(0,2) = sum_x/sum_1;
+
+ rhs(1,0) = sum_xy/sum_1;
+ rhs(1,1) = sum_y2/sum_1;
+ rhs(1,2) = sum_y/sum_1;
+
+ rhs(2,0) = sum_x/sum_1;
+ rhs(2,1) = sum_y/sum_1;
+ rhs(2,2) = sum_1/sum_1;
+
+ lhs(0) = sum_lx/sum_1;
+ lhs(1) = sum_ly/sum_1;
+ lhs(2) = sum_l/sum_1;
+ 
+ try {
+        solve_symmetric_nocopy(rhs,lhs);
+        initTransfArray[0][0] = lhs(0); 
+	initTransfArray[0][1] = lhs(1);
+	initTransfArray[0][2] = lhs(2);
+      } catch (ArgumentErr &/*e*/) {
+        //             std::cout << "Error @ " << x << " " << y << "\n";
+        //             std::cout << "Exception caught: " << e.what() << "\n";
+        //             std::cout << "PRERHS: " << pre_rhs << "\n";
+        //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+        //             std::cout << "RHS: " << rhs << "\n";
+        //             std::cout << "LHS: " << lhs << "\n\n";
+        //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+        //             exit(0);
+      }
+
+ lhs(0) = sum_kx/sum_1;
+ lhs(1) = sum_ky/sum_1;
+ lhs(2) = sum_k/sum_1;
+
+ rhs(0,0) = sum_x2/sum_1;
+ rhs(0,1) = sum_xy/sum_1;
+ rhs(0,2) = sum_x/sum_1;
+
+ rhs(1,0) = sum_xy/sum_1;
+ rhs(1,1) = sum_y2/sum_1;
+ rhs(1,2) = sum_y/sum_1;
+
+ rhs(2,0) = sum_x/sum_1;
+ rhs(2,1) = sum_y/sum_1;
+ rhs(2,2) = sum_1/sum_1;
+
+ try {
+   solve_symmetric_nocopy(rhs,lhs);
+   initTransfArray[0][3] = lhs(0); 
+   initTransfArray[0][4] = lhs(1);
+   initTransfArray[0][5] = lhs(2);
+ } catch (ArgumentErr &/*e*/) {
+        //             std::cout << "Error @ " << x << " " << y << "\n";
+        //             std::cout << "Exception caught: " << e.what() << "\n";
+        //             std::cout << "PRERHS: " << pre_rhs << "\n";
+        //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+        //             std::cout << "RHS: " << rhs << "\n";
+        //             std::cout << "LHS: " << lhs << "\n\n";
+        //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+        //             exit(0);
+ }
+
+
+
+ cout<<initTransfArray[0]<<endl;
+ //matchingErrorArray.resize(1);
+ //matchingErrorArray[0] = 1000000.0;
+ //matchArray.clear();
+
+};
 
 //This functions needs to be changed to generate multiple starting points for each 
 //element of the affine transform 

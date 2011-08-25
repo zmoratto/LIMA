@@ -30,9 +30,8 @@ using namespace vw::math;
 #include <CameraDetectorMap.h>
 //needed for map to cam back projection - END
 
-/* Constructor for pointCloud which is really just a Vector3 
- * with some extra data fields.
- */
+//Constructor for pointCloud which is really just a Vector3 
+// with some extra data fields.
 pointCloud::pointCloud
   (
   Vector3 coords,
@@ -895,7 +894,7 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 	    gcpArray[index].x_before.push_back(trackPts[t][s].imgPt[2].x);
 	    gcpArray[index].y_before.push_back(trackPts[t][s].imgPt[2].y);
             gcpArray[index].trackIndex = t;
-            gcpArray[index].featureIndex = s;//featureIndex;
+            gcpArray[index].shotIndex = s;//featureIndex;
 	  }
           //featureIndex++;
           index++;
@@ -905,6 +904,79 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
     
 }
 
+void UpdateGCP(vector<vector<LOLAShot> > trackPts, 
+               vector<Vector4> matchArray, vector<float> errorArray, 
+               string camCubFile, string mapCubFile, 
+               vector<gcp> &gcpArray, float downsample_factor)
+{
+
+   std::vector<float> map_pixel;
+   map_pixel.resize(2);
+   
+   std::vector<float> map_pixel_init;
+   map_pixel_init.resize(2);
+
+   std::vector<float> cam_pixel;
+   cam_pixel.resize(2);
+   
+   std::vector<float> cam_pixel_init;
+   cam_pixel_init.resize(2);
+
+   Isis::Pvl label( mapCubFile);
+   Isis::Camera* camera = Isis::CameraFactory::Create( label );
+  // Note that ISIS is different from C. They start their index at 1.
+  
+   int featureIndex = 0;
+   int validFeatureIndex = 0;
+
+   for (unsigned int t = 0; t < trackPts.size(); t++){
+     for (unsigned int s = 0; s < (unsigned int)trackPts[t].size(); s++){
+       if (trackPts[t][s].featurePtLOLA == 1){
+         if ((trackPts[t][s].valid == 1) && (trackPts[t][s].reflectance != 0) && (trackPts[t][s].reflectance != -1)){
+          
+	    gcpArray[featureIndex].filename.push_back(camCubFile);
+
+            float i = matchArray[validFeatureIndex](2);
+	    float j = matchArray[validFeatureIndex](3);
+        
+            map_pixel[0] = i;
+            map_pixel[1] = j; 
+
+            // convert a map projected pixel location to the
+            // original image coordinate system.
+             
+            camera->SetImage(map_pixel[0], map_pixel[1]);
+            cam_pixel[0] = camera->DetectorMap()->ParentSample();
+            cam_pixel[1] = camera->DetectorMap()->ParentLine();
+	   	
+	    gcpArray[featureIndex].x.push_back(cam_pixel[0]/downsample_factor);
+	    gcpArray[featureIndex].y.push_back(cam_pixel[1]/downsample_factor);
+
+	    map_pixel_init[0]=trackPts[t][s].imgPt[2].x;
+            map_pixel_init[1]=trackPts[t][s].imgPt[2].y;
+            
+            camera->SetImage(map_pixel_init[0], map_pixel_init[1]);
+            cam_pixel_init[0] = camera->DetectorMap()->ParentSample();
+            cam_pixel_init[1] = camera->DetectorMap()->ParentLine();
+	       
+            gcpArray[featureIndex].x_before.push_back(cam_pixel_init[0]/downsample_factor);
+	    gcpArray[featureIndex].y_before.push_back(cam_pixel_init[1]/downsample_factor);
+            gcpArray[featureIndex].trackIndex = t;
+            gcpArray[featureIndex].shotIndex = s;
+
+            validFeatureIndex++;
+    
+	    }//valid==1
+	
+	  featureIndex++;
+	}
+      }
+    }
+
+    // delete remaining ISIS objects
+    delete camera;
+    
+}
 
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
                string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
@@ -928,11 +1000,10 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
   // Note that ISIS is different from C. They start their index at 1.
   
    int index = 0;
-    for (unsigned int t=0; t<trackPts.size(); t++){
-      //int featureIndex = 0;
-      for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
-	if ((trackPts[t][s].featurePtLOLA == 1)/* && (trackPts[t][s].valid ==1)*/){
-          if (trackPts[t][s].valid == 1){          
+   for (unsigned int t=0; t<trackPts.size(); t++){
+     for (unsigned int s=0; s<(unsigned int)trackPts[t].size(); s++){
+       if ((trackPts[t][s].featurePtLOLA == 1)/* && (trackPts[t][s].valid ==1)*/){
+         if (trackPts[t][s].valid == 1){          
 	    gcpArray[index].filename.push_back(camCubFile);
          
 	    float i = (optimalTransfArray[0]*(trackPts[t][s].imgPt[2].x - centroid(0)) + 
@@ -961,16 +1032,14 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
             camera->SetImage(map_pixel_init[0], map_pixel_init[1]);
             cam_pixel_init[0] = camera->DetectorMap()->ParentSample();
             cam_pixel_init[1] = camera->DetectorMap()->ParentLine();
-	    
-       
+	       
             gcpArray[index].x_before.push_back(cam_pixel_init[0]/downsample_factor);
 	    gcpArray[index].y_before.push_back(cam_pixel_init[1]/downsample_factor);
             gcpArray[index].trackIndex = t;
-            gcpArray[index].featureIndex = s;//featureIndex;
-            //cout<<"UpdateGCP: "<<index<<", numElements: "<<gcpArray[index].filename.size()<<endl;
-
+            gcpArray[index].shotIndex = s;
+    
 	  }//valid==1
-	  //featureIndex++;
+	
 	  index++;
 	}
       }
@@ -993,7 +1062,7 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 	   ss<<i;
 
            stringstream featureIndexString;
-           featureIndexString<<gcpArray[i].featureIndex;
+           featureIndexString<<gcpArray[i].shotIndex;
            stringstream trackIndexString;
 	   trackIndexString<<gcpArray[i].trackIndex;
            //string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
