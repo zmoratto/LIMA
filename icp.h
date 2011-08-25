@@ -193,100 +193,72 @@ FindMatchesFromDEM(
 	const vector<Vector3>&		lidar_xyz,
 	const vector<Vector3>&		lidar_llr,
 	const ImageViewBase<ViewT>&	DEM, 
-	const GeoReference&			DEMGeo, 
+	const GeoReference&		DEMGeo, 
 	      vector<Vector3>&		matchArray, 
-	const Vector3&				translation, 
+	const Vector3&			translation, 
 	const Matrix<float, 3, 3>&	rotation, 
-	const double&				noDEMVal, 
-	const Vector2&				matchWindowHalfSize)
+	const double&			noDEMVal, 
+	const Vector2&		        matchWindowHalfSize)
 {
 ImageViewRef<float> interpDEM;
-if( IsMasked<typename ViewT::pixel_type>::value == 0 )
-	{
-    interpDEM = pixel_cast<float>(	interpolate(
-										edge_extend
-											(
-											DEM.impl(),
-											ConstantEdgeExtension()
-											),
-										BilinearInterpolation()) );
-
+if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    
     //cout << "NOT masked" <<endl;
-	}
-else
-	{
-	interpDEM = pixel_cast<float>(	interpolate(
-										edge_extend
-											(
-											apply_mask(DEM.impl()),
-											ConstantEdgeExtension()
-											),
-										BilinearInterpolation()) );
-	//cout << "MASKED" <<endl;
-	}
-
+ }
+else{
+  interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+  //cout << "MASKED" <<endl;
+ }
  
-Vector3 matchCenter = find_centroid( matchArray );
-
-for (unsigned int index = 0; index < lidar_xyz.size(); index++)
-	{
-  
-	//const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
-	//const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
-    //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
-    //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
-    const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(lidar_llr[index], 0, 2) );
-
-    float minDistance = 1000000.0;
-    //search in a neigborhood around x,y and determine the best match to LOLA
-    for(int k = DEM_pix.y() - matchWindowHalfSize.y(); 
-			k < DEM_pix.y() + matchWindowHalfSize.y() +1; 
-			k++)
-		{
-		for(int l = DEM_pix.x() - matchWindowHalfSize.x(); 
-				l < DEM_pix.x() + matchWindowHalfSize.x() +1; 
-				l++)
-			{
-			if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows()))
-				{
-				if (interpDEM(l,k)!=noDEMVal)
-					{
-					//compute the distance to the lidar point
-					//const Vector2 pix(l,k);
-					const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
-
-					//revert to lon lat rad system
-					Vector3 lonlatrad 
-						(
-						lonlat.x(),
-						lonlat.y(),
-						//DEMGeo.datum().radius(lonlat.x(),lonlat.y()) + interpDEM(l,k)
-						interpDEM(l,k)
-						); // This z value is in meters, since DEMGeo.datum() is.
-
-					//transform into xyz coordinates of the foregound image.
-					Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-					dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
-
-					// float distance1 = dem_xyz(0) - lidar_xyz[index](0);
-					// float distance2 = dem_xyz(1) - lidar_xyz[index](1);
-					// float distance3 = dem_xyz(2) - lidar_xyz[index](2);
-					Vector3 distance_vector = dem_xyz - lidar_xyz[index];
-					// float distance = sqrt(  distance_vector.x()*distance_vector.x()
-					// 						+ distance_vector.y()*distance_vector.y()
-					// 						+ distance_vector.z()*distance_vector.z());
-					float distance = norm_2( distance_vector );
-
-					if (distance < minDistance)
-						{
-						minDistance = distance;
-						matchArray[index] = dem_xyz;
-						}
-					}
-				}
-			}
-		}
-	}
+ 
+ Vector3 matchCenter = find_centroid( matchArray );
+ 
+ for (unsigned int index = 0; index < lidar_xyz.size(); index++){
+   
+   //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
+   //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
+   //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
+   //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
+   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(lidar_llr[index], 0, 2) );
+   
+   float minDistance = 1000000.0;
+   //search in a neigborhood around x,y and determine the best match to LOLA
+   for(int k = DEM_pix.y() - matchWindowHalfSize.y(); k < DEM_pix.y() + matchWindowHalfSize.y() +1; k++){
+       for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
+	   if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+	       if (interpDEM(l,k)!=noDEMVal){
+		 //compute the distance to the lidar point
+		 //const Vector2 pix(l,k);
+		 const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+		 
+		 //revert to lon lat rad system
+		 Vector3 lonlatrad 
+		   (
+		    lonlat.x(),
+		    lonlat.y(),
+		    interpDEM(l,k)
+		    ); // This z value is in meters, since DEMGeo.datum() is.
+		 
+		 //transform into xyz coordinates of the foregound image.
+		 Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
+		 dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
+		 
+		 Vector3 distance_vector = dem_xyz - lidar_xyz[index];
+	
+		 float distance = norm_2( distance_vector );
+		 
+		 if (distance < minDistance){
+		   minDistance = distance;
+		   matchArray[index] = dem_xyz;
+		 }
+	       }
+	   }
+       }
+   }
+ }
 }
 
 
@@ -328,7 +300,7 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 	    cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
              
 	    cout<<"computing DEM rotation ..."<<endl;
-	    rotation = ComputeDEMRotation(featureArray, matchArray/*, translation*/);
+	    rotation = ComputeDEMRotation(featureArray, matchArray);
 	    PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  

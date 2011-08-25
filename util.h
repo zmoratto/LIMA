@@ -80,6 +80,7 @@ writeErrors( const string&          filename,
              const vector<string>&  titles= vector<string>(),
              const string&          separator = ",",
              const string&          commentor = "#" );
+void writeStatistics (const string& filename, const valarray<float>& errors);
 
 #endif
 

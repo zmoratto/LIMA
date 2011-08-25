@@ -234,5 +234,58 @@ for( unsigned int i = 0; i < locations.size(); i++ ){
 	<< locations[i].z() << separator
 	<< errors[i] << endl;
   }
+  
+ file.close();
 }
 
+
+
+void writeStatistics (const string& filename, const valarray<float>& errors)
+{
+    
+    vector<float> errorHist;
+    errorHist.resize(5);
+    float minError = 10000000.0; 
+    float maxError = -10000000.0;
+    float avgError = 0.0;
+
+    for ( unsigned int i = 0; i < errors.size(); i++ ){
+      if (errors[i]<=25){
+	errorHist[0]++;
+      }
+      if ((errors[i]>25) && (errors[i]<=50)){
+	errorHist[1]++;
+      }
+      if ((errors[i]>50) && (errors[i])<=75){
+	errorHist[2]++;
+      }
+      if ((errors[i]>75) && (errors[i]<=100)){
+	errorHist[3]++;
+      }
+      if (errors[i]>100){
+	errorHist[4]++;
+      }
+      avgError = avgError + errors[i];
+      if (errors[i]> maxError){
+	maxError = errors[i]; 
+      }  
+      if (errors[i]< minError){
+	minError = errors[i]; 
+      }  
+    }
+
+    avgError = avgError/errors.size();
+    
+    ofstream file( filename.c_str() );
+    file<<"minError="<<minError<<endl;
+    file<<"maxError="<<maxError<<endl;
+    file<<"avgError="<<avgError<<endl;
+
+    file<<"hist_0="<<errorHist[0]<<endl;
+    file<<"hist_1="<<errorHist[1]<<endl;
+    file<<"hist_2="<<errorHist[2]<<endl;
+    file<<"hist_3="<<errorHist[3]<<endl;
+    file<<"hist_4="<<errorHist[4]<<endl;
+
+    file.close();
+}

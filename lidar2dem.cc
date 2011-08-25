@@ -132,6 +132,39 @@ if( verbose > 0 ){
     cerr << error.what() << endl;
     exit(1);
   }
+  /*
+  //TODO: determine the overlapping DEMs - START
+  cout<<"Selecting the overlapping images ..."<<endl;
+  string auxDir;
+  std::vector<int> overlapIndices;
+  string overlapListFilename = auxDir+string("/")+sufix_from_filename(inputCSVFilename);
+  FindAndReplace(overlapListFilename, ".csv", "_overlap_list.txt"); 
+  int fileFound = ReadOverlapList(overlapListFilename, overlapIndices);
+
+  if (fileFound == 0){
+    Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
+    Vector4 lon_lat_bb;
+    lon_lat_bb[0]=lat_lon_bb[2];
+    lon_lat_bb[1]=lat_lon_bb[3];
+    lon_lat_bb[2]=lat_lon_bb[0];
+    lon_lat_bb[3]=lat_lon_bb[1];
+    printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
+    overlapIndices = makeOverlapList(DEMFiles, lon_lat_bb);
+    SaveOverlapList(overlapListFilename, overlapIndices);
+  }
+
+  PrintOverlapList(overlapIndices);
+  int numOverlappingImages;
+  if ((overlapIndices.size() == 1) && (overlapIndices[0] == -1)){
+    numOverlappingImages = 0;
+  }
+  else{
+     numOverlappingImages = (int)overlapIndices.size();
+  }
+  cout<<"numOverlapImages="<<numOverlappingImages<<endl;
+  cout<<"done."<<endl;
+  //TODO: determine the overlapping DEMs - END
+  */
 
   for (unsigned int index = 0; index <  DEMFiles.size(); index++){
 
@@ -157,15 +190,31 @@ if( verbose > 0 ){
      
       GeoReference DEMGeo;
       read_georeference(DEMGeo, inputDEMFilename);
- 
+      //this must be changed - START
       ImageViewRef<PixelGray<float> >   interpDEM = interpolate(edge_extend(DEM.impl(),
 									    ConstantEdgeExtension()),
 								BilinearInterpolation());
+      //this must be changed - END
+      //with this - START
+      /*
+      ImageViewRef<float> interpDEM;
+      if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+	interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+						  BilinearInterpolation()) );
+	
+	//cout << "NOT masked" <<endl;
+      }
+      else{
+	interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+						  BilinearInterpolation()) );
+	//cout << "MASKED" <<endl;
+      }
+      */
+      //END
 
-      //select DEM points closes to LOLA tracks
+      //select DEM points closest to LOLA tracks
       GetAllPtsFromDEM(trackPts, interpDEM, DEMGeo, settings.noDataVal);
 
-  
       Vector3 currTranslation;
       Matrix<float, 3,3 > currRotation;
       vector<Vector3> featureArray;//DEM
@@ -186,7 +235,7 @@ if( verbose > 0 ){
 	    model = trackPts[k][i].LOLAPt[2];
 	    model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           
-	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){
+	    if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){//this should go into the LOLA reader 
 	       if (verbose > 1){ 
                    cout<<"altitude="<<model[2]<<endl; 
                }
@@ -218,6 +267,7 @@ if( verbose > 0 ){
 	 titles[2] = "Radius (m)";
 	 titles[3] = "Errors";
          writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
+         //writeStatistics (errorFilename, errorArray);
       }
      
       if( verbose >= 0 ){ 
@@ -225,12 +275,7 @@ if( verbose > 0 ){
           int DEMcenterRow = interpDEM.rows() / 2;
           Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(DEMcenterCol,DEMcenterRow) );
           double DEMcenterR = DEMGeo.datum().radius(lonlat.x(),lonlat.y());
-          Vector3 DEMcenter_llr
-            (
-            lonlat.x(), 
-            lonlat.y(),
-            interpDEM(DEMcenterCol,DEMcenterRow)
-            );
+          Vector3 DEMcenter_llr(lonlat.x(), lonlat.y(),interpDEM(DEMcenterCol,DEMcenterRow));
 
           Vector3 DEMcenter_xyz = DEMGeo.datum().geodetic_to_cartesian(DEMcenter_llr);
           Vector3 translated_xyz = DEMcenter_xyz + currTranslation;
@@ -268,25 +313,24 @@ if( verbose > 0 ){
             scale(i) = sum( select_col(ratio,i) ) / ratio.rows();
           }
 
-
-			cout << endl
-                 << "Translation (xyz) = " << currTranslation << endl
-                 << "Translation (llr) = " << translation_llr << endl
-                 << "Rotation = " << currRotation << endl
-                 << "Euler Angles (xyz in degrees)  = " << euler_angles << endl
-                 << "Axis Angle = " << axis_angle << ", " << axis_angle_deg << " degrees" << endl
-                 << "Scale factors = " << scale << endl
-                 //<< "Center = " << center << endl;
-                 << "Centroid = " << modelCentroid << endl
-                 << "allin1linehead: Translation xyz\tTraslation llr\tMatching Error\tEuler Angles xyz\tAxis Angle degrees\tScale Factors\tCentroid" << endl
-                 << "alldatain1line: " << currTranslation << "\t" 
-                                         << translation_llr << "\t" 
-                                         << errorArray.sum()/errorArray.size() << "\t" 
-                                         << euler_angles << "\t" 
-                                         << axis_angle << " " << axis_angle_deg << "\t" 
-                                         << scale << "\t" 
-                                         << modelCentroid << endl;
-		}
+	  cout << endl
+	       << "Translation (xyz) = " << currTranslation << endl
+	       << "Translation (llr) = " << translation_llr << endl
+	       << "Rotation = " << currRotation << endl
+	       << "Euler Angles (xyz in degrees)  = " << euler_angles << endl
+	       << "Axis Angle = " << axis_angle << ", " << axis_angle_deg << " degrees" << endl
+	       << "Scale factors = " << scale << endl
+	       //<< "Center = " << center << endl;
+	       << "Centroid = " << modelCentroid << endl
+	       << "allin1linehead: Translation xyz\tTraslation llr\tMatching Error\tEuler Angles xyz\tAxis Angle degrees\tScale Factors\tCentroid" << endl
+	       << "alldatain1line: " << currTranslation << "\t" 
+	       << translation_llr << "\t" 
+	       << errorArray.sum()/errorArray.size() << "\t" 
+	       << euler_angles << "\t" 
+	       << axis_angle << " " << axis_angle_deg << "\t" 
+	       << scale << "\t" 
+	       << modelCentroid << endl;
+      }
   }
 
   return 0;
