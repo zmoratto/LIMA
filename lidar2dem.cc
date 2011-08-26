@@ -38,12 +38,12 @@ using namespace vw::cartography;
 
 int main( int argc, char *argv[] )
 {
-string inputCSVFilename; 
 int verbose;
+std::string inputCSVFilename; 
 std::string configFilename;
 std::string errorFilename;
 std::vector<std::string> DEMFiles;
-std::vector<std::string> cubFiles;
+//std::vector<std::string> cubFiles;
 std::string resDir;
  
 po::options_description general_options("Options");
@@ -67,8 +67,8 @@ general_options.add_options()
 
 po::options_description hidden_options("");
 
-hidden_options.add_options()
-	("cubFiles,c", po::value<std::vector<std::string> >(&DEMFiles));
+//hidden_options.add_options()
+//	("cubFiles,c", po::value<std::vector<std::string> >(&DEMFiles));
  
 po::options_description options("Allowed Options");
 options.add(general_options).add(hidden_options);
@@ -229,7 +229,7 @@ if( verbose > 0 ){
       for(unsigned int k = 0; k < trackPts.size();k++){
 	for(unsigned int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
        
-	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid==1)){
+	  if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid == 1)){
 	    Vector3 model;
 	
 	    model = trackPts[k][i].LOLAPt[2];
@@ -260,6 +260,22 @@ if( verbose > 0 ){
       ICP_LIDAR_2_DEM(featureArray, interpDEM, DEMGeo, modelArray, modelArrayLatLon, settings, 
                       currTranslation, currRotation, modelCentroid, errorArray);
 
+          
+      string overlapDEMFileNoPathNoExt;
+      cout<<"inputDEMFilename="<<inputDEMFilename<<endl;
+      overlapDEMFileNoPathNoExt = GetFilenameNoExt(GetFilenameNoPath(inputDEMFilename));
+      
+      string LOLAFilenameNoPathNoExt;
+      cout<<"inputCSVFilename="<<inputCSVFilename<<endl;
+      LOLAFilenameNoPathNoExt = GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
+      cout<<"LOLAFilenameNoPathNoExt="<<LOLAFilenameNoPathNoExt<<endl;
+      cout<<"overlapDEMFileNoPathNoExt="<<overlapDEMFileNoPathNoExt<<endl;
+      string statsFilename;
+      
+      //statsFilename.resize(400);
+      statsFilename = /*resDir + "/" +*/ LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_stats.txt";
+      cout<<"STATS_FILENAME="<<statsFilename<<endl;
+      
       if( vm.count("error-filename") ){
 	 vector<string> titles(4);
 	 titles[0] = "Latitude";
@@ -267,9 +283,9 @@ if( verbose > 0 ){
 	 titles[2] = "Radius (m)";
 	 titles[3] = "Errors";
          writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
-         //writeStatistics (errorFilename, errorArray);
+	 writeStatistics (statsFilename, errorArray);
       }
-     
+    
       if( verbose >= 0 ){ 
           int DEMcenterCol = interpDEM.cols() / 2;
           int DEMcenterRow = interpDEM.rows() / 2;

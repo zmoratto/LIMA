@@ -20,12 +20,12 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Photometry.h>
+//#include <vw/Photometry.h>
 #include <vw/Math.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
+//using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
@@ -92,7 +92,7 @@ typedef struct gcp{
 
 bool ReadConfigFile(string config_filename, struct CoregistrationParams *settings);
 // int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
-void PrintModelParams(struct ModelParams *params);
+//void PrintModelParams(struct ModelParams *params);
 
 void SaveVectorToFile(vector<float> v, string filename);
 #endif /* COREGISTER_H */

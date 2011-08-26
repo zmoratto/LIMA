@@ -227,36 +227,31 @@ else{
    float minDistance = 1000000.0;
    //search in a neigborhood around x,y and determine the best match to LOLA
    for(int k = DEM_pix.y() - matchWindowHalfSize.y(); k < DEM_pix.y() + matchWindowHalfSize.y() +1; k++){
-       for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
-	   if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
-	       if (interpDEM(l,k)!=noDEMVal){
-		 //compute the distance to the lidar point
-		 //const Vector2 pix(l,k);
-		 const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
-		 
-		 //revert to lon lat rad system
-		 Vector3 lonlatrad 
-		   (
-		    lonlat.x(),
-		    lonlat.y(),
-		    interpDEM(l,k)
-		    ); // This z value is in meters, since DEMGeo.datum() is.
-		 
-		 //transform into xyz coordinates of the foregound image.
-		 Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-		 dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
-		 
-		 Vector3 distance_vector = dem_xyz - lidar_xyz[index];
-	
-		 float distance = norm_2( distance_vector );
-		 
-		 if (distance < minDistance){
-		   minDistance = distance;
-		   matchArray[index] = dem_xyz;
-		 }
-	       }
+     for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
+       if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+	 if (interpDEM(l,k)!=noDEMVal){
+	   //compute the distance to the lidar point
+	   //const Vector2 pix(l,k);
+	   const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+	   
+	   //revert to lon lat rad system
+	   Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
+	   
+	   //transform into xyz coordinates of the foregound image.
+	   Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
+	   dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
+	   
+	   Vector3 distance_vector = dem_xyz - lidar_xyz[index];
+	   
+	   float distance = norm_2( distance_vector );
+	   
+	   if (distance < minDistance){
+	     minDistance = distance;
+	     matchArray[index] = dem_xyz;
 	   }
+	 }
        }
+     }
    }
  }
 }
@@ -327,17 +322,16 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 //used in DEM to Lidar alignment
 template <class ViewT>
 void 
-ICP_LIDAR_2_DEM(
-	      vector<Vector3>& 		featureArray,  
-	const ImageViewBase<ViewT>& DEM,
-	const GeoReference& 		DEMGeo, 
-	const vector<Vector3>& 		modelArray, 
-	const vector<Vector3>& 		modelArrayLatLon,
-	const CoregistrationParams 	settings,
-	      Vector3&				translation, 
-	      Matrix<float, 3, 3>&  rotation, 
-	const Vector3& 				modelCenter,
-	      valarray<float>&		errorArray) // probably don't need this anymore
+ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,  
+		const ImageViewBase<ViewT>& DEM,
+		const GeoReference& 	    DEMGeo, 
+		const vector<Vector3>& 	    modelArray, 
+		const vector<Vector3>& 	    modelArrayLatLon,
+		const CoregistrationParams  settings,
+		Vector3&		    translation, 
+		Matrix<float, 3, 3>&        rotation, 
+		const Vector3& 		    modelCenter,
+		valarray<float>&	    errorArray) // probably don't need this anymore
 {
    
 vector<Vector3> translationArray;
@@ -348,45 +342,43 @@ float matchError = std::numeric_limits<float>::max();
 rotationArray.clear();
 translationArray.clear();
 
-while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh))
-	{
-	vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
-      	
-	FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
-						translation, rotation, settings.noDataVal, 
-						settings.matchWindowHalfSize);
-
-	vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-	errorArray = ComputeMatchingError(featureArray, modelArray);
-	matchError = errorArray.sum()/errorArray.size();
-	vw_out(vw::InfoMessage, "icp") << matchError << endl;
-
-	vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
-	translation = ComputeDEMTranslation(featureArray, modelArray);
-	//cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-	vw_out(vw::InfoMessage, "icp") << translation << endl;
-             
-	vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-	rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter/*, translation*/);
-	//PrintMatrix(rotation);
-	vw_out(vw::InfoMessage, "icp") << rotation << endl;
-
-	//apply the computed rotation and translation to the featureArray  
-        //TransformFeatures(featureArray, translation, rotation);
-
-	translationArray.push_back(translation);
-	rotationArray.push_back(rotation);
-	    
-	rotation = rotationArray[0];
-	translation = translationArray[0];
-	for (unsigned int i = 1; i < rotationArray.size(); i++)
-		{
-		rotation = rotation*rotationArray[i];
-		translation += translationArray[i];
-	    }
-	    
-	numIter++;
-	}
+while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
+  vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
+  
+  FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
+		     translation, rotation, settings.noDataVal, 
+		     settings.matchWindowHalfSize);
+  
+  vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
+  errorArray = ComputeMatchingError(featureArray, modelArray);
+  matchError = errorArray.sum()/errorArray.size();
+  cout<<"matchError="<<matchError<<endl;
+  vw_out(vw::InfoMessage, "icp") << matchError << endl;
+  
+  vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
+  translation = ComputeDEMTranslation(featureArray, modelArray);
+  cout<<"translation="<<translation<<endl;
+  vw_out(vw::InfoMessage, "icp") << translation << endl;
+  
+  vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
+  rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter);
+  vw_out(vw::InfoMessage, "icp") << rotation << endl;
+  
+  //apply the computed rotation and translation to the featureArray  
+  TransformFeatures(featureArray, translation, rotation);
+  
+  translationArray.push_back(translation);
+  rotationArray.push_back(rotation);
+  
+  rotation = rotationArray[0];
+  translation = translationArray[0];
+  for (unsigned int i = 1; i < rotationArray.size(); i++){
+      rotation = rotation*rotationArray[i];
+      translation += translationArray[i];
+  }
+  
+  numIter++;
+ }
  
 }
 

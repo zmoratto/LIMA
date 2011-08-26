@@ -292,7 +292,6 @@ int main( int argc, char *argv[] ) {
   //end matching
  
   //save the GCP
-  //string gcpFilenameRoot = resDir + prefix_from_filename(sufix_from_filename(inputCSVFilename));  
   string gcpFilenameRoot = resDir+"/"+GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
 
 

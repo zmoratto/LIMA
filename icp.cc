@@ -95,8 +95,8 @@ return errorArray;
 }
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
-									const vector<Vector3>& matchArray,
-									const Vector3& matchCenter)
+				       const vector<Vector3>& matchArray,
+				       const Vector3& matchCenter)
 	// Vector3 translation, <-- This used to be passed in, but not used???
 {
 
@@ -118,6 +118,7 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
        numValidMatches++;
     }
   }
+  cout<<"NUM_VALID_MATCHES="<<numValidMatches<<endl;
   featureCenter /= numValidMatches;
   
   vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
@@ -153,9 +154,9 @@ Matrix<float,3,3> VT = transpose(V);
 if( det(A) < 0 ){
   Matrix3x3 sign_id = identity_matrix(3);
   sign_id(2,2) = -1;
-
   rotation = U*sign_id*V;
-} else {
+} 
+else {
   rotation = U*V;
 }
  

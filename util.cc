@@ -248,38 +248,56 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
     float minError = 10000000.0; 
     float maxError = -10000000.0;
     float avgError = 0.0;
+    int numValidPts = 0;
 
     for ( unsigned int i = 0; i < errors.size(); i++ ){
-      if (errors[i]<=25){
-	errorHist[0]++;
+
+      if (errors[i]<=0){
+	cout<<errors[i]<<endl;
       }
-      if ((errors[i]>25) && (errors[i]<=50)){
-	errorHist[1]++;
-      }
-      if ((errors[i]>50) && (errors[i])<=75){
-	errorHist[2]++;
-      }
-      if ((errors[i]>75) && (errors[i]<=100)){
-	errorHist[3]++;
-      }
-      if (errors[i]>100){
-	errorHist[4]++;
-      }
-      avgError = avgError + errors[i];
-      if (errors[i]> maxError){
-	maxError = errors[i]; 
+      float stdv;
+
+      if (errors[i]>=0){
+     
+        numValidPts++;
+
+	float stdv = sqrt(errors[i])/3;
+	
+	if (stdv<=25){
+	  errorHist[0]++;
+	}
+	if ((stdv>25) && (stdv<=50)){
+	  errorHist[1]++;
+	}
+	if ((stdv>50) && (stdv<=75)){
+	  errorHist[2]++;
+	}
+	if ((stdv>75) && (stdv<=100)){
+	  errorHist[3]++;
+	}
+	if (stdv>100){
+	  errorHist[4]++;
+	}
+	avgError = avgError + stdv;
+	if (stdv> maxError){
+	  maxError = stdv; 
+	}  
+	if (stdv< minError){
+	  minError = stdv; 
+	}
       }  
-      if (errors[i]< minError){
-	minError = errors[i]; 
-      }  
+
     }
 
-    avgError = avgError/errors.size();
-    
+    if (numValidPts){
+      avgError = avgError/numValidPts;
+    }
+
     ofstream file( filename.c_str() );
     file<<"minError="<<minError<<endl;
     file<<"maxError="<<maxError<<endl;
     file<<"avgError="<<avgError<<endl;
+    file<<"numValidPts="<<numValidPts<<endl;
 
     file<<"hist_0="<<errorHist[0]<<endl;
     file<<"hist_1="<<errorHist[1]<<endl;
