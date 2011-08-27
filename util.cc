@@ -206,36 +206,38 @@ void writeErrors( const string& filename,
 		  const valarray<float>& errors,
 		  const vector<string>&  titles,
 		  const string& separator,
-		  const string& commentor){
+		  const string& commentor)
+{
 
-ofstream file( filename.c_str() );
-
-if( !file ) {
-  vw_throw( ArgumentErr() << "Can't open error output file \"" << filename << "\"" );
- }
-
-if( locations.size() != errors.size() ) {
-  vw_throw( ArgumentErr() 
-  << "The there are a different number of locations (" 
-  << locations.size() << ") than errors (" 
-  << errors.size() <<") which is a problem." );
- }
-
-if( titles.size() > 0 ){
-  file << commentor << " ";
-  string title = boost::join( titles, separator );
-  file << title << endl;
- }
-
-for( unsigned int i = 0; i < locations.size(); i++ ){
-  file  << locations[i].x() << separator
-	<< locations[i].y() << separator
-	<< fixed
-	<< locations[i].z() << separator
-	<< errors[i] << endl;
+   ofstream file( filename.c_str() );
+   
+   if( !file ) {
+     vw_throw( ArgumentErr() << "Can't open error output file \"" << filename << "\"" );
+   }
+   
+   if( locations.size() != errors.size() ) {
+     vw_throw( ArgumentErr() 
+	       << "The there are a different number of locations (" 
+	       << locations.size() << ") than errors (" 
+	       << errors.size() <<") which is a problem." );
+   }
+   
+   if( titles.size() > 0 ){
+     file << commentor << " ";
+     string title = boost::join( titles, separator );
+     file << title << endl;
+   }
+   
+   for( unsigned int i = 0; i < locations.size(); i++ ){
+     file  << locations[i].x() << separator
+	   << locations[i].y() << separator
+	   << fixed
+	   << locations[i].z() << separator
+	   << errors[i] << endl;
   }
-  
- file.close();
+   
+   
+   file.close();
 }
 
 
@@ -261,7 +263,7 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
      
         numValidPts++;
 
-	float stdv = sqrt(errors[i])/3;
+	float stdv = errors[i];//sqrt(errors[i])/3;
 	
 	if (stdv<=25){
 	  errorHist[0]++;

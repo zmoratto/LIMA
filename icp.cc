@@ -71,33 +71,29 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
   }
 }
 
-//compute the matching error vector and overall average error 
+//compute the matching error vector in the form of a standard deviation 
 valarray<float> 
-ComputeMatchingError(
-	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray)
+ComputeMatchingError(const vector<Vector3>& featureArray, 
+		     const vector<Vector3>& matchArray)
 {
-valarray<float> errorArray( featureArray.size() );
-for (unsigned int i = 0; i < featureArray.size(); i++)
-	{
-	float overallDist(0.0);
-	float dist(0.0);
-	for (int j = 0; j < 3; j++)
-		{
-		dist = featureArray[i](j) - matchArray[i](j);
-		//cout<<j<<" "<<featureArray[i](j)<<" "<<matchArray[i](j)<<" "<<dist<<endl;
-		overallDist += dist*dist; 
-		}
-	errorArray[i]=sqrt(overallDist);
-	//cout<<"error= "<<errorArray[i]<<endl;
-	}
-return errorArray;
+  valarray<float> errorArray( featureArray.size() );
+  for (unsigned int i = 0; i < featureArray.size(); i++){
+    float overallDist(0.0);
+    float dist(0.0);
+    for (int j = 0; j < 3; j++){
+      dist = featureArray[i](j) - matchArray[i](j);
+      //cout<<j<<" "<<featureArray[i](j)<<" "<<matchArray[i](j)<<" "<<dist<<endl;
+      overallDist += dist*dist; 
+    }
+    errorArray[i]=sqrt(overallDist);
+    //cout<<"error= "<<errorArray[i]<<endl;
+  }
+  return errorArray;
 }
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
 				       const vector<Vector3>& matchArray,
 				       const Vector3& matchCenter)
-	// Vector3 translation, <-- This used to be passed in, but not used???
 {
 
   Matrix<float, 3, 3> rotation;
@@ -118,6 +114,7 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
        numValidMatches++;
     }
   }
+
   cout<<"NUM_VALID_MATCHES="<<numValidMatches<<endl;
   featureCenter /= numValidMatches;
   

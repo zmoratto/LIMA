@@ -275,8 +275,8 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
     
     int numIter = 0;
     float matchError = 100.0; 
-    rotationArray.clear();
-    translationArray.clear();
+    //rotationArray.clear();
+    //translationArray.clear();
     
     while((numIter < settings.maxNumIter)&&(matchError > settings.minConvThresh)){
       
@@ -318,7 +318,74 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
  
 }
 
+ /*
+//used in DEM to DEM alignment
+//TODO: extract the xyz centroid position
+template <class ViewT>
+void 
+ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
+              GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
+              Vector3 &translation, Matrix<float, 3, 3> &rotation, Vector3 &center, vector<float> &errorArray)
+{
+   
+    vector<Vector3> translationArray;
+    vector<Matrix<float, 3,3> > rotationArray;
+    vector<Vector3> matchArray;
+    matchArray.resize(featureArray.size());
+    
+    int numIter = 0;
+    float matchError = 100.0; 
+    rotationArray.clear();
+    translationArray.clear();
 
+    cout<<"Feature matching .."<<endl;
+    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, 
+		settings.matchWindowHalfSize, settings.noDataVal);
+    
+    cout<<"computing the matching error ..."<<endl;
+    valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
+    matchError = errorArray.sum()/errorArray.size();
+    cout<<"match error="<<matchError<<endl;
+    
+    while((numIter < settings.maxNumIter)&&(matchError > settings.minConvThresh)){
+     
+       cout<<"computing DEM translation ..."<<endl;
+       translation = ComputeDEMTranslation(featureArray, matchArray);
+       cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
+       
+       cout<<"computing DEM rotation ..."<<endl;
+       rotation = ComputeDEMRotation(featureArray, matchArray);
+       PrintMatrix(rotation);
+       
+       //apply the computed rotation and translation to the featureArray  
+       TransformFeatures(featureArray, translation, rotation);
+       
+       translationArray.push_back(translation);
+       rotationArray.push_back(rotation);
+             
+       numIter++;
+       cout<<"numIter="<<numIter<<endl;
+       
+       cout<<"feature matching ..."<<endl;
+       FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, 
+		   settings.matchWindowHalfSize, settings.noDataVal);
+       
+       cout<<"computing the matching error ..."<<endl;
+       valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
+       matchError = errorArray.sum()/errorArray.size();
+       cout<<"match error="<<matchError<<endl;
+    }
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (int i = 1; i < rotationArray.size(); i++){
+	 rotation = rotation*rotationArray[i];
+	 translation = translation + translationArray[i];
+    }
+ 
+}
+*/
+/*
 //used in DEM to Lidar alignment
 template <class ViewT>
 void 
@@ -334,51 +401,128 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
 		valarray<float>&	    errorArray) // probably don't need this anymore
 {
    
-vector<Vector3> translationArray;
-vector<Matrix<float, 3,3> > rotationArray;
-    
-int numIter = 0;
-float matchError = std::numeric_limits<float>::max();
-rotationArray.clear();
-translationArray.clear();
-
-while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
-  vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
+  vector<Vector3> translationArray;
+  vector<Matrix<float, 3,3> > rotationArray;
   
+  int numIter = 0;
+  float matchError = std::numeric_limits<float>::max();
+  rotationArray.clear();
+  translationArray.clear();
+  
+  while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
+    vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
+    
+    FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
+		       translation, rotation, settings.noDataVal, 
+		       settings.matchWindowHalfSize);
+    
+    vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
+    errorArray = ComputeMatchingError(featureArray, modelArray);
+    matchError = errorArray.sum()/errorArray.size();
+    cout<<"matchError="<<matchError<<endl;
+    vw_out(vw::InfoMessage, "icp") << matchError << endl;
+    
+    vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
+    translation = ComputeDEMTranslation(featureArray, modelArray);
+    cout<<"translation="<<translation<<endl;
+    vw_out(vw::InfoMessage, "icp") << translation << endl;
+    
+    vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
+    rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter);
+    vw_out(vw::InfoMessage, "icp") << rotation << endl;
+    
+    //apply the computed rotation and translation to the featureArray  
+    TransformFeatures(featureArray, translation, rotation);
+    
+    translationArray.push_back(translation);
+    rotationArray.push_back(rotation);
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (unsigned int i = 1; i < rotationArray.size(); i++){
+      rotation = rotation*rotationArray[i];
+      translation += translationArray[i];
+    }
+    
+    numIter++;
+  }
+ 
+}
+*/
+ 
+//used in DEM to Lidar alignment
+template <class ViewT>
+void 
+ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,  
+		const ImageViewBase<ViewT>& DEM,
+		const GeoReference& 	    DEMGeo, 
+		const vector<Vector3>& 	    modelArray, 
+		const vector<Vector3>& 	    modelArrayLatLon,
+		const CoregistrationParams  settings,
+		Vector3&		    translation, 
+		Matrix<float, 3, 3>&        rotation, 
+		const Vector3& 		    modelCenter,
+		valarray<float>&	    errorArray) // probably don't need this anymore
+{
+   
+ 
+  
+  
+  float matchError = std::numeric_limits<float>::max();
+ 
   FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
-		     translation, rotation, settings.noDataVal, 
-		     settings.matchWindowHalfSize);
+		     translation, rotation, settings.noDataVal, settings.matchWindowHalfSize);
   
   vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
   errorArray = ComputeMatchingError(featureArray, modelArray);
+  cout<<"numErrorPts = "<<errorArray.size()<<endl;
   matchError = errorArray.sum()/errorArray.size();
   cout<<"matchError="<<matchError<<endl;
   vw_out(vw::InfoMessage, "icp") << matchError << endl;
+
+  vector<Vector3> translationArray;
+  vector<Matrix<float, 3,3> > rotationArray;
+  rotationArray.clear();
+  translationArray.clear();
+  int numIter = 0;
+
+  while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
+    vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
   
-  vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
-  translation = ComputeDEMTranslation(featureArray, modelArray);
-  cout<<"translation="<<translation<<endl;
-  vw_out(vw::InfoMessage, "icp") << translation << endl;
-  
-  vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-  rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter);
-  vw_out(vw::InfoMessage, "icp") << rotation << endl;
-  
-  //apply the computed rotation and translation to the featureArray  
-  TransformFeatures(featureArray, translation, rotation);
-  
-  translationArray.push_back(translation);
-  rotationArray.push_back(rotation);
-  
-  rotation = rotationArray[0];
-  translation = translationArray[0];
-  for (unsigned int i = 1; i < rotationArray.size(); i++){
+    vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
+    translation = ComputeDEMTranslation(featureArray, modelArray);
+    cout<<"translation="<<translation<<endl;
+    vw_out(vw::InfoMessage, "icp") << translation << endl;
+    
+    vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
+    rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter);
+    vw_out(vw::InfoMessage, "icp") << rotation << endl;
+    
+    //apply the computed rotation and translation to the featureArray  
+    TransformFeatures(featureArray, translation, rotation);
+    
+    translationArray.push_back(translation);
+    rotationArray.push_back(rotation);
+    
+    rotation = rotationArray[0];
+    translation = translationArray[0];
+    for (unsigned int i = 1; i < rotationArray.size(); i++){
       rotation = rotation*rotationArray[i];
       translation += translationArray[i];
+    }
+
+    FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
+		       translation, rotation, settings.noDataVal, 
+		       settings.matchWindowHalfSize);
+    
+    vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
+    errorArray = ComputeMatchingError(featureArray, modelArray);
+    matchError = errorArray.sum()/errorArray.size();
+    cout<<"matchError="<<matchError<<endl;
+    vw_out(vw::InfoMessage, "icp") << matchError << endl;
+    
+    numIter++;
   }
-  
-  numIter++;
- }
  
 }
 
