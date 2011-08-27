@@ -247,7 +247,7 @@ int main( int argc, char *argv[] ) {
       //param init LIMA - START 
 
 
-      vector<Vector4> matchArray = FindMatches2D(trackPts, overlapMapCubFile, settings.matchWindowHalfSize, 40, initMatchingErrorArray);
+      vector<Vector4> matchArray = FindMatches2D(trackPts, overlapMapCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
       
       /*  
       EstimateAffineTransform(bestInitTransfArray, trackPts, matchArray, initMatchingErrorArray);

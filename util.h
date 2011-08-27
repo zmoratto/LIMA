@@ -32,7 +32,7 @@ void ReadCamFileList(string camFileListFilename, vector<string> &camFileArray);
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
 std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners);
-
+std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles, Vector4 currCorners);
 
 /* Stream manipulator to ignore until the end of line
  * Use like: std::cin >> ignoreLine;

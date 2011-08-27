@@ -82,6 +82,48 @@ void PrintOverlapList(std::vector<int>  overlapIndices)
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
+Vector4 ComputeGeoTiffBoundary(string filename)
+{
+
+  Vector4 corners;
+  
+  GeoReference Geo;
+  read_georeference(Geo, filename);
+  DiskImageView<PixelGray<float> > DEM(filename);
+
+  Vector2 pixel_tl(0,0);
+  Vector2 lonlat_tl = Geo.pixel_to_lonlat(pixel_tl);	
+  Vector2 pixel_br(DEM.cols()-1, DEM.rows()-1);
+  Vector2 lonlat_br = Geo.pixel_to_lonlat(pixel_br);		
+ 
+  float minLon = lonlat_tl[0];
+  float minLat = lonlat_tl[1];
+  float maxLon = lonlat_br[0];
+  float maxLat = lonlat_br[1];
+
+  //printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
+  if (maxLat<minLat){
+      float temp = minLat;
+      minLat = maxLat;
+      maxLat = temp;    
+  }
+
+  if (maxLon<minLon){
+     float temp = minLon;
+     minLon = maxLon;
+     maxLon = temp;    
+  }
+
+  corners(0) = minLon;
+  corners(1) = maxLon;
+  corners(2) = minLat;
+  corners(3) = maxLat;
+
+  return corners;
+}
+
+//this will be used to compute the makeOverlapList in a more general way.
+//it takes into consideration any set of overlapping images.
 Vector4 ComputeGeoBoundary(string cubFilename)
 {
   GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
@@ -118,6 +160,7 @@ Vector4 ComputeGeoBoundary(string cubFilename)
 
   return corners;
 }
+
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
 std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners) {
@@ -130,7 +173,7 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
        int latOverlap = 0; 
      
        Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
-       
+   
        printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
        printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
 
@@ -162,6 +205,53 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
   //cout<<overlapIndices<<endl;
   return overlapIndices;
 }
+
+//this function determines the image overlap for the general case
+//it takes into consideration any set of overlapping images.
+std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles, Vector4 currCorners) 
+{  
+  std::vector<int> overlapIndices;
+ 
+  for (unsigned int i = 0; i < inputFiles.size(); i++){
+
+       int lonOverlap = 0;
+       int latOverlap = 0; 
+     
+      
+       Vector4 corners = ComputeGeoTiffBoundary(inputFiles[i]);
+
+       printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
+       printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
+
+       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
+	  ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1))) //maxlon corners in interval of currCorners
+          ||((currCorners(0)>corners(0)) && (currCorners(0)<corners(1)))
+          ||((currCorners(1)>corners(0)) && (currCorners(1)<corners(1)))) 
+            
+       {
+         lonOverlap = 1;
+       }
+       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat corners in interval of currCorners
+	  ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3))) //maxlat corners in interval of currCorners
+          ||((currCorners(2)>corners(2)) && (currCorners(2)<corners(3))) //minlat corners in interval of currCorners
+	  ||((currCorners(3)>corners(2)) && (currCorners(3)<corners(3)))) //maxlat corners in interval of currCorners
+	
+       { 
+         latOverlap = 1;
+       }
+    
+       cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
+       cout<<"-----------------------------------------"<<endl;
+
+       if ((lonOverlap == 1) && (latOverlap == 1)){
+           overlapIndices.push_back(i);
+       }
+  }
+
+  //cout<<overlapIndices<<endl;
+  return overlapIndices;
+}
+
 void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
 {
    ofstream file( filename.c_str() );

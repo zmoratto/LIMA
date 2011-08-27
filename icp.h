@@ -482,8 +482,8 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
 
   vector<Vector3> translationArray;
   vector<Matrix<float, 3,3> > rotationArray;
-  rotationArray.clear();
-  translationArray.clear();
+  //rotationArray.clear();
+  //translationArray.clear();
   int numIter = 0;
 
   while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
