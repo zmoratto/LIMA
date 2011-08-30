@@ -78,15 +78,13 @@ ComputeMatchingError(const vector<Vector3>& featureArray,
 {
   valarray<float> errorArray( featureArray.size() );
   for (unsigned int i = 0; i < featureArray.size(); i++){
-    float overallDist(0.0);
-    float dist(0.0);
+    float overallDist=0.0;
+    float dist=0.0;
     for (int j = 0; j < 3; j++){
       dist = featureArray[i](j) - matchArray[i](j);
-      //cout<<j<<" "<<featureArray[i](j)<<" "<<matchArray[i](j)<<" "<<dist<<endl;
       overallDist += dist*dist; 
     }
     errorArray[i]=sqrt(overallDist);
-    //cout<<"error= "<<errorArray[i]<<endl;
   }
   return errorArray;
 }

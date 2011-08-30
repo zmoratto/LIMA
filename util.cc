@@ -345,7 +345,7 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
     for ( unsigned int i = 0; i < errors.size(); i++ ){
 
       if (errors[i]<=0){
-	cout<<errors[i]<<endl;
+	cout<<"writeStats: "<<errors[i]<<endl;
       }
       float stdv;
 
@@ -353,7 +353,7 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
      
         numValidPts++;
 
-	float stdv = errors[i];//sqrt(errors[i])/3;
+	float stdv = errors[i];
 	
 	if (stdv<=25){
 	  errorHist[0]++;

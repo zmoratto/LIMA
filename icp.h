@@ -185,6 +185,82 @@ FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, G
  
 };
 
+
+template <class ViewT>
+void
+GetMatchesFromDEM(const vector<Vector3>&	xyzModelArray,
+		  const vector<Vector3>&	llrModelArray,
+		  const ImageViewBase<ViewT>&	DEM, 
+		  const GeoReference&		DEMGeo, 
+		  const double&		        noDEMVal,
+		  vector<Vector3>&		xyzMatchArray,
+		  valarray<float>&	        errorArray)
+{
+
+ImageViewRef<float> interpDEM;
+if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    
+    //cout << "NOT masked" <<endl;
+ }
+else{
+  interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+  //cout << "MASKED" <<endl;
+ }
+ 
+ cout<<"GetMatchesFromDEM: numLOLAPoints="<<llrModelArray.size()<<endl;
+
+ for (unsigned int index = 0; index < llrModelArray.size(); index++){
+   
+   //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
+   //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
+   //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
+   //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
+   //cout<<"test1"<<endl;
+
+   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
+   
+   //set the default values
+   xyzMatchArray[index] = Vector3(0,0,0);
+   errorArray[index] = -1;
+  
+   int l = DEM_pix.x(); 
+   int k = DEM_pix.y(); 
+   //cout<<"test2"<<endl;
+   if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+     if (interpDEM(l,k) != noDEMVal){
+      
+       //compute the distance to the lidar point
+       //const Vector2 pix(l,k);
+       const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+       //cout<<"test3.1"<<endl;
+       //revert to lon lat rad system
+       Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
+       
+       //transform into xyz coordinates of the foregound image.
+       Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
+       
+       //cout<<"test3.2"<<endl;
+       
+       Vector3 distance_vector = dem_xyz - xyzModelArray[index];
+       
+       float distance = norm_2( distance_vector );
+      
+       //cout<<"test3.3"<<endl;
+       
+       xyzMatchArray[index] = dem_xyz;
+       errorArray[index] = distance;
+       
+       //cout<<"GetMatchesFromDEM: error="<<errorArray[index]<<endl;
+       
+     }
+   }
+ }
+
+}
+
 //determines best DEM points that match to LOLA track points
 //used in ICP
 template <class ViewT>
@@ -214,7 +290,7 @@ else{
  }
  
  
- Vector3 matchCenter = find_centroid( matchArray );
+ Vector3 matchCenter = find_centroid(matchArray);
  
  for (unsigned int index = 0; index < lidar_xyz.size(); index++){
    
@@ -224,7 +300,9 @@ else{
    //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
    const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(lidar_llr[index], 0, 2) );
    
+   matchArray[index] = Vector3(0,0,0);
    float minDistance = 1000000.0;
+   
    //search in a neigborhood around x,y and determine the best match to LOLA
    for(int k = DEM_pix.y() - matchWindowHalfSize.y(); k < DEM_pix.y() + matchWindowHalfSize.y() +1; k++){
      for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
@@ -385,7 +463,7 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
  
 }
 */
-/*
+
 //used in DEM to Lidar alignment
 template <class ViewT>
 void 
@@ -406,8 +484,8 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
   
   int numIter = 0;
   float matchError = std::numeric_limits<float>::max();
-  rotationArray.clear();
-  translationArray.clear();
+  //rotationArray.clear();
+  //translationArray.clear();
   
   while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
     vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
@@ -448,8 +526,8 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
   }
  
 }
-*/
- 
+
+ /*
 //used in DEM to Lidar alignment
 template <class ViewT>
 void 
@@ -464,19 +542,21 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
 		const Vector3& 		    modelCenter,
 		valarray<float>&	    errorArray) // probably don't need this anymore
 {
-   
- 
-  
-  
+     
   float matchError = std::numeric_limits<float>::max();
- 
+  cout<<"icp_lidar_2_dem:find matches"<<endl;     
+  
   FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
 		     translation, rotation, settings.noDataVal, settings.matchWindowHalfSize);
   
   vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
   errorArray = ComputeMatchingError(featureArray, modelArray);
-  cout<<"numErrorPts = "<<errorArray.size()<<endl;
-  matchError = errorArray.sum()/errorArray.size();
+  
+  
+  cout<<"NUM_ERRORS="<<errorArray.size()<<endl;
+  if (errorArray.size()!=0){
+    matchError = errorArray.sum()/errorArray.size();
+  }
   cout<<"matchError="<<matchError<<endl;
   vw_out(vw::InfoMessage, "icp") << matchError << endl;
 
@@ -525,5 +605,5 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,
   }
  
 }
-
+*/
 #endif

@@ -168,7 +168,7 @@ int main( int argc, char *argv[] )
   //determine the overlapping DEMs - END
    
   
-  for (unsigned int index = 0; index < numOverlappingDEMs; index++){
+  for (int index = 0; index < numOverlappingDEMs; index++){
     
     string inputDEMFilename = DEMFiles[overlapIndices[index]];
     
@@ -205,10 +205,11 @@ int main( int argc, char *argv[] )
     
     Vector3 currTranslation;
     Matrix<float, 3,3 > currRotation;
-    vector<Vector3> featureArray;//DEM
-    vector<Vector3> modelArray;//LOLA
-    vector<Vector3> modelArrayLatLon;//LOLA
-    valarray<float> errorArray;//error array same size as model and feature
+    //vector<Vector3> featureArray;//DEM
+    vector<Vector3> xyzMatchArray;//DEM
+    vector<Vector3> xyzModelArray;//LOLA
+    vector<Vector3> llrModelArray;//LOLA
+    valarray<float> xyzErrorArray;//error array same size as model and feature
     currRotation[0][0] = 1.0;
     currRotation[1][1] = 1.0;
     currRotation[2][2] = 1.0;
@@ -228,26 +229,34 @@ int main( int argc, char *argv[] )
 	      cout<<"altitude="<<model[2]<<endl; 
 	    }
 	    Vector3 modelxyz = lon_lat_radius_to_xyz(model);
-	    modelArray.push_back( modelxyz );
-	    modelArrayLatLon.push_back(model);
+	    xyzModelArray.push_back(modelxyz);
+	    llrModelArray.push_back(model);
 	  }
 	}
       }
     }
     
-    featureArray.resize(modelArray.size());
-    errorArray.resize(modelArray.size());
+    xyzMatchArray.resize(xyzModelArray.size());
+    xyzErrorArray.resize(xyzModelArray.size());
     
     if( verbose > 0 ){
-      cout << "Number of points to be compared: " << modelArray.size() << endl;
+      cout << "Number of points to be compared: " << xyzModelArray.size() << endl;
     }
 
-    Vector3 modelCentroid = find_centroid( modelArray );
-    
-    //run ICP-matching
-    ICP_LIDAR_2_DEM(featureArray, DEM, DEMGeo, modelArray, modelArrayLatLon, settings, 
-		    currTranslation, currRotation, modelCentroid, errorArray);
-    
+    Vector3 modelCentroid;// = find_centroid( modelArray );
+    //cout<<"modelCentroid="<<modelCentroid<<endl;
+
+    if ((settings.maxNumIter == 0) && (settings.matchWindowHalfSize(0)==1) && (settings.matchWindowHalfSize(1)==1)){
+      //run error calculations with no re-estimation
+      GetMatchesFromDEM(xyzModelArray, llrModelArray, DEM, DEMGeo, settings.noDataVal, xyzMatchArray, xyzErrorArray);
+    }
+    else{
+      //run ICP-matching
+      modelCentroid = find_centroid(xyzModelArray);
+      cout<<"modelCentroid="<<modelCentroid<<endl;
+      ICP_LIDAR_2_DEM(xyzMatchArray, DEM, DEMGeo, xyzModelArray, llrModelArray, settings, 
+		      currTranslation, currRotation, modelCentroid, xyzErrorArray);
+    }
     string overlapDEMFileNoPathNoExt;
     cout<<"inputDEMFilename="<<inputDEMFilename<<endl;
     overlapDEMFileNoPathNoExt = GetFilenameNoExt(GetFilenameNoPath(inputDEMFilename));
@@ -259,20 +268,17 @@ int main( int argc, char *argv[] )
     cout<<"overlapDEMFileNoPathNoExt="<<overlapDEMFileNoPathNoExt<<endl;
     string statsFilename;
     
-    statsFilename = auxDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_stats.txt";
-    cout<<"STATS_FILENAME="<<statsFilename<<endl;
+    statsFilename = resDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_stats.txt";
+    errorFilename = resDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_error.txt";
     
     if( vm.count("error-filename") ){
       vector<string> titles(4);
       titles[0] = "Latitude";
       titles[1] = "Longitude";
       titles[2] = "Radius (m)";
-      titles[3] = "Errors";
-      
-      cout<<"NUM_LOCATIONS="<<modelArrayLatLon.size()<<endl;
-      
-      writeErrors( errorFilename, modelArrayLatLon, errorArray, titles );
-      writeStatistics (statsFilename, errorArray);
+      titles[3] = "Errors";  
+      writeErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
+      writeStatistics (statsFilename, xyzErrorArray);
     }
     
     if( verbose >= 0 ){ 
@@ -301,17 +307,17 @@ int main( int argc, char *argv[] )
       double axis_angle_deg = norm_2( axis_angle ) * 180/M_PI;
       
       // Work out estimate of the scale factor
-      Vector3 f_cent = find_centroid( featureArray );
+      Vector3 f_cent = find_centroid( xyzMatchArray );
       
-      Matrix<double> f_centered(featureArray.size(),3);
-      Matrix<double> m_centered(featureArray.size(),3);
+      Matrix<double> f_centered(xyzMatchArray.size(),3);
+      Matrix<double> m_centered(xyzMatchArray.size(),3);
       
-      for( unsigned int i = 0; i < featureArray.size(); i++ ){
-	select_row(f_centered,i) = featureArray[i] - f_cent;
-	select_row(m_centered,i) = modelArray[i] - modelCentroid;
+      for( unsigned int i = 0; i < xyzMatchArray.size(); i++ ){
+	select_row(f_centered,i) = xyzMatchArray[i] - f_cent;
+	select_row(m_centered,i) = xyzModelArray[i] - modelCentroid;
       }
       
-      Matrix<double> ratio(featureArray.size(),3);
+      Matrix<double> ratio(xyzMatchArray.size(),3);
       Vector3 scale;
       
       ratio = elem_quot( f_centered * transpose(currRotation) , m_centered );
@@ -331,7 +337,7 @@ int main( int argc, char *argv[] )
 	   << "allin1linehead: Translation xyz\tTraslation llr\tMatching Error\tEuler Angles xyz\tAxis Angle degrees\tScale Factors\tCentroid" << endl
 	   << "alldatain1line: " << currTranslation << "\t" 
 	   << translation_llr << "\t" 
-	   << errorArray.sum()/errorArray.size() << "\t" 
+	   << xyzErrorArray.sum()/xyzErrorArray.size() << "\t" 
 	   << euler_angles << "\t" 
 	   << axis_angle << " " << axis_angle_deg << "\t" 
 	   << scale << "\t" 
