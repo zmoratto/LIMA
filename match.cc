@@ -421,6 +421,8 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  lhs(0) = sum_lx/sum_1;
  lhs(1) = sum_ly/sum_1;
  lhs(2) = sum_l/sum_1;
+ cout<<"rhs"<<rhs<<endl;
+ cout<<"lhs"<<lhs<<endl;
  
  try {
         solve_symmetric_nocopy(rhs,lhs);

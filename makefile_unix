@@ -34,7 +34,7 @@ dem2dem: dem2dem.cc
 
 #lidar2dem
 lidar2dem: lidar2dem.cc
-	g++ $(CXXFLAGS) $(CXXFLAGS_ISIS) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(OPTIONS)  icp.cc  coregister.cc tracks.cc  display.cc weights.cc featuresLOLA.cc lidar2dem.cc -o lidar2dem 
+	g++ $(CXXFLAGS) $(CXXFLAGS_ISIS) $(CXXFLAGS_CAM2MAP) $(INCPATH) $(LIBPATH) $(LDFLAGS) $(LDFLAGS_CAM2MP) $(OPTIONS)  icp.cc  coregister.cc tracks.cc  util.cc display.cc  lidar2dem.cc -o lidar2dem 
 
 
 clean:
