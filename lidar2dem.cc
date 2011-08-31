@@ -189,7 +189,7 @@ int main( int argc, char *argv[] )
       cout << "Using default nodata value: " << settings.noDataVal << endl;
     }
     
-    DiskImageView<PixelGray<float> > DEM( rsrc );
+    DiskImageView<PixelGray<float> > DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
     /*
@@ -205,11 +205,11 @@ int main( int argc, char *argv[] )
     
     Vector3 currTranslation;
     Matrix<float, 3,3 > currRotation;
-    //vector<Vector3> featureArray;//DEM
-    vector<Vector3> xyzMatchArray;//DEM
     vector<Vector3> xyzModelArray;//LOLA
     vector<Vector3> llrModelArray;//LOLA
+    vector<Vector3> xyzMatchArray;//DEM
     valarray<float> xyzErrorArray;//error array same size as model and feature
+    
     currRotation[0][0] = 1.0;
     currRotation[1][1] = 1.0;
     currRotation[2][2] = 1.0;
@@ -224,12 +224,15 @@ int main( int argc, char *argv[] )
 	  model = trackPts[k][i].LOLAPt[2];
 	  model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           
-	  if ((model[0] >1e-100) && (model[1] >1e-100) && (model[2]>1e-100) ){//this should go into the LOLA reader 
+	  if ((model[0] >1e-100) && (model[1] > 1e-100) && (model[2]>1e-100) && 
+              (model[0] < 360) && (model[0] > -180) && 
+              (model[2] > 1720000) && (model[2] < 1750000)){//this should go into the LOLA reader 
 	    if (verbose > 1){ 
 	      cout<<"altitude="<<model[2]<<endl; 
 	    }
 	    Vector3 modelxyz = lon_lat_radius_to_xyz(model);
 	    xyzModelArray.push_back(modelxyz);
+            cout<<"model="<<model<<endl;
 	    llrModelArray.push_back(model);
 	  }
 	}
@@ -271,7 +274,7 @@ int main( int argc, char *argv[] )
     statsFilename = resDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_stats.txt";
     errorFilename = resDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapDEMFileNoPathNoExt + "_error.txt";
     
-    if( vm.count("error-filename") ){
+    if( vm.count("error-filename") && (xyzModelArray.size() >0 )){
       vector<string> titles(4);
       titles[0] = "Latitude";
       titles[1] = "Longitude";
@@ -281,7 +284,7 @@ int main( int argc, char *argv[] )
       writeStatistics (statsFilename, xyzErrorArray);
     }
     
-    if( verbose >= 0 ){ 
+    if(( verbose >= 0 ) && (xyzModelArray.size() > 0)){ 
       //int DEMcenterCol = interpDEM.cols() / 2;
       // int DEMcenterRow = interpDEM.rows() / 2;
       int DEMcenterCol = DEM.cols() / 2;

@@ -48,7 +48,13 @@ ComputeDEMRotation(
 	const vector<Vector3>& featureArray, 
 	const vector<Vector3>& matchArray,
 	const Vector3&         matchCenter
-	/*Vector3 translation*/);
+	);
+
+Matrix<float, 3, 3> 
+ComputeDEMRotation(const vector<Vector3>& modelArray, 
+		   const vector<Vector3>& matchArray,
+		   const Vector3& modelCenter,
+                   const Vector3& matchCenter);
 
 inline
 Matrix<float, 3, 3>
@@ -57,7 +63,7 @@ ComputeDEMRotation(
 	const vector<Vector3>& matchArray)
 {
 const Vector3 matchCenter = find_centroid( matchArray );
-return ComputeDEMRotation( featureArray, matchArray, matchCenter );
+return ComputeDEMRotation( featureArray, matchArray, matchCenter);
 }
 
 
@@ -194,138 +200,154 @@ GetMatchesFromDEM(const vector<Vector3>&	xyzModelArray,
 		  const GeoReference&		DEMGeo, 
 		  const double&		        noDEMVal,
 		  vector<Vector3>&		xyzMatchArray,
-		  valarray<float>&	        errorArray)
+		  valarray<float>&	        xyzErrorArray)
 {
 
-ImageViewRef<float> interpDEM;
-if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-    
-    //cout << "NOT masked" <<endl;
- }
-else{
-  interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-  //cout << "MASKED" <<endl;
- }
- 
- cout<<"GetMatchesFromDEM: numLOLAPoints="<<llrModelArray.size()<<endl;
+  ImageViewRef<float> interpDEM;
 
- for (unsigned int index = 0; index < llrModelArray.size(); index++){
-   
+  if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );    
+    //cout << "NOT masked" <<endl;
+  }
+  else{
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+					      BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+  
+  cout<<"GetMatchesFromDEM: numLOLAPoints="<<llrModelArray.size()<<endl;
+  
+  for (unsigned int index = 0; index < llrModelArray.size(); index++){
+    
    //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
    //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
    //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
    //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
    //cout<<"test1"<<endl;
+    
+    const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
+    
+    //set the default values
+    xyzMatchArray[index] = Vector3(0,0,0);
+    xyzErrorArray[index] = -1;
+    
+    int l = DEM_pix.x(); 
+    int k = DEM_pix.y(); 
 
-   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
-   
-   //set the default values
-   xyzMatchArray[index] = Vector3(0,0,0);
-   errorArray[index] = -1;
+    if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+      if (interpDEM(l,k) != noDEMVal){
+	
+	//compute the distance to the lidar point
+	//const Vector2 pix(l,k);
+	const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+	//cout<<"test3.1"<<endl;
+	//revert to lon lat rad system
+	Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
+	
+	//transform into xyz coordinates of the foregound image.
+	Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
+       
+	//cout<<"test3.2"<<endl;
+	
+	Vector3 distance_vector = dem_xyz - xyzModelArray[index];
+	
+	float distance = norm_2( distance_vector );
+	
+	//cout<<"test3.3"<<endl;
+	
+	xyzMatchArray[index] = dem_xyz;
+	xyzErrorArray[index] = distance;
+	
+	//cout<<"GetMatchesFromDEM: error="<<xyzErrorArray[index]<<endl;
+	
+      }
+    }
+  }
   
-   int l = DEM_pix.x(); 
-   int k = DEM_pix.y(); 
-   //cout<<"test2"<<endl;
-   if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
-     if (interpDEM(l,k) != noDEMVal){
-      
-       //compute the distance to the lidar point
-       //const Vector2 pix(l,k);
-       const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
-       //cout<<"test3.1"<<endl;
-       //revert to lon lat rad system
-       Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
-       
-       //transform into xyz coordinates of the foregound image.
-       Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-       
-       //cout<<"test3.2"<<endl;
-       
-       Vector3 distance_vector = dem_xyz - xyzModelArray[index];
-       
-       float distance = norm_2( distance_vector );
-      
-       //cout<<"test3.3"<<endl;
-       
-       xyzMatchArray[index] = dem_xyz;
-       errorArray[index] = distance;
-       
-       //cout<<"GetMatchesFromDEM: error="<<errorArray[index]<<endl;
-       
-     }
-   }
- }
-
 }
 
 //determines best DEM points that match to LOLA track points
 //used in ICP
 template <class ViewT>
 void
-FindMatchesFromDEM(
-	const vector<Vector3>&		lidar_xyz,
-	const vector<Vector3>&		lidar_llr,
-	const ImageViewBase<ViewT>&	DEM, 
-	const GeoReference&		DEMGeo, 
-	      vector<Vector3>&		matchArray, 
-	const Vector3&			translation, 
-	const Matrix<float, 3, 3>&	rotation, 
-	const double&			noDEMVal, 
-	const Vector2&		        matchWindowHalfSize)
+FindMatchesFromDEM(const vector<Vector3>&	xyzModelArray, 
+		   const vector<Vector3>&	llrModelArray,
+		   const ImageViewBase<ViewT>&	DEM, 
+		   const GeoReference&		DEMGeo, 
+		   vector<Vector3>&		xyzMatchArray, 
+		   const Vector3&		translation, 
+		   const Matrix<float,3,3>&	rotation, 
+                   const Vector3&               xyzMatchCenter,
+		   const double&		noDEMVal, 
+		   const Vector2&		matchWindowHalfSize)
 {
-ImageViewRef<float> interpDEM;
-if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-    
-    //cout << "NOT masked" <<endl;
- }
-else{
-  interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-  //cout << "MASKED" <<endl;
- }
- 
- 
- Vector3 matchCenter = find_centroid(matchArray);
- 
- for (unsigned int index = 0; index < lidar_xyz.size(); index++){
+ ImageViewRef<float> interpDEM;
+ if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+   interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+					     BilinearInterpolation()) );
    
-   //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(lidar_xyz[index]);
-   //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius( lidar_xyz[index] );
+   //cout << "NOT masked" <<endl;
+  }
+ else{
+   interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+					     BilinearInterpolation()) );
+   //cout << "MASKED" <<endl;
+ }
+ 
+ 
+ //Vector3 xyzMatchCenter = find_centroid(xyzMatchArray);
+ cout<<"XYZ_MATCH_CENTER="<<xyzMatchCenter<<endl;
+ cout<<DEMGeo<<endl;  
+
+ for (unsigned int index = 0; index < xyzModelArray.size(); index++){
+   
+   //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(xyzModelArray[index]);
+   //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius(xyzModelArray[index] );
    //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
-   //const Vector2 lidar_lonlat(lidar_lonlatrad(0), lidar_lonlatrad(1));
-   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(lidar_llr[index], 0, 2) );
+   //cout<<"llrModelArray="<<llrModelArray[index]<<endl;
+   const Vector2 lidar_lonlat(llrModelArray[index](0), llrModelArray[index](1));
+   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(lidar_lonlat);
    
-   matchArray[index] = Vector3(0,0,0);
+    //const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
+ 
+   //cout<<"test1:DEM_pix="<<DEM_pix<<endl;
+  
+   xyzMatchArray[index] = Vector3(0,0,0);
    float minDistance = 1000000.0;
+   
+   //cout<<"test2"<<endl;
    
    //search in a neigborhood around x,y and determine the best match to LOLA
    for(int k = DEM_pix.y() - matchWindowHalfSize.y(); k < DEM_pix.y() + matchWindowHalfSize.y() +1; k++){
      for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
-       if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
+       if ((l>=0) && (k>=0) && (l<DEM.impl().cols()) && (k<DEM.impl().rows())){
 	 if (interpDEM(l,k)!=noDEMVal){
 	   //compute the distance to the lidar point
-	   //const Vector2 pix(l,k);
-	   const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+
+	   const Vector2 pix(l,k);
+           //cout<<"test2, pix="<<pix<<endl;
+	   const Vector2 lonlat = DEMGeo.pixel_to_lonlat( /*Vector2(l,k)*/pix );
 	   
+           //cout<<"test3"<<endl;
 	   //revert to lon lat rad system
 	   Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
 	   
+           //cout<<"test4"<<endl;
 	   //transform into xyz coordinates of the foregound image.
-	   Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-	   dem_xyz = rotation*(dem_xyz-matchCenter) + matchCenter + translation;
+	   Vector3 xyzDEM = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
+	   xyzDEM = rotation*(xyzDEM-xyzMatchCenter) + xyzMatchCenter + translation;
 	   
-	   Vector3 distance_vector = dem_xyz - lidar_xyz[index];
+           //cout<<"test5"<<endl;
+	   Vector3 distance_vector = xyzDEM - xyzModelArray[index];
 	   
 	   float distance = norm_2( distance_vector );
-	   
+
+	   //cout<<"distance="<<distance<<endl;
+
 	   if (distance < minDistance){
 	     minDistance = distance;
-	     matchArray[index] = dem_xyz;
+	     xyzMatchArray[index] = xyzDEM;
 	   }
 	 }
        }
@@ -396,121 +418,58 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
  
 }
 
- /*
-//used in DEM to DEM alignment
-//TODO: extract the xyz centroid position
-template <class ViewT>
-void 
-ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
-              GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
-              Vector3 &translation, Matrix<float, 3, 3> &rotation, Vector3 &center, vector<float> &errorArray)
-{
-   
-    vector<Vector3> translationArray;
-    vector<Matrix<float, 3,3> > rotationArray;
-    vector<Vector3> matchArray;
-    matchArray.resize(featureArray.size());
-    
-    int numIter = 0;
-    float matchError = 100.0; 
-    rotationArray.clear();
-    translationArray.clear();
-
-    cout<<"Feature matching .."<<endl;
-    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, 
-		settings.matchWindowHalfSize, settings.noDataVal);
-    
-    cout<<"computing the matching error ..."<<endl;
-    valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
-    matchError = errorArray.sum()/errorArray.size();
-    cout<<"match error="<<matchError<<endl;
-    
-    while((numIter < settings.maxNumIter)&&(matchError > settings.minConvThresh)){
-     
-       cout<<"computing DEM translation ..."<<endl;
-       translation = ComputeDEMTranslation(featureArray, matchArray);
-       cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
-       
-       cout<<"computing DEM rotation ..."<<endl;
-       rotation = ComputeDEMRotation(featureArray, matchArray);
-       PrintMatrix(rotation);
-       
-       //apply the computed rotation and translation to the featureArray  
-       TransformFeatures(featureArray, translation, rotation);
-       
-       translationArray.push_back(translation);
-       rotationArray.push_back(rotation);
-             
-       numIter++;
-       cout<<"numIter="<<numIter<<endl;
-       
-       cout<<"feature matching ..."<<endl;
-       FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, matchArray, 
-		   settings.matchWindowHalfSize, settings.noDataVal);
-       
-       cout<<"computing the matching error ..."<<endl;
-       valarray<float> errorArray = ComputeMatchingError(featureArray, matchArray);
-       matchError = errorArray.sum()/errorArray.size();
-       cout<<"match error="<<matchError<<endl;
-    }
-    
-    rotation = rotationArray[0];
-    translation = translationArray[0];
-    for (int i = 1; i < rotationArray.size(); i++){
-	 rotation = rotation*rotationArray[i];
-	 translation = translation + translationArray[i];
-    }
- 
-}
-*/
 
 //used in DEM to Lidar alignment
 template <class ViewT>
 void 
-ICP_LIDAR_2_DEM(vector<Vector3>& 	    featureArray,  
+ICP_LIDAR_2_DEM(vector<Vector3>& 	    xyzMatchArray,  
 		const ImageViewBase<ViewT>& DEM,
 		const GeoReference& 	    DEMGeo, 
-		const vector<Vector3>& 	    modelArray, 
-		const vector<Vector3>& 	    modelArrayLatLon,
+		const vector<Vector3>& 	    xyzModelArray, 
+		const vector<Vector3>& 	    llrModelArray,
 		const CoregistrationParams  settings,
 		Vector3&		    translation, 
 		Matrix<float, 3, 3>&        rotation, 
-		const Vector3& 		    modelCenter,
-		valarray<float>&	    errorArray) // probably don't need this anymore
+		const Vector3& 		    xyzModelCenter,
+		valarray<float>&	    xyzErrorArray)
 {
    
   vector<Vector3> translationArray;
   vector<Matrix<float, 3,3> > rotationArray;
   
   int numIter = 0;
-  float matchError = std::numeric_limits<float>::max();
+  float avgMatchError = std::numeric_limits<float>::max();
   //rotationArray.clear();
   //translationArray.clear();
-  
-  while((numIter < settings.maxNumIter) && (matchError > settings.minConvThresh)){
+  Vector3 xyzMatchCenter = xyzModelCenter;
+
+  while((numIter < settings.maxNumIter) && (avgMatchError > settings.minConvThresh)){
     vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
     
-    FindMatchesFromDEM(modelArray, modelArrayLatLon, DEM, DEMGeo, featureArray, 
-		       translation, rotation, settings.noDataVal, 
+    FindMatchesFromDEM(xyzModelArray, llrModelArray, DEM, DEMGeo, xyzMatchArray, 
+		       translation, rotation, xyzMatchCenter, settings.noDataVal, 
 		       settings.matchWindowHalfSize);
     
     vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-    errorArray = ComputeMatchingError(featureArray, modelArray);
-    matchError = errorArray.sum()/errorArray.size();
-    cout<<"matchError="<<matchError<<endl;
-    vw_out(vw::InfoMessage, "icp") << matchError << endl;
-    
+    xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
+    avgMatchError = xyzErrorArray.sum()/xyzErrorArray.size();
+    cout<<"avgMatchError="<<avgMatchError<<endl;
+    vw_out(vw::InfoMessage, "icp") << avgMatchError << endl;
+
+    //determine the xyzMatchCentroid
+    Vector3 xyzMatchCenter = find_centroid(xyzMatchArray);
+
     vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
-    translation = ComputeDEMTranslation(featureArray, modelArray);
+    translation = ComputeDEMTranslation(xyzMatchArray, xyzModelArray);
     cout<<"translation="<<translation<<endl;
     vw_out(vw::InfoMessage, "icp") << translation << endl;
-    
+
     vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-    rotation = ComputeDEMRotation(featureArray, modelArray, modelCenter);
+    rotation = ComputeDEMRotation(xyzMatchArray, xyzModelArray, /*xyzModelCenter*/xyzMatchCenter, xyzModelCenter);
     vw_out(vw::InfoMessage, "icp") << rotation << endl;
     
     //apply the computed rotation and translation to the featureArray  
-    TransformFeatures(featureArray, translation, rotation);
+    //TransformFeatures(xyzMatchArray, translation, rotation);
     
     translationArray.push_back(translation);
     rotationArray.push_back(rotation);

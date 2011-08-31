@@ -91,7 +91,8 @@ ComputeMatchingError(const vector<Vector3>& featureArray,
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
 				       const vector<Vector3>& matchArray,
-				       const Vector3& matchCenter)
+				       const Vector3& featureCenter,
+                                       const Vector3& matchCenter)
 {
 
   Matrix<float, 3, 3> rotation;
@@ -102,7 +103,7 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
   Matrix<float,3,3> V;
   
   A.set_zero(); // Fill with zeros, maybe what the below meant?
-
+  /*
   //compute the centroid
   Vector3 featureCenter;
   int numValidMatches = 0;
@@ -115,7 +116,8 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
 
   cout<<"NUM_VALID_MATCHES="<<numValidMatches<<endl;
   featureCenter /= numValidMatches;
-  
+  */
+
   vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
   vw_out(vw::InfoMessage, "icp") << "  M_center: " << matchCenter   << endl;
   
