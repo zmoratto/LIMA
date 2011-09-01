@@ -151,7 +151,7 @@ int main( int argc, char *argv[] )
     lon_lat_bb[1]=lat_lon_bb[3];
     lon_lat_bb[2]=lat_lon_bb[0];
     lon_lat_bb[3]=lat_lon_bb[1];
-    printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
+    //printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
     overlapIndices = makeOverlapListFromGeoTiff(DEMFiles, lon_lat_bb);
     SaveOverlapList(overlapListFilename, overlapIndices);
   }
@@ -167,7 +167,6 @@ int main( int argc, char *argv[] )
   cout<<"done."<<endl;
   //determine the overlapping DEMs - END
    
-  
   for (int index = 0; index < numOverlappingDEMs; index++){
     
     string inputDEMFilename = DEMFiles[overlapIndices[index]];
@@ -201,7 +200,7 @@ int main( int argc, char *argv[] )
     */
     
     //select DEM points closest to LOLA tracks
-    GetAllPtsFromDEM(trackPts, /*interpDEM*/DEM, DEMGeo, settings.noDataVal);
+    GetAllPtsFromDEM(trackPts, DEM, DEMGeo, settings.noDataVal);
     
     Vector3 currTranslation;
     Matrix<float, 3,3 > currRotation;
@@ -232,7 +231,7 @@ int main( int argc, char *argv[] )
 	    }
 	    Vector3 modelxyz = lon_lat_radius_to_xyz(model);
 	    xyzModelArray.push_back(modelxyz);
-            cout<<"model="<<model<<endl;
+            //cout<<"model="<<model<<endl;
 	    llrModelArray.push_back(model);
 	  }
 	}

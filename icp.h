@@ -243,6 +243,7 @@ GetMatchesFromDEM(const vector<Vector3>&	xyzModelArray,
 	const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
 	//cout<<"test3.1"<<endl;
 	//revert to lon lat rad system
+        
 	Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
 	
 	//transform into xyz coordinates of the foregound image.

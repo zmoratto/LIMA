@@ -344,8 +344,8 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
 
     for ( unsigned int i = 0; i < errors.size(); i++ ){
 
-      if (errors[i]<=0){
-	cout<<"writeStats: "<<errors[i]<<endl;
+      if (errors[i]<0){
+	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
       }
       float stdv;
 
