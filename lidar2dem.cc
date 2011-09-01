@@ -44,7 +44,7 @@ int main( int argc, char *argv[] )
  std::string errorFilename;
  std::vector<std::string> DEMFiles;
  std::string resDir;
- std:: string auxDir = "../aux";
+ std:: string auxDir;
 
  po::options_description general_options("Options");
  general_options.add_options()
@@ -119,7 +119,8 @@ int main( int argc, char *argv[] )
    cout << settings << endl; 
   }
 
-
+  auxDir = resDir+"/aux";
+  cout<<"aux_dir="<<auxDir<<endl;
   //create the results and auxiliry directories
   string makeResDirCmd = "mkdir " + resDir;
   string makeAuxDirCmd = "mkdir " + auxDir;

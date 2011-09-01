@@ -174,8 +174,8 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
      
        Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
    
-       printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
-       printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
+       //printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
+       //printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
 
        if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
 	  ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1))) //maxlon corners in interval of currCorners
@@ -194,8 +194,8 @@ std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 cu
          latOverlap = 1;
        }
     
-       cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
-       cout<<"-----------------------------------------"<<endl;
+       //cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
+       //cout<<"-----------------------------------------"<<endl;
 
        if ((lonOverlap == 1) && (latOverlap == 1)){
            overlapIndices.push_back(i);

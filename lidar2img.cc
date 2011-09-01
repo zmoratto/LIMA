@@ -121,9 +121,16 @@ int main( int argc, char *argv[] ) {
   printf("numCubFiles = %d\n", numCubFiles);
 
   //create the results directory and prepare the output filenames - START
-  system("mkdir ../results"); 
-  system("mkdir ../aux");
- 
+  //system("mkdir ../results"); 
+  //system("mkdir ../aux");
+  auxDir = resDir+"/aux";
+  cout<<"aux_dir="<<auxDir<<endl;
+  //create the results and auxiliary directories
+  string makeResDirCmd = "mkdir " + resDir;
+  string makeAuxDirCmd = "mkdir " + auxDir;
+  system(makeResDirCmd.c_str()); 
+  system(makeAuxDirCmd.c_str());
+
   vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
 
   //select the overlapping images - START
