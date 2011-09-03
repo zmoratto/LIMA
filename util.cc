@@ -44,6 +44,15 @@ void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplac
 
 }
 
+///Returns the file extension
+std::string GetFilenameExt(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1)
+    result.erase(0, index+1);
+  return result;
+}
+
 /// Erases a file suffix if one exists and returns the base string
 std::string GetFilenameNoExt(std::string const& filename) {
   std::string result = filename;
@@ -398,4 +407,22 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
     file<<"hist_4="<<errorHist[4]<<endl;
 
     file.close();
+}
+
+// this should be moved to util
+void ReadFileList(string fileListFilename, vector<string> &fileArray)
+{
+
+ ifstream file;
+ file.open(fileListFilename.c_str());
+ string filename;
+ if (file.is_open()) {
+    while (!file.eof()) {
+      file >> filename;
+      fileArray.push_back(filename);
+      cout<<filename<<endl;
+    }
+  }
+  file.close();
+
 }

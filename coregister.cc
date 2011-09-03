@@ -119,21 +119,6 @@ void PrintModelParams(struct ModelParams *params)
   cout<<"VIEWER_POS[2]"<<params->spacecraftPosition[2]<<endl;
 }
 
-void ReadCamFileList(string camFileListFilename, vector<string> &camFileArray)
-{
-
- ifstream file;
- file.open(camFileListFilename.c_str());
- string camFilename;
- if (file.is_open()) {
-    while (!file.eof()) {
-      file >> camFilename;
-      camFileArray.push_back(camFilename);
-    }
-  }
-  file.close();
-
-}
 
 void SaveVectorToFile(vector<float> v, string filename)
 {

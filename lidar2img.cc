@@ -115,7 +115,7 @@ int main( int argc, char *argv[] ) {
   std::cerr << settings << endl;
 
  
-  ReadCamFileList(camCubFileList, camCubFiles);
+  ReadFileList(camCubFileList, camCubFiles);
 
   int numCubFiles = camCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);

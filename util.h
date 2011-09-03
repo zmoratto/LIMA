@@ -17,6 +17,7 @@ using namespace std;
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );
 std::string GetFilenameNoExt(std::string const& filename);
 std::string GetFilenameNoPath(std::string const& filename);
+std::string GetFilenameExt(std::string const& filename);
 
 void PrintOverlapList(std::vector<int>  overlapIndices);
 void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
@@ -27,7 +28,7 @@ int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 Vector4 ComputeGeoBoundary(string cubFilename);
 
 
-void ReadCamFileList(string camFileListFilename, vector<string> &camFileArray);
+void ReadFileList(string camFileListFilename, vector<string> &camFileArray);
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.

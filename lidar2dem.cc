@@ -42,14 +42,14 @@ int main( int argc, char *argv[] )
  std::string inputCSVFilename; 
  std::string configFilename;
  std::string errorFilename;
- std::vector<std::string> DEMFiles;
+ std::vector<std::string> inputDEMFiles;
  std::string resDir;
  std:: string auxDir;
 
  po::options_description general_options("Options");
  general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-    ("DEMFiles,d", po::value<std::vector<std::string> >(&DEMFiles))
+    ("inputDEMFiles,d", po::value<std::vector<std::string> >(&inputDEMFiles))
     ("results-directory,r", 
 		po::value<std::string>(&resDir)->default_value("../results"), 
 		"results directory.") // Currently a no-op until we implement it below.
@@ -71,7 +71,7 @@ int main( int argc, char *argv[] )
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
-  p.add("DEMFiles", -1);
+  p.add("inputDEMFiles", -1);
 
   std::ostringstream usage;
   usage << "Description: main code for Lidar to DEM co-registration" << std::endl << std::endl;
@@ -96,11 +96,40 @@ int main( int argc, char *argv[] )
       std::cerr << usage.str() << std::endl;
       return 1;
     }
-  
-  if(( vm.count("DEMFiles") < 1 )) {
+
+  if (vm.count(inputCSVFilename)){
+      std::cerr << "Error: Must specify at least  one Lidar file!" << std::endl << std::endl;
+      std::cerr << usage.str();
+      return 1;
+  }
+
+  vector<string> DEMFiles; 
+  int numDEMInputFiles = inputDEMFiles.size();
+
+  if(numDEMInputFiles < 1) {
     std::cerr << "Error: Must specify at least  one DEM file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
+  }
+
+  if( numDEMInputFiles == 1) {
+     string inputFileExtension = GetFilenameExt(inputDEMFiles[0]);
+     cout<<inputFileExtension<<endl;
+     if (inputFileExtension.compare(string("txt")) ==0){
+        ReadFileList(inputDEMFiles[0], DEMFiles);
+     }
+     else{
+       DEMFiles.resize(1);
+       DEMFiles[0] = inputDEMFiles[0]; 
+     }
+     
+  }
+  if  ( numDEMInputFiles > 1) {
+       DEMFiles.resize(numDEMInputFiles);
+       for (int i = 0; i < numDEMInputFiles; i++){
+	 DEMFiles[i] = inputDEMFiles[i]; 
+         cout<<DEMFiles[i]<<endl;
+       }
   }
   
   //Set up VW logging
@@ -118,6 +147,10 @@ int main( int argc, char *argv[] )
   if( verbose > 0 ){ 
    cout << settings << endl; 
   }
+
+
+  int numDEMFiles = DEMFiles.size();
+  cout<<"numDEMFiles="<<numDEMFiles<<endl;
 
   auxDir = resDir+"/aux";
   cout<<"aux_dir="<<auxDir<<endl;
@@ -192,14 +225,7 @@ int main( int argc, char *argv[] )
     DiskImageView<PixelGray<float> > DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
-    /*
-    //this must be changed - START
-    ImageViewRef<PixelGray<float> >   interpDEM = interpolate(edge_extend(DEM.impl(),
-    ConstantEdgeExtension()),
-    BilinearInterpolation());
-    //this must be changed - END
-    */
-    
+   
     //select DEM points closest to LOLA tracks
     GetAllPtsFromDEM(trackPts, DEM, DEMGeo, settings.noDataVal);
     
@@ -285,6 +311,15 @@ int main( int argc, char *argv[] )
     }
     
     if(( verbose >= 0 ) && (xyzModelArray.size() > 0)){ 
+
+       /*
+       //this must be changed - START
+       ImageViewRef<PixelGray<float> >   interpDEM = interpolate(edge_extend(DEM.impl(),
+       ConstantEdgeExtension()),
+       BilinearInterpolation());
+       //this must be changed - END
+       */
+   
       //int DEMcenterCol = interpDEM.cols() / 2;
       // int DEMcenterRow = interpDEM.rows() / 2;
       int DEMcenterCol = DEM.cols() / 2;
