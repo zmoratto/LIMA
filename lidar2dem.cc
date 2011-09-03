@@ -307,7 +307,7 @@ int main( int argc, char *argv[] )
       titles[2] = "Radius (m)";
       titles[3] = "Errors";  
       writeErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
-      writeStatistics (statsFilename, xyzErrorArray);
+      SaveStatistics (statsFilename, xyzErrorArray);
     }
     
     if(( verbose >= 0 ) && (xyzModelArray.size() > 0)){ 

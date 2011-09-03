@@ -341,7 +341,7 @@ void writeErrors( const string& filename,
 
 
 
-void writeStatistics (const string& filename, const valarray<float>& errors)
+void SaveStatistics (const string& filename, const valarray<float>& errors)
 {
     
     vector<float> errorHist;
@@ -395,20 +395,62 @@ void writeStatistics (const string& filename, const valarray<float>& errors)
     }
 
     ofstream file( filename.c_str() );
-    file<<"minError="<<minError<<endl;
-    file<<"maxError="<<maxError<<endl;
-    file<<"avgError="<<avgError<<endl;
-    file<<"numValidPts="<<numValidPts<<endl;
+    file<<"minError= "<<minError<<endl;
+    file<<"maxError= "<<maxError<<endl;
+    file<<"avgError= "<<avgError<<endl;
+    file<<"numValidPts= "<<numValidPts<<endl;
 
-    file<<"hist_0="<<errorHist[0]<<endl;
-    file<<"hist_1="<<errorHist[1]<<endl;
-    file<<"hist_2="<<errorHist[2]<<endl;
-    file<<"hist_3="<<errorHist[3]<<endl;
-    file<<"hist_4="<<errorHist[4]<<endl;
+    file<<"hist_0= "<<errorHist[0]<<endl;
+    file<<"hist_1= "<<errorHist[1]<<endl;
+    file<<"hist_2= "<<errorHist[2]<<endl;
+    file<<"hist_3= "<<errorHist[3]<<endl;
+    file<<"hist_4= "<<errorHist[4]<<endl;
 
     file.close();
 }
 
+
+void ReadStatistics (const string& filename, vector<int>& hist, 
+                     float *minError, float *maxError, float *avgError, int *numValidPts)
+{
+  ifstream file;
+  file.open(filename.c_str());
+
+  int val;
+  string temp;
+  float l_avgError;
+  float l_minError;
+  float l_maxError;
+  int l_numValidPts;
+
+  if (file.is_open()) {
+    file >> temp;
+    file >> l_minError;
+    file >> temp;
+    file >> l_maxError;
+    file >> temp;
+    file >> l_avgError;
+    file >> temp;
+    file >> l_numValidPts;
+
+    hist.resize(5);
+    for (int i = 0; i< 5; i++){
+      file >> temp;
+      file >> val;
+      //cout<<"val="<<val<<endl;
+      //hist.push_back(val);
+      hist[i] = val;
+    }
+
+    *minError = l_minError;
+    *maxError = l_maxError;
+    *avgError = l_avgError;
+    *numValidPts = l_numValidPts;
+ 
+  }
+  file.close();
+    
+}
 // this should be moved to util
 void ReadFileList(string fileListFilename, vector<string> &fileArray)
 {
