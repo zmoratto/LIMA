@@ -300,7 +300,7 @@ int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
    }
 }
 
-void writeErrors( const string& filename, 
+void SaveDEMErrors( const string& filename, 
 		  const vector<Vector3>& locations, 
 		  const valarray<float>& errors,
 		  const vector<string>&  titles,
@@ -340,6 +340,73 @@ void writeErrors( const string& filename,
 }
 
 
+void SaveStatistics (const string& filename, const vector<float>& errors)
+{
+    
+    vector<float> errorHist;
+    errorHist.resize(5);
+    float minError = 10000000.0; 
+    float maxError = -10000000.0;
+    float avgError = 0.0;
+    int numValidPts = 0;
+
+    for ( unsigned int i = 0; i < errors.size(); i++ ){
+
+      if (errors[i]<0){
+	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
+      }
+      float stdv;
+
+      if (errors[i]>=0){
+     
+        numValidPts++;
+
+	float stdv = errors[i];
+	
+	if (stdv<=25){
+	  errorHist[0]++;
+	}
+	if ((stdv>25) && (stdv<=50)){
+	  errorHist[1]++;
+	}
+	if ((stdv>50) && (stdv<=75)){
+	  errorHist[2]++;
+	}
+	if ((stdv>75) && (stdv<=100)){
+	  errorHist[3]++;
+	}
+	if (stdv>100){
+	  errorHist[4]++;
+	}
+	avgError = avgError + stdv;
+	if (stdv> maxError){
+	  maxError = stdv; 
+	}  
+	if (stdv< minError){
+	  minError = stdv; 
+	}
+      }  
+
+    }
+
+    if (numValidPts){
+      avgError = avgError/numValidPts;
+    }
+
+    ofstream file( filename.c_str() );
+    file<<"minError= "<<minError<<endl;
+    file<<"maxError= "<<maxError<<endl;
+    file<<"avgError= "<<avgError<<endl;
+    file<<"numValidPts= "<<numValidPts<<endl;
+
+    file<<"hist_0= "<<errorHist[0]<<endl;
+    file<<"hist_1= "<<errorHist[1]<<endl;
+    file<<"hist_2= "<<errorHist[2]<<endl;
+    file<<"hist_3= "<<errorHist[3]<<endl;
+    file<<"hist_4= "<<errorHist[4]<<endl;
+
+    file.close();
+}
 
 void SaveStatistics (const string& filename, const valarray<float>& errors)
 {
@@ -437,8 +504,6 @@ void ReadStatistics (const string& filename, vector<int>& hist,
     for (int i = 0; i< 5; i++){
       file >> temp;
       file >> val;
-      //cout<<"val="<<val<<endl;
-      //hist.push_back(val);
       hist[i] = val;
     }
 

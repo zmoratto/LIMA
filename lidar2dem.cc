@@ -222,10 +222,11 @@ int main( int argc, char *argv[] )
       cout << "Using default nodata value: " << settings.noDataVal << endl;
     }
     
-    DiskImageView<PixelGray<float> > DEM(rsrc);
+    DiskImageView<PixelGray</*float*/int16> > DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
-   
+
+
     //select DEM points closest to LOLA tracks
     GetAllPtsFromDEM(trackPts, DEM, DEMGeo, settings.noDataVal);
     
@@ -235,6 +236,7 @@ int main( int argc, char *argv[] )
     vector<Vector3> llrModelArray;//LOLA
     vector<Vector3> xyzMatchArray;//DEM
     valarray<float> xyzErrorArray;//error array same size as model and feature
+    vector<float> radErrorArray; //altitude-radial error array
     
     currRotation[0][0] = 1.0;
     currRotation[1][1] = 1.0;
@@ -244,7 +246,7 @@ int main( int argc, char *argv[] )
     for(unsigned int k = 0; k < trackPts.size();k++){
       for(unsigned int i = 0; i < trackPts[k].size(); i=i+settings.samplingStep(0)){
 	
-	if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[2].valid == 1)){
+	if ((trackPts[k][i].valid == 1) && (trackPts[k][i].DEMPt[0].valid == 1)){
 	  Vector3 model;
 	
 	  model = trackPts[k][i].LOLAPt[2];
@@ -254,12 +256,15 @@ int main( int argc, char *argv[] )
               (model[0] < 360) && (model[0] > -180) && 
               (model[2] > 1720000) && (model[2] < 1750000)){//this should go into the LOLA reader 
 	    if (verbose > 1){ 
-	      cout<<"altitude="<<model[2]<<endl; 
+	      cout<<"altitude="<<model[2]<<", dem="<< trackPts[k][i].DEMPt[0].val<<endl; 
 	    }
-	    Vector3 modelxyz = lon_lat_radius_to_xyz(model);
-	    xyzModelArray.push_back(modelxyz);
-            //cout<<"model="<<model<<endl;
+
+	    Vector3 xyzModel = lon_lat_radius_to_xyz(model);
+	    xyzModelArray.push_back(xyzModel);
 	    llrModelArray.push_back(model);
+            float radError = fabs(model[2]-1000*trackPts[k][i].DEMPt[0].val);
+	    radErrorArray.push_back(radError);
+            
 	  }
 	}
       }
@@ -268,16 +273,19 @@ int main( int argc, char *argv[] )
     xyzMatchArray.resize(xyzModelArray.size());
     xyzErrorArray.resize(xyzModelArray.size());
     
+    //for (int index = 0; index< radErrorArray.size(); index++){
+    //  cout<<radErrorArray[index]<<endl;
+    //}
+    
     if( verbose > 0 ){
       cout << "Number of points to be compared: " << xyzModelArray.size() << endl;
     }
 
-    Vector3 modelCentroid;// = find_centroid( modelArray );
-    //cout<<"modelCentroid="<<modelCentroid<<endl;
+    Vector3 modelCentroid;
 
     if ((settings.maxNumIter == 0) && (settings.matchWindowHalfSize(0)==1) && (settings.matchWindowHalfSize(1)==1)){
       //run error calculations with no re-estimation
-      GetMatchesFromDEM(xyzModelArray, llrModelArray, DEM, DEMGeo, settings.noDataVal, xyzMatchArray, xyzErrorArray);
+      //GetMatchesFromDEM(xyzModelArray, llrModelArray, DEM, DEMGeo, settings.noDataVal, xyzMatchArray, xyzErrorArray);
     }
     else{
       //run ICP-matching
@@ -306,8 +314,8 @@ int main( int argc, char *argv[] )
       titles[1] = "Longitude";
       titles[2] = "Radius (m)";
       titles[3] = "Errors";  
-      writeErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
-      SaveStatistics (statsFilename, xyzErrorArray);
+      SaveDEMErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
+      SaveStatistics (statsFilename, /*xyzErrorArray*/radErrorArray);
     }
     
     if(( verbose >= 0 ) && (xyzModelArray.size() > 0)){ 

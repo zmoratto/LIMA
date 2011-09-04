@@ -241,7 +241,7 @@ void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
 void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 //this function does not belong here
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
-
+//Vector2 ComputeMinMaxValuesFromDEM(string demFilename);
 
 
 template <class ViewT>
@@ -328,7 +328,41 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
   vector<pointCloud> LOLAPts;
 
   float radius = DEMGeo.datum().semi_major_axis();
- 
+  
+  //determine the minmx value of the DEM - START
+  int width = DEM.impl().cols();
+  int height = DEM.impl().rows();
+  float minVal = 100000000.0;
+  float maxVal = -100000000.0;
+  for (int i = 0; i < height; i++){
+    for (int j = 0; j < width; j++){
+      
+      if ((DEM.impl()(j,i) < minVal) && (DEM.impl()(j,i) > noDEMVal)){
+	minVal = DEM.impl()(j,i);
+      }
+      if ((DEM.impl()(j,i) > maxVal) && (DEM.impl()(j,i) > noDEMVal)){
+	maxVal = DEM.impl()(j,i);
+      }
+    }
+  }
+
+  cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
+  //determine the minmx value of the DEM - END
+
+  ImageViewRef<int16> interpDEM;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDEM = pixel_cast<int16>(interpolate(edge_extend(DEM.impl(),
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
+
+    //cout << "NOT masked" <<endl;
+  } else {
+    interpDEM = pixel_cast<int16>(interpolate(edge_extend(apply_mask(DEM.impl()),
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+  /*
   ImageViewRef<float> interpDEM;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
@@ -342,8 +376,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
 					              BilinearInterpolation()) );
     //cout << "MASKED" <<endl;
   }
-
-
+  */
   for(unsigned int ti = 0; ti < trackPts.size(); ti++){
     for(unsigned int si = 0; si < trackPts[ti].size(); si++){
    
@@ -367,11 +400,11 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
       
           trackPts[ti][si].DEMPt[li].valid = 0; 
           if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	    if (interpDEM(x,y)!=noDEMVal){
+	    if ((interpDEM(x,y)/*!=*/>minVal) && (interpDEM(x,y)<maxVal)){
 	      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
 	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
 	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
-              trackPts[ti][si].DEMPt[li].valid=1; 
+              trackPts[ti][si].DEMPt[li].valid = 1; 
 	    }
 	  }
 	}

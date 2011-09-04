@@ -75,13 +75,15 @@ inline Vector3 find_centroid( const vector<Vector3>& points )
 
 // Writes out the locations and errors to a file
 void
-writeErrors( const string&          filename, 
+SaveDEMErrors( const string&          filename, 
              const vector<Vector3>& locations, 
              const valarray<float>& errors,
              const vector<string>&  titles= vector<string>(),
              const string&          separator = ",",
              const string&          commentor = "#" );
+void SaveStatistics (const string& filename, const vector<float>& errors);
 void SaveStatistics (const string& filename, const valarray<float>& errors);
+
 void ReadStatistics (const string& filename, vector<int>& hist, 
                      float *minError, float *maxError, float *avgError, int *numValidPts);
 #endif

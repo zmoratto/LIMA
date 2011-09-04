@@ -203,17 +203,17 @@ GetMatchesFromDEM(const vector<Vector3>&	xyzModelArray,
 		  valarray<float>&	        xyzErrorArray)
 {
 
-  ImageViewRef<float> interpDEM;
+  ImageViewRef<int16> interpDEM;
 
   if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
+    interpDEM = pixel_cast<int16>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
 					      BilinearInterpolation()) );    
-    //cout << "NOT masked" <<endl;
+    cout << "NOT masked" <<endl;
   }
   else{
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
+    interpDEM = pixel_cast<int16>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
 					      BilinearInterpolation()) );
-    //cout << "MASKED" <<endl;
+    cout << "MASKED" <<endl;
   }
   
   cout<<"GetMatchesFromDEM: numLOLAPoints="<<llrModelArray.size()<<endl;
@@ -227,40 +227,41 @@ GetMatchesFromDEM(const vector<Vector3>&	xyzModelArray,
    //cout<<"test1"<<endl;
     
     const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
-    
+    //cout<<DEM_pix<<", width="<<interpDEM.cols()<<", height="<<interpDEM.rows()<<endl;
+
     //set the default values
     xyzMatchArray[index] = Vector3(0,0,0);
     xyzErrorArray[index] = -1;
     
-    int l = DEM_pix.x(); 
-    int k = DEM_pix.y(); 
+    float l = DEM_pix.x(); 
+    float k = DEM_pix.y(); 
+    //cout<<"l="<<l<<", k="<<k<<endl;
 
     if ((l>=0) && (k>=0) && (l<interpDEM.cols()) && (k<interpDEM.rows())){
-      if (interpDEM(l,k) != noDEMVal){
-	
+      //if (interpDEM(l,k) != noDEMVal){
+      if ((interpDEM(l,k) < 4000) && (interpDEM(l,k) > -4000)){
+	/*
 	//compute the distance to the lidar point
 	//const Vector2 pix(l,k);
 	const Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
-	//cout<<"test3.1"<<endl;
+
 	//revert to lon lat rad system
         
 	Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
-	
+	*/
+        Vector3 lonlatrad (llrModelArray[index](0), llrModelArray[index](1), interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
+
 	//transform into xyz coordinates of the foregound image.
 	Vector3 dem_xyz = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
        
-	//cout<<"test3.2"<<endl;
-	
 	Vector3 distance_vector = dem_xyz - xyzModelArray[index];
 	
 	float distance = norm_2( distance_vector );
 	
-	//cout<<"test3.3"<<endl;
-	
 	xyzMatchArray[index] = dem_xyz;
 	xyzErrorArray[index] = distance;
 	
-	//cout<<"GetMatchesFromDEM: error="<<xyzErrorArray[index]<<endl;
+	//cout<<"GetMatchesFromDEM: lidar="<<llrModelArray[index][2]<<", dem="<<1737400+interpDEM(l,k)<<", error="<<radErrorArray[index]<<endl;
 	
       }
     }

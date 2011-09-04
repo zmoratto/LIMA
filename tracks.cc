@@ -267,7 +267,36 @@ Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
 
   return minmax;
 }
+/*
+Vector2 ComputeMinMaxValuesFromDEM(string demFilename)
+{
+  Vector2 minmax;
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(demFilename) );
+  double nodataVal = rsrc->nodata_read();
+  //cout<<"nodaval:"<<nodataVal<<endl;
+  DiskImageView<PixelGray<uint16> > dem( rsrc );
+  int width = dem.cols();
+  int height = dem.rows();
+  float minVal = 100000000.0;
+  float maxVal = -100000000.0;
+  for (int i = 0; i < height; i++){
+    for (int j = 0; j < width; j++){
+      
+      if ((dem(j,i) < minVal) && (dem(j,i) > nodataVal)){
+	minVal = dem(j,i);
+      }
+      if ((dem(j,i) > maxVal) && (dem(j,i) > nodataVal)){
+	maxVal = dem(j,i);
+      }
+    }
+  }
+  minmax(0) = minVal;
+  minmax(1) = maxVal;
+  cout<<"min="<<minVal<<", max="<<maxVal<<endl;
 
+  return minmax;
+}
+*/
 int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
 {
 
