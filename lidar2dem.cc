@@ -222,7 +222,8 @@ int main( int argc, char *argv[] )
       cout << "Using default nodata value: " << settings.noDataVal << endl;
     }
     
-    DiskImageView<PixelGray</*float*/int16> > DEM(rsrc);
+    //DiskImageView<PixelGray</*float*/int16> > DEM(rsrc);
+    DiskImageView<float> DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
 

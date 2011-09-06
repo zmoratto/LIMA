@@ -349,20 +349,6 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
   cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
   //determine the minmx value of the DEM - END
 
-  ImageViewRef<int16> interpDEM;
-  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
-    interpDEM = pixel_cast<int16>(interpolate(edge_extend(DEM.impl(),
-							      ConstantEdgeExtension()),
-					              BilinearInterpolation()) );
-
-    //cout << "NOT masked" <<endl;
-  } else {
-    interpDEM = pixel_cast<int16>(interpolate(edge_extend(apply_mask(DEM.impl()),
-							      ConstantEdgeExtension()),
-					              BilinearInterpolation()) );
-    //cout << "MASKED" <<endl;
-  }
-  /*
   ImageViewRef<float> interpDEM;
   if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
@@ -376,7 +362,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
 					              BilinearInterpolation()) );
     //cout << "MASKED" <<endl;
   }
-  */
+
   for(unsigned int ti = 0; ti < trackPts.size(); ti++){
     for(unsigned int si = 0; si < trackPts[ti].size(); si++){
    
@@ -400,7 +386,7 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
       
           trackPts[ti][si].DEMPt[li].valid = 0; 
           if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	    if ((interpDEM(x,y)/*!=*/>minVal) && (interpDEM(x,y)<maxVal)){
+	    if ((interpDEM(x,y) > minVal) && (interpDEM(x,y) < maxVal)){
 	      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
 	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
 	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];

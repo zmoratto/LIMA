@@ -108,7 +108,7 @@ int main( int argc, char *argv[] )
 
   vector<int> overallHist;
   overallHist.resize(5);
-  float overallAvgError;
+  float overallAvgError = 0;
   int overallNumValidPts = 0;
   float overallMinError = 100000000.0;
   float overallMaxError = -100000000.0;
@@ -157,3 +157,5 @@ int main( int argc, char *argv[] )
 
   return 0;
 }
+
+
