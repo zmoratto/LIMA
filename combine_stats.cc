@@ -106,8 +106,9 @@ int main( int argc, char *argv[] )
   int numStatsFiles = statsFiles.size();
   cout<<"numStatsFiles="<<numStatsFiles<<endl;
 
+  int numBins;
   vector<int> overallHist;
-  overallHist.resize(5);
+  
   float overallAvgError = 0;
   int overallNumValidPts = 0;
   float overallMinError = 100000000.0;
@@ -122,19 +123,15 @@ int main( int argc, char *argv[] )
     vector<int> hist;
     ReadStatistics (statsFiles[i], hist, &minError, &maxError, 
                                    &avgError, &numValidPts);
-    /*
-    for(int j = 0; j < 4; j++){
-       cout<<hist[j]<<endl;
-    }
-    cout<<"minError="<<minError<<endl;
-    cout<<"maxError="<<maxError<<endl;
-    cout<<"avgError="<<avgError<<endl;
-    cout<<"numValidPts="<<numValidPts<<endl;
-    */
+  
 
+    if (i==0){
+      numBins = hist.size();
+      overallHist.resize(numBins);
+    }
     overallAvgError = overallAvgError + avgError*numValidPts;
     overallNumValidPts = overallNumValidPts + numValidPts;
-    for (int j = 0; j < 5; j++){
+    for (int j = 0; j < numBins; j++){
       overallHist[j] = overallHist[j]+hist[j];
     }
     if (minError<overallMinError){
@@ -151,7 +148,7 @@ int main( int argc, char *argv[] )
   cout<<"overallMinError="<<overallMinError<<endl;
   cout<<"overallMaxError="<<overallMaxError<<endl;
   cout<<"overallNumValidPts="<<overallNumValidPts<<endl;
-  for (int i = 0; i < 5; i++){
+  for (int i = 0; i < numBins; i++){
     cout<<"overallHist["<<i<<"]="<<overallHist[i]<<endl;
   }
 

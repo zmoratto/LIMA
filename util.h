@@ -81,8 +81,8 @@ SaveDEMErrors( const string&          filename,
              const vector<string>&  titles= vector<string>(),
              const string&          separator = ",",
              const string&          commentor = "#" );
-void SaveStatistics (const string& filename, const vector<float>& errors);
-void SaveStatistics (const string& filename, const valarray<float>& errors);
+void SaveStatistics (const string& filename, const vector<float>& errors, const vector<float> &histBins);
+void SaveStatistics (const string& filename, const valarray<float>& errors, const vector<float> &histBins);
 
 void ReadStatistics (const string& filename, vector<int>& hist, 
                      float *minError, float *maxError, float *avgError, int *numValidPts);

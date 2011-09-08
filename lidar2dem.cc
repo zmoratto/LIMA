@@ -222,7 +222,7 @@ int main( int argc, char *argv[] )
       cout << "Using default nodata value: " << settings.noDataVal << endl;
     }
     
-    //DiskImageView<PixelGray</*float*/int16> > DEM(rsrc);
+
     DiskImageView<float> DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
@@ -274,10 +274,7 @@ int main( int argc, char *argv[] )
     xyzMatchArray.resize(xyzModelArray.size());
     xyzErrorArray.resize(xyzModelArray.size());
     
-    //for (int index = 0; index< radErrorArray.size(); index++){
-    //  cout<<radErrorArray[index]<<endl;
-    //}
-    
+   
     if( verbose > 0 ){
       cout << "Number of points to be compared: " << xyzModelArray.size() << endl;
     }
@@ -316,7 +313,28 @@ int main( int argc, char *argv[] )
       titles[2] = "Radius (m)";
       titles[3] = "Errors";  
       SaveDEMErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
-      SaveStatistics (statsFilename, /*xyzErrorArray*/radErrorArray);
+      
+
+      vector<float> histBins;
+      int numBins = 15;
+      histBins.resize(numBins);
+      histBins[0] = 0;
+      histBins[1] = 25;
+      histBins[2] = 50; 
+      histBins[3] = 75;
+      histBins[4] = 100;
+      histBins[5] = 125;
+      histBins[6] = 150; 
+      histBins[7] = 175;
+      histBins[8] = 200;
+      histBins[9] = 225;
+      histBins[10] = 250; 
+      histBins[11] = 1000;
+      histBins[12] = 2500;
+      histBins[13] = 5000;
+      histBins[14] = 10000; 
+    
+      SaveStatistics (statsFilename, /*xyzErrorArray*/radErrorArray, histBins);
     }
     
     if(( verbose >= 0 ) && (xyzModelArray.size() > 0)){ 
