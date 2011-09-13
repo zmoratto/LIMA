@@ -43,13 +43,18 @@ int main( int argc, char *argv[] )
  std::string configFilename;
  std::string errorFilename;
  std::vector<std::string> inputDEMFiles;
+ std::string precDEMDir="NO_DIR";
  std::string resDir;
- std:: string auxDir;
+ std::string auxDir;
 
  po::options_description general_options("Options");
  general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("inputDEMFiles,d", po::value<std::vector<std::string> >(&inputDEMFiles))
+    ("DEM-precision-directory,p", 
+     //po::value<std::string>(&precDEMDir)->default_value("../prec"), 
+     po::value<std::string>(&precDEMDir), 
+		"DEM precision directory.") 
     ("results-directory,r", 
 		po::value<std::string>(&resDir)->default_value("../results"), 
 		"results directory.") // Currently a no-op until we implement it below.
@@ -204,7 +209,7 @@ int main( int argc, char *argv[] )
   for (int index = 0; index < numOverlappingDEMs; index++){
     
     string inputDEMFilename = DEMFiles[overlapIndices[index]];
-    
+
     if (verbose > 0 ){ 
       cout <<"DEM filename: " << inputDEMFilename << endl; 
     }
@@ -222,22 +227,36 @@ int main( int argc, char *argv[] )
       cout << "Using default nodata value: " << settings.noDataVal << endl;
     }
     
-
     DiskImageView<float> DEM(rsrc);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
 
 
-    //select DEM points closest to LOLA tracks
-    GetAllPtsFromDEM(trackPts, DEM, DEMGeo, settings.noDataVal);
-    
+   
+    if (precDEMDir.compare(string("NO_DIR"))!=0){
+        //select DEM points with high precision closest to LOLA tracks
+	string inputPrecFilename = GetFilenameNoPath(inputDEMFilename);
+	FindAndReplace(inputPrecFilename, string("dem"), string("Prec"));
+	inputPrecFilename = precDEMDir + string("/") + inputPrecFilename;
+	cout<<"DEMFilename="<<inputDEMFilename<<endl;
+	cout<<"PrecFilename="<<inputPrecFilename<<endl;
+        boost::shared_ptr<DiskImageResource> prec_rsrc( new DiskImageResourceGDAL(inputPrecFilename) );
+        DiskImageView<float> DEM_Prec(prec_rsrc);
+	//select DEM points closest to LOLA tracks
+	GetAllPtsFromDEM_Prec(trackPts, DEM, DEMGeo, settings.noDataVal, DEM_Prec);
+    }  
+    else{
+      //select DEM points closest to LOLA tracks
+      GetAllPtsFromDEM(trackPts, DEM, DEMGeo, settings.noDataVal);
+    }
+
     Vector3 currTranslation;
     Matrix<float, 3,3 > currRotation;
     vector<Vector3> xyzModelArray;//LOLA
     vector<Vector3> llrModelArray;//LOLA
     vector<Vector3> xyzMatchArray;//DEM
     valarray<float> xyzErrorArray;//error array same size as model and feature
-    vector<float> radErrorArray; //altitude-radial error array
+    vector<float>   radErrorArray; //altitude-radial error array
     
     currRotation[0][0] = 1.0;
     currRotation[1][1] = 1.0;
@@ -313,8 +332,7 @@ int main( int argc, char *argv[] )
       titles[2] = "Radius (m)";
       titles[3] = "Errors";  
       SaveDEMErrors( errorFilename, llrModelArray, xyzErrorArray, titles );
-      
-
+       
       vector<float> histBins;
       int numBins = 15;
       histBins.resize(numBins);
@@ -413,3 +431,4 @@ int main( int argc, char *argv[] )
   
   return 0;
 }
+

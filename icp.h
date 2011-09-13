@@ -96,8 +96,8 @@ GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
      for (int i = 0; i < foreImg.impl().cols(); i=i+horStep){
 
        //determine the location of the corresponding background point for each valid fore point
-       if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != -noDataVal/*0*/)  { 
-
+       //if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != -noDataVal)  { 
+       if ((isnan(foreImg.impl()(i,j))!=FP_NAN) && (foreImg.impl()(i,j)) != -noDataVal)  {
 	 Vector2 forePix(i,j);
 	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
          fore_lonlat(0)=fore_lonlat(0)+delta_lonlat(0);
@@ -397,7 +397,8 @@ ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,
 	    cout<<"T[0]="<<translation[0]<<" T[1]="<<translation[1]<<" T[2]="<<translation[2]<<endl;
              
 	    cout<<"computing DEM rotation ..."<<endl;
-	    rotation = ComputeDEMRotation(featureArray, matchArray);
+	    //rotation = ComputeDEMRotation(featureArray, matchArray);
+	    rotation = ComputeDEMRotation(matchArray, featureArray, /*matchCenter, featureCenter*/center, center);
 	    PrintMatrix(rotation);
 
 	    //apply the computed rotation and translation to the featureArray  

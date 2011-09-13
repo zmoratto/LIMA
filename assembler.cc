@@ -11,6 +11,11 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+//boost
+#include <boost/operators.hpp>
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -144,14 +149,12 @@ int main( int argc, char *argv[] ) {
  
   
   struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) )
-	{
-	std::cerr << "Config file " << configFilename << " found." << endl;
-	}
-  else
-	{
-	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
-	}
+  if( ReadConfigFile(configFilename, &settings) ){
+     std::cerr << "Config file " << configFilename << " found." << endl;
+  }
+  else{
+    std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+  }
   //PrintGlobalParams(&settings);
   std::cerr << settings << endl;
   
@@ -171,47 +174,59 @@ int main( int argc, char *argv[] ) {
     string backDEMFilename = backFile;
     string foreDEMFilename = foreFile;
     string assembledDEMFilename = resDir+"/assembled_dem.tif";
-  
+   
     //large image low res - background
     cout<<"opening"<<backDEMFilename<<"..."<<endl; 
-    DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
+    //DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
+    DiskImageView<float>   backDEM(backDEMFilename);
     GeoReference backDEMGeo;
     read_georeference(backDEMGeo, backDEMFilename);
     float back_radius = backDEMGeo.datum().semi_major_axis();
     cout<<"back_radius="<<back_radius<<endl;
     cout<<"done"<<endl;
-   
+    
     //small image high res - foreground
     cout<<"opening"<<foreDEMFilename<<"..."<<endl;  
-    DiskImageView<PixelGray<float> >  foreDEM(foreDEMFilename);
+    //DiskImageView<PixelGray<float> >  foreDEM(foreDEMFilename);
+    DiskImageView<float>  foreDEM(foreDEMFilename);
+    cout<<"done."<<endl;
+    cout<<"opening georeference for "<<foreDEMFilename<<"..."<<endl;  
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
+    cout<<"done"<<endl;
     float fore_radius = foreDEMGeo.datum().semi_major_axis();
     cout<<"fore_radius="<<fore_radius<<endl;
     cout<<"done"<<endl;
    
+    
     float minMatchError = 100000000.0;
-
+    
     if (settings.matchingMode != 0){
        
        Vector2 delta_lonlat; 
        
-       for (int k = -2; k < 3; k++){
+       int numVerRestarts = sqrt(settings.maxNumStarts); 
+       int numHorRestarts = sqrt(settings.maxNumStarts);
+      
+       for (int k = -(numVerRestarts-1)/2; k < (numVerRestarts+1)/2; k++){
 	   delta_lonlat(0) = k*0.001; 
-	   for (int l = -2; l < 3; l++){
+	   for (int l = -(numHorRestarts-1)/2; l < (numHorRestarts+1)/2; l++){
 	       delta_lonlat(1) = l*0.001;
-	       printf("feature extraction ...\n");
-	    
+               cout<<"k ="<<k<<", l="<<l<<endl; 
+	       cout<<"Feature extraction ..."<<endl;
 	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, 
                                                           settings.samplingStep, delta_lonlat, settings.noDataVal);
-	       vector<float> errorArray;
+	       cout<<"done."<<endl;
+               vector<float> errorArray;
 	       errorArray.resize(featureArray.size());
                
                Vector3 currTranslation;
                Matrix<float, 3,3 > currRotation;
-	       ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
+	       cout<<"running ICP"<<endl;
+               ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
 		             currTranslation, currRotation, center, errorArray);
-
+               cout<<"done."<<endl;
+                
 	       float matchError = 0;
 	       for (int m = 0; m < errorArray.size(); m++){
 		 matchError = matchError+errorArray[m];
@@ -232,14 +247,18 @@ int main( int argc, char *argv[] ) {
        //bestDeltaLonLat(0) = 0.002;
        //bestDeltaLonLat(1) = 0.002;
     }
-
+    
     cout<<"minMatchError "<<minMatchError<<endl;
     cout<<"final Rotation matrix "<<rotation<<endl;
     cout<<"final translation vector "<<translation<<endl;
     cout<<"bestDeltaLonLat="<<bestDeltaLonLat<<endl;
 
-    ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
-                          0, translation, rotation, center, bestDeltaLonLat);
+    //ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+    //                      0, translation, rotation, center, bestDeltaLonLat);
+
+    ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+                        translation, rotation, center, bestDeltaLonLat);    
+    }
 
     if (mode.compare("DEM_DRG")==0){
       string backDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
@@ -262,7 +281,6 @@ int main( int argc, char *argv[] ) {
 			    1, translation, rotation, center, bestDeltaLonLat);
     }
 
-  }
  
   //DRG assembler
   if (mode.compare("DRG")==0){
@@ -287,6 +305,8 @@ int main( int argc, char *argv[] ) {
                           1, translation, rotation, center, bestDeltaLonLat);
   
    }
+  
+   
 }
 
 

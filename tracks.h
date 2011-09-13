@@ -399,6 +399,93 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
   }//k
 }
 
+//determines LOLA corresponding points in a DEM
+template <class ViewT>
+void 
+GetAllPtsFromDEM_Prec(vector<vector<LOLAShot> >&  trackPts,
+		      const ImageViewBase<ViewT>& DEM,
+		      const GeoReference&         DEMGeo,
+		      const double                noDEMVal,
+		      const ImageViewBase<ViewT>& DEM_Prec)
+{
+  vector<pointCloud> LOLAPts;
+
+  float radius = DEMGeo.datum().semi_major_axis();
+  
+  //determine the minmx value of the DEM - START
+  int width = DEM.impl().cols();
+  int height = DEM.impl().rows();
+  float minVal = 100000000.0;
+  float maxVal = -100000000.0;
+  for (int i = 0; i < height; i++){
+    for (int j = 0; j < width; j++){
+      
+      if ((DEM.impl()(j,i) < minVal) && (DEM.impl()(j,i) > noDEMVal)){
+	minVal = DEM.impl()(j,i);
+      }
+      if ((DEM.impl()(j,i) > maxVal) && (DEM.impl()(j,i) > noDEMVal)){
+	maxVal = DEM.impl()(j,i);
+      }
+    }
+  }
+
+  cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
+  //determine the minmx value of the DEM - END
+
+  ImageViewRef<float> interpDEM;
+  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
+
+    //cout << "NOT masked" <<endl;
+  } else {
+    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
+
+  ImageViewRef<float> interpDEM_Prec;
+  interpDEM_Prec = pixel_cast<float>(interpolate(edge_extend(DEM_Prec.impl(),
+							      ConstantEdgeExtension()),
+					              BilinearInterpolation()) );
+
+  for(unsigned int ti = 0; ti < trackPts.size(); ti++){
+    for(unsigned int si = 0; si < trackPts[ti].size(); si++){
+   
+      LOLAPts = trackPts[ti][si].LOLAPt;
+  
+      trackPts[ti][si].valid = 0;
+      if (LOLAPts.size() > 0){ 
+        trackPts[ti][si].valid = 1;
+	trackPts[ti][si].DEMPt.resize(LOLAPts.size());
+	
+	for (unsigned int li = 0; li < LOLAPts.size(); li++){
+	  float lon = LOLAPts[li].x();
+	  float lat = LOLAPts[li].y();
+	  // float rad = LOLAPts[li].coords[2];
+	  
+	  Vector2 DEM_lonlat(lon, lat);
+	  Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
+	  
+	  float x = DEM_pix[0];
+	  float y = DEM_pix[1];
+      
+          trackPts[ti][si].DEMPt[li].valid = 0; 
+          if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
+	    if ((interpDEM(x,y) > minVal) && (interpDEM(x,y) < maxVal) && (interpDEM_Prec(x,y) < 50)){
+	      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
+	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
+	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
+              trackPts[ti][si].DEMPt[li].valid = 1; 
+	    }
+	  }
+	}
+      } 
+    }//i  
+  }//k
+}
 
 #endif /* TRACKS_H */
 
