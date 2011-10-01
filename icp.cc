@@ -73,18 +73,36 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
 
 //compute the matching error vector in the form of a standard deviation 
 valarray<float> 
-ComputeMatchingError(const vector<Vector3>& featureArray, 
+ComputeMatchingError(const vector<Vector3>& modelArray, 
 		     const vector<Vector3>& matchArray)
 {
-  valarray<float> errorArray( featureArray.size() );
-  for (unsigned int i = 0; i < featureArray.size(); i++){
+  valarray<float> errorArray( modelArray.size() );
+  for (unsigned int i = 0; i < modelArray.size(); i++){
     float overallDist=0.0;
     float dist=0.0;
     for (int j = 0; j < 3; j++){
-      dist = featureArray[i](j) - matchArray[i](j);
+      dist = modelArray[i](j) - matchArray[i](j);
       overallDist += dist*dist; 
     }
     errorArray[i]=sqrt(overallDist);
+  }
+  return errorArray;
+}
+
+//compute the matching error vector in the form of individual errors 
+//given in absolute value 
+vector<Vector3> 
+ComputeMatchingError3D(const vector<Vector3>& modelArray, 
+                       const vector<Vector3>& matchArray)
+{
+  vector<Vector3> errorArray( modelArray.size() );
+  for (unsigned int i = 0; i < modelArray.size(); i++){
+    //float overallDist=0.0;
+    float dist=0.0;
+    for (int j = 0; j < 3; j++){
+      dist = modelArray[i](j) - matchArray[i](j);
+      errorArray[i][j]=fabs(dist);
+    }
   }
   return errorArray;
 }

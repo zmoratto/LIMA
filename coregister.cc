@@ -24,7 +24,6 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
 
 using namespace std;
 
@@ -107,7 +106,7 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
 }
 
 
-
+/*
 void PrintModelParams(struct ModelParams *params)
 {
   cout<<"LIGHT_POS[0]"<<params->sunPosition[0]<<endl;
@@ -118,7 +117,7 @@ void PrintModelParams(struct ModelParams *params)
   cout<<"VIEWER_POS[1]"<<params->spacecraftPosition[1]<<endl;
   cout<<"VIEWER_POS[2]"<<params->spacecraftPosition[2]<<endl;
 }
-
+*/
 
 void SaveVectorToFile(vector<float> v, string filename)
 {

@@ -41,6 +41,7 @@ void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplac
       uPos += uReplaceLen;
     }
   }
+  cout<<"uPos="<<uPos<<endl;
 
 }
 
@@ -535,4 +536,31 @@ void ReadFileList(string fileListFilename, vector<string> &fileArray)
   }
   file.close();
 
+}
+
+vector<string> AccessDataFilesFromInput(vector<string> &inputFiles)
+{
+  int numInputFiles = inputFiles.size();
+  vector<string> files;
+  
+  if( numInputFiles == 1) {
+     string inputFileExtension = GetFilenameExt(inputFiles[0]);
+     cout<<inputFileExtension<<endl;
+     if (inputFileExtension.compare(string("txt")) ==0){
+        ReadFileList(inputFiles[0], files);
+     }
+     else{
+       files.resize(1);
+       files[0] = inputFiles[0]; 
+     }
+     
+  }
+  if  ( numInputFiles > 1) {
+       files.resize(numInputFiles);
+       for (int i = 0; i < numInputFiles; i++){
+	 files[i] = inputFiles[i]; 
+         cout<<files[i]<<endl;
+       }
+  }
+  return files;
 }

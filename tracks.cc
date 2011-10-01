@@ -443,7 +443,58 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   return scaleFactor;
 }
 
-//computes the scale factor for all tracks at once
+
+//computes the gain and bias factor for each track
+Vector2 ComputeGainBiasFactor(vector<LOLAShot > &trackPts)
+{
+  int numValidPts = 0;
+  float sum_rfl = 0.0; 
+  float sum_img = 0.0;
+  float sum_rfl_2 = 0.0;
+  float sum_rfl_img = 0.0;
+  Matrix<float,2,2> rhs;
+  Vector<float,2> lhs;
+  Vector2 gain_bias;
+
+  for (unsigned int i = 0; i < trackPts.size(); i++){
+    if ((trackPts[i].valid == 1) && (trackPts[i].reflectance != 0) &&(trackPts[i].reflectance != -1)){//valid track and non-zero reflectance
+      
+      //update the nominator for the center point
+      
+      for (unsigned int j = 0; j < trackPts[i].LOLAPt.size(); j++){
+	if (trackPts[i].LOLAPt[j].s == 1){
+	  sum_rfl = sum_rfl + trackPts[i].reflectance;
+	  sum_rfl_2 = sum_rfl_2 + trackPts[i].reflectance*trackPts[i].reflectance;
+	  sum_rfl_img = sum_rfl_img + trackPts[i].reflectance*(trackPts[i].imgPt[j].val);
+	  sum_img = sum_img + (trackPts[i].imgPt[j].val);
+	  numValidPts++;
+	}
+      }
+    }
+  }
+
+  //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
+  //if (numValidPts != 0){
+  if (numValidPts > 20){ 
+    rhs(0,0) = sum_rfl_2;
+    rhs(0,1) = sum_rfl;
+    rhs(1,0) = sum_rfl;
+    rhs(1,1) = numValidPts;
+    lhs(0) = sum_rfl_img;
+    lhs(1) = sum_img;
+    solve_symmetric_nocopy(rhs,lhs);
+    gain_bias = lhs;
+    cout<<"gain and bias"<<lhs<<endl;
+  }
+  else{
+    //invalid scaleFactor, all tracks are invalid
+    gain_bias(0) = 0.0;
+    gain_bias(1) = 0.0;
+  }
+  return gain_bias;
+}
+
+//computes the gain and bias factor for all tracks at once
 Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts)
 {
   int numValidPts = 0;
@@ -660,19 +711,21 @@ int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks,  Vector3 cam
   return numValidReflPts;
 }
 
+#if 0
 int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
 {
 
   vector<pointCloud> LOLAPts;
   int numValidReflPts = 0;
 
+  
   GlobalParams globalParams;
   globalParams.reflectanceType = coregistrationParams.reflectanceType;
   globalParams.slopeType = 1;
   globalParams.shadowThresh = 40;
   globalParams.albedoInitType = 1;
   globalParams.exposureInitType = 1;
-
+  
   float minReflectance =  10000.0;
   float maxReflectance = -10000.0;
  
@@ -725,6 +778,7 @@ int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
 
   return numValidReflPts;
 }
+#endif
 
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
 {
@@ -789,7 +843,7 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, str
 {    
   for (unsigned int k = 0; k < trackPts.size(); k++){
     vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
-    string prefixTrackFilename =  prefix_from_filename(filename);  
+    string prefixTrackFilename =  GetFilenameNoExt(filename);//prefix_from_filename(filename);  
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
     SaveVectorToFile(demPts, string(trackFilename));     
@@ -806,7 +860,7 @@ void SaveReflectancePoints(vector< vector<LOLAShot> >  &trackPts, Vector2 gain_b
  
   for (unsigned int k = 0; k < trackPts.size(); k++ ){
 
-    string prefixTrackFilename =  prefix_from_filename(filename);  
+    string prefixTrackFilename =  GetFilenameNoExt(filename);//prefix_from_filename(filename);  
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
     fp = fopen(trackFilename, "w");
@@ -836,7 +890,7 @@ void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, stri
 
   for (unsigned int k = 0; k < allTracks.size(); k++ ){
 
-    string prefixTrackFilename = prefix_from_filename(filename); 
+    string prefixTrackFilename = GetFilenameNoExt(filename);//prefix_from_filename(filename); 
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
     fp = fopen(trackFilename, "w");
@@ -871,7 +925,7 @@ void SaveAltitudePoints(vector< vector<LOLAShot> >  &tracks, int detectNum, stri
 
   for (unsigned int t = 0; t < tracks.size(); t++ ){
 
-    string prefixTrackFilename = prefix_from_filename(filename); 
+    string prefixTrackFilename = GetFilenameNoExt(filename);//prefix_from_filename(filename); 
     char* trackFilename = new char[500];
     sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), t);
     fp = fopen(trackFilename, "w");

@@ -154,6 +154,10 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 }
 */
 
+//determines the matches between lidar tracks (trackPts) and images (cubFilename) around the lidar feature points.
+//matchWindowHalfSize is half the size of the search window in image domain (pixels).
+//numSamples is the number of LOLA points considered in matching (one point is unreliable due to image noise, 
+//all points will violate the orthoprojection assumption).
 vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, 
                               Vector2 matchWindowHalfSize, int numSamples, vector<float> &errorArray)
 {
@@ -163,16 +167,18 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
     double noDataValue = rsrc->nodata_read();
 
-    DiskImageView<PixelGray<float> > img( rsrc );
+    //DiskImageView<PixelGray<float> > img( rsrc );
+    DiskImageView<float>  img( rsrc );
     int width = img.cols();
     int height = img.rows();
 
-    Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+    //Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
     
     int matchWindowHalfWidth = matchWindowHalfSize(0);
     int matchWindowHalfHeight = matchWindowHalfSize(1);
 
     for (int ti = 0; ti < trackPts.size(); ti++){//for each track
+      Vector2 gain_bias = ComputeGainBiasFactor(trackPts[ti]);
       for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
 	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){
           //valid track, reflectance and featurePt
@@ -204,9 +210,9 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 		int y = (int)floor(trackPts[ti][i].imgPt[0].y); 
 		 
 		if ((x+l > 0) && (y+k > 0) && (x+l < width) && (y+k < height)){
-		  if (img(x+l,y+k)!=noDataValue){
+		  if ((img(x+l,y+k)!=noDataValue) && (gain_bias(0)!= 0) && (gain_bias(1)!=0)){
 		
-		    dist = fabs(img(l,k) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance);
+		    dist = dist + fabs(img(x+l,y+k) - gain_bias(1) - gain_bias(0)*trackPts[ti][i].reflectance);
 		    //dist = dist + fabs(img(x+l,y+k) - trackPts[ti][i].reflectance);
                     numValidSamples++;
 		  }
@@ -214,19 +220,21 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 
 	      }//i
 
+              //at least half the samples are valid
               if (numValidSamples > numSamples/2){ 
                  dist = dist/numValidSamples;
 		 if (dist < minDist){
 		   minDist = dist;
 		   bestMatch(0) = l;
 		   bestMatch(1) = k;
-		   //cout<<"minDist="<<minDist<<", l="<<l<<", k="<<k<<endl;   
+		   //cout<<"minDist="<<minDist<<", l="<<l<<", k="<<k<<endl;
 		 }      
               }
 
+
 	    }//k	
 	  }//l
-          
+	    
           Vector4 feature_match;
 	  feature_match(0) = trackPts[ti][si].imgPt[0].x;
 	  feature_match(1) = trackPts[ti][si].imgPt[0].y;
@@ -235,17 +243,7 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	  matchArray.push_back(feature_match);
           errorArray.push_back(minDist);
           
-          /*
-	  for (int i = firstSample; i< lastSample; i++){
-	    Vector4 feature_match;
-	    feature_match(0) = trackPts[ti][i].imgPt[0].x;
-	    feature_match(1) = trackPts[ti][i].imgPt[0].y;
-	    feature_match(2) = feature_match(0) + bestMatch(0);
-	    feature_match(3) = feature_match(1) + bestMatch(1);
-	    matchArray.push_back(feature_match);
-            errorArray.push_back(minDist);
-	  }
-	  */
+        
 
 	}
       }
@@ -952,8 +950,8 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   //std::string temp = sufix_from_filename(cubFilename);
   std::string temp = GetFilenameNoPath(cubFilename);
 
-  std::string xDerivFilename = "../aux/" + prefix_less3_from_filename(temp) + "_x_deriv.tif";
-  std::string yDerivFilename = "../aux/" + prefix_less3_from_filename(temp) + "_y_deriv.tif";
+  std::string xDerivFilename = "../aux/" + /*prefix_less3_from_filename(temp)*/GetFilenameNoExt(temp) + "_x_deriv.tif";
+  std::string yDerivFilename = "../aux/" + /*prefix_less3_from_filename(temp)*/GetFilenameNoExt(temp) + "_y_deriv.tif";
 
   cout<<xDerivFilename<<endl;
   cout<<yDerivFilename<<endl;

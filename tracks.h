@@ -18,13 +18,11 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Photometry.h>
 #include <vw/Math.h>
 
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace vw::photometry;
 
 using namespace std;
 #include <math.h>
@@ -206,14 +204,14 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
 
 int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
-//vector<vector<LOLAShot> > CSVFileRead_LIMA(string CSVFilename);
 //computes the scale factor for all tracks at once
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 
 //float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+Vector2 ComputeGainBiasFactor(vector<LOLAShot > &trackPts);
 Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts);
 int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
-int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
+//int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams, CoregistrationParams coregistrationParams);
 int ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks,  Vector3 cameraPosition, Vector3 lightPosition, CoregistrationParams coregistrationParams);
 pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
@@ -474,7 +472,7 @@ GetAllPtsFromDEM_Prec(vector<vector<LOLAShot> >&  trackPts,
       
           trackPts[ti][si].DEMPt[li].valid = 0; 
           if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	    if ((interpDEM(x,y) > minVal) && (interpDEM(x,y) < maxVal) && (interpDEM_Prec(x,y) < 50)){
+	    if ((interpDEM(x,y) > minVal) && (interpDEM(x,y) < maxVal) && (interpDEM_Prec(x,y) >= 0) && (interpDEM_Prec(x,y) < 25)){
 	      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
 	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
 	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];

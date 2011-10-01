@@ -30,6 +30,10 @@ Vector4 ComputeGeoBoundary(string cubFilename);
 
 void ReadFileList(string camFileListFilename, vector<string> &camFileArray);
 
+//determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
+//by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 
+vector<string> AccessDataFilesFromInput(vector<string> &inputFiles);
+
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
 std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners);

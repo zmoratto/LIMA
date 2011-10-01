@@ -52,7 +52,6 @@ int main( int argc, char *argv[] )
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
     ("inputDEMFiles,d", po::value<std::vector<std::string> >(&inputDEMFiles))
     ("DEM-precision-directory,p", 
-     //po::value<std::string>(&precDEMDir)->default_value("../prec"), 
      po::value<std::string>(&precDEMDir), 
 		"DEM precision directory.") 
     ("results-directory,r", 
@@ -117,26 +116,10 @@ int main( int argc, char *argv[] )
     return 1;
   }
 
-  if( numDEMInputFiles == 1) {
-     string inputFileExtension = GetFilenameExt(inputDEMFiles[0]);
-     cout<<inputFileExtension<<endl;
-     if (inputFileExtension.compare(string("txt")) ==0){
-        ReadFileList(inputDEMFiles[0], DEMFiles);
-     }
-     else{
-       DEMFiles.resize(1);
-       DEMFiles[0] = inputDEMFiles[0]; 
-     }
-     
-  }
-  if  ( numDEMInputFiles > 1) {
-       DEMFiles.resize(numDEMInputFiles);
-       for (int i = 0; i < numDEMInputFiles; i++){
-	 DEMFiles[i] = inputDEMFiles[i]; 
-         cout<<DEMFiles[i]<<endl;
-       }
-  }
-  
+  //determine if inputDEMFiles is a text file containing a list of DEM files, one DEM file or a set of DEM files
+  //by reading the file extension. A text file containing the DEM list *must* have extension .txt 
+  DEMFiles = AccessDataFilesFromInput(inputDEMFiles);
+ 
   //Set up VW logging
   vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
 
@@ -159,7 +142,7 @@ int main( int argc, char *argv[] )
 
   auxDir = resDir+"/aux";
   cout<<"aux_dir="<<auxDir<<endl;
-  //create the results and auxiliry directories
+  //create the results and auxiliary directories
   string makeResDirCmd = "mkdir " + resDir;
   string makeAuxDirCmd = "mkdir " + auxDir;
   system(makeResDirCmd.c_str()); 
@@ -231,19 +214,17 @@ int main( int argc, char *argv[] )
     GeoReference DEMGeo;
     read_georeference(DEMGeo, inputDEMFilename);
 
-
-   
     if (precDEMDir.compare(string("NO_DIR"))!=0){
-        //select DEM points with high precision closest to LOLA tracks
-	string inputPrecFilename = GetFilenameNoPath(inputDEMFilename);
-	FindAndReplace(inputPrecFilename, string("dem"), string("Prec"));
-	inputPrecFilename = precDEMDir + string("/") + inputPrecFilename;
-	cout<<"DEMFilename="<<inputDEMFilename<<endl;
-	cout<<"PrecFilename="<<inputPrecFilename<<endl;
-        boost::shared_ptr<DiskImageResource> prec_rsrc( new DiskImageResourceGDAL(inputPrecFilename) );
-        DiskImageView<float> DEM_Prec(prec_rsrc);
-	//select DEM points closest to LOLA tracks
-	GetAllPtsFromDEM_Prec(trackPts, DEM, DEMGeo, settings.noDataVal, DEM_Prec);
+      //select DEM points with high precision closest to LOLA tracks
+      string inputPrecFilename = GetFilenameNoPath(inputDEMFilename);
+      FindAndReplace(inputPrecFilename, string("dem"), string("Prec"));
+      inputPrecFilename = precDEMDir + string("/") + inputPrecFilename;
+      cout<<"DEMFilename="<<inputDEMFilename<<endl;
+      cout<<"PrecFilename="<<inputPrecFilename<<endl;
+      boost::shared_ptr<DiskImageResource> prec_rsrc( new DiskImageResourceGDAL(inputPrecFilename) );
+      DiskImageView<float> DEM_Prec(prec_rsrc);
+      //select DEM points closest to LOLA tracks
+      GetAllPtsFromDEM_Prec(trackPts, DEM, DEMGeo, settings.noDataVal, DEM_Prec);
     }  
     else{
       //select DEM points closest to LOLA tracks

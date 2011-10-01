@@ -57,13 +57,12 @@ int main( int argc, char *argv[] ) {
   std:: string auxDir = "../aux";
   std::string mapCubDir = "../data/map";
   std::string drgDir = "../data/drg";
-  std::string camCubFileList;
+  std::vector<std::string> inputCubFiles;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-    ("camCubFiles,c", po::value<std::vector<std::string> >(&camCubFiles))
-    ("camCubFileList,a", po::value<std::string> (&camCubFileList))
+    ("inputCubFiles,i", po::value<std::vector<std::string> >(&inputCubFiles))
     ("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
     ("drg-directory,d", po::value<std::string>(&drgDir)->default_value("../data/drg"), "drg directory.")
     ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
@@ -74,7 +73,8 @@ int main( int argc, char *argv[] ) {
   options.add(general_options);
 
   po::positional_options_description p;
-  p.add("camCubFileList", -1);
+  //p.add("camCubFileList", -1);
+  p.add("inputCubFiles", -1);
 
   std::ostringstream usage;
   usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
@@ -96,7 +96,8 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if(( vm.count("camCubFileList") < 1 )) {
+  //if(( vm.count("camCubFileList") < 1 )) {
+  if(( vm.count("inputCubFiles") < 1 )) {
     std::cerr << "Error: Must specify at least one cub image file!" << std::endl << std::endl;
     std::cerr << usage.str();
     return 1;
@@ -114,15 +115,16 @@ int main( int argc, char *argv[] ) {
   //PrintGlobalParams(&settings);
   std::cerr << settings << endl;
 
- 
-  ReadFileList(camCubFileList, camCubFiles);
-
+  
+  //determine if inputCubFiles is a text file containing a list of .cub files, one .cub file or a set of .cub files
+  //by reading the file extension. A text file containing the DEM list *must* have extension .txt 
+  camCubFiles = AccessDataFilesFromInput(inputCubFiles);
+  
   int numCubFiles = camCubFiles.size();
   printf("numCubFiles = %d\n", numCubFiles);
 
   //create the results directory and prepare the output filenames - START
-  //system("mkdir ../results"); 
-  //system("mkdir ../aux");
+
   auxDir = resDir+"/aux";
   cout<<"aux_dir="<<auxDir<<endl;
   //create the results and auxiliary directories
@@ -138,7 +140,7 @@ int main( int argc, char *argv[] ) {
   cout<<"Selecting the overlapping images ..."<<endl;
 
   std::vector<int> overlapIndices;
-  string overlapListFilename = auxDir+string("/")+sufix_from_filename(inputCSVFilename);
+  string overlapListFilename = auxDir+string("/")+GetFilenameNoPath(inputCSVFilename);//sufix_from_filename(inputCSVFilename);
   FindAndReplace(overlapListFilename, ".csv", "_overlap_list.txt"); 
   int fileFound = ReadOverlapList(overlapListFilename, overlapIndices);
 
