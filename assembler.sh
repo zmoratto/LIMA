@@ -11,9 +11,10 @@
 # mv ../../../msl/results/Mars/MER_HIRISE/assembled_drg.tif ../../../msl/results/Mars/MER_HIRISE/assembled_init_drg.tif 
 
 #run the assembler in DEM mode with ICP
-#this is good.
-#./assembler  -m DEM -b ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-mod.tif
-./assembler  -m DEM -b ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-Sol-855.tif
+#this is good - START
+#./assembler  -m DEM -b ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-Sol-855.tif
+#this is good END
+
 # ./assembler  -m DEM_DRG -b ../../../msl/MSLData/Mars/MER_HIRISE/DEM_1m_ColumbiaHills-flat-crop-geo.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-mod.tif
 
 #./assembler  -m DEM_DRG -b  ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-Sol-855.tif
@@ -26,16 +27,23 @@
       colorShadeFile=${demFile/.tif/_clrshade.tif}
       echo "shadeFile = $shadeFile"
       echo "demFile = $demFile"
-      #/Users/anefian/projects/visionworkbench/build/bin/hillshade -o $shadeFile -a 315 -s 0 --nodata-value 0 $demFile
-      #/Users/anefian/projects/visionworkbench/build/bin/colormap  --lut-file LMMP_color_medium.lut -o $colorShadeFile -s $shadeFile --mars --legend --nodata-value 0 $demFile
+ 
+      #VW hillshade works well for the final DEM but does not show anything on the initDEM. Needs a fix here!      
+      #hillshade -o $shadeFile -a 315 -s 0 --nodata-value 0 $demFile
+
+      #VW colormap shows basicaly the same color on both init and final assembled DEM. (bad colormap, or a bug?)
+      #colormap  --lut-file LMMP_color_medium.lut -o $colorShadeFile -s $shadeFile --mars --legend --nodata-value 0 $demFile
       
-      /opt/local/var/macports/software/gdal/1.8.0_0+expat+universal/opt/local/bin/gdaldem hillshade $demFile $shadeFile
-      #/opt/local/var/macports/software/gdal/1.8.0_0+expat+universal/opt/local/bin/gdaldem color-relief $demFile LMMP_color_medium.lut $colorShadeFile
-      #/opt/local/var/macports/software/gdal/1.8.0_0+expat+universal/opt/local/bin/gdaldem hillshade ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01_shade.tif
+      #this is good - START
+      #gdaldem hillshade $demFile $shadeFile
+      #this is good - END
+
   done
 
 #run the assembler in DRG mode
-#create tiles in the DRG tif images and prepare to read in VW 
+#create tiles in the DRG tif images and prepare to read in VW. not working since it is not supported by the installed GDAL and libtiff versions. 
 #gdal_translate -co BIGTIFF=NO -co TILED=YES -co BLOCKXSIZE=128 -co BLOCKYSIZE=128 ../../../msl/MSLData/Mars/MER_HIRISE/DT1EA_001513_1655_001777_1650_U01.tif ../../../msl/MSLData/Mars/MER_HIRISE/DT1EA_001513_1655_001777_1650_U01_block.tif
+
+#running the assembler with HiRISE images already cropped 
 #./assembler  -m DRG -b ../../../msl/MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Photo-Sol-855.tif
  

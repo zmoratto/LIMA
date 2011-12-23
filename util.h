@@ -21,6 +21,7 @@ std::string GetFilenameExt(std::string const& filename);
 
 void PrintOverlapList(std::vector<int>  overlapIndices);
 void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
+void SaveOverlapList(string filename, std::vector<std::string> &filenames);
 int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 
 //this will be used to compute the makeOverlapList in a more general way.

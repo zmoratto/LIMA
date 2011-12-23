@@ -227,10 +227,13 @@ std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles,
        int lonOverlap = 0;
        int latOverlap = 0; 
      
-      
        Vector4 corners = ComputeGeoTiffBoundary(inputFiles[i]);
+       //corners(0) = minLon;
+       //corners(1) = maxLon;
+       //corners(2) = minLat;
+       //corners(3) = maxLat;
 
-       printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
+       printf("query corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
        printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
 
        if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
@@ -270,15 +273,30 @@ void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
      for (int i = 0; i < overlapIndices.size()-1; i++){
        file<<overlapIndices[i]<<endl;
      }
-   
      file<<overlapIndices[overlapIndices.size()-1];
    }
    else{
       file<<-1;
    }
    file.close();
-   
 }
+
+void SaveOverlapList(string filename, std::vector<std::string> &filenames)
+{
+   ofstream file( filename.c_str() );
+   //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
+   if (filenames.size() > 0){
+     for (int i = 0; i < filenames.size()-1; i++){
+       file<<filenames[i]<<endl;
+     }
+     file<<filenames[filenames.size()-1];
+   }
+   else{
+      file<<-1;
+   }
+   file.close();
+}
+
 int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
 {
    int fileFound = 0;

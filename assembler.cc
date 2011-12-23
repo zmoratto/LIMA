@@ -198,7 +198,6 @@ int main( int argc, char *argv[] ) {
     cout<<"fore_radius="<<fore_radius<<endl;
     cout<<"done"<<endl;
    
-    
     float minMatchError = 100000000.0;
     
     if (settings.matchingMode != 0){
