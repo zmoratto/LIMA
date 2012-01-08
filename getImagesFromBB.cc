@@ -98,8 +98,8 @@ int main( int argc, char *argv[] )
     return 1;
   }
 
-  //determine if inputDEMFiles is a text file containing a list of DEM files, one DEM file or a set of DEM files
-  //by reading the file extension. A text file containing the DEM list *must* have extension .txt 
+  //determine if inputFiles is a text file containing a list of image files, one image file or a set of image files
+  //by reading the file extension. A text file containing the image list *must* have extension .txt 
   imageFiles = AccessDataFilesFromInput(inputFiles);
  
   //Set up VW logging

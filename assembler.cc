@@ -38,7 +38,6 @@ using namespace std;
 
 float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_lonlat)
 {
-
   //cout << Geo <<"\n";
   float radius = Geo.datum().semi_major_axis();
   cout<<"radius="<<radius<<endl;
@@ -59,7 +58,7 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   float maxLon = rightBottomLonLat(0);
   float maxLat = rightBottomLonLat(1);
   
-  printf("BEFORE: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n", 
+  printf("**BEFORE: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n", 
                   minLon, maxLon, minLat, maxLat);  
  
   /*
@@ -76,7 +75,8 @@ float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_l
   if (maxLat < 0) maxLat = maxLat+180;
   if (maxLon < 0) maxLon = maxLon+180;
   */
-  printf("AFTER: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n",
+
+  printf("**AFTER: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n",
   	         minLon, maxLon, minLat, maxLat);
 
   float numPixPerDegree;
@@ -276,8 +276,8 @@ int main( int argc, char *argv[] ) {
       read_georeference(foreDRGGeo, foreDRGFilename);
       printf("done opening the the foreDRG\n");
  
-      ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
-			    1, translation, rotation, center, bestDeltaLonLat);
+      //ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+      //			    1, translation, rotation, center, bestDeltaLonLat);
     }
 
  
@@ -300,9 +300,16 @@ int main( int argc, char *argv[] ) {
     read_georeference(foreDRGGeo, foreDRGFilename);
     printf("done opening the the foreDRG\n");
  
-    ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
-                          1, translation, rotation, center, bestDeltaLonLat);
-  
+    //ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+    //                      1, translation, rotation, center, bestDeltaLonLat);
+    ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+                        translation, rotation, center, bestDeltaLonLat);   
+    /*
+    (ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
+                    ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
+                    string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation, 
+                    Vector3 center, Vector2 bestDeltaLonLat)
+    */
    }
   
    
