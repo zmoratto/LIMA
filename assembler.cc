@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <sstream>
 
 //boost
 #include <boost/operators.hpp>
@@ -36,59 +37,8 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
-float ComputePixPerDegree(GeoReference Geo, int width, int height, int useUSGS_lonlat)
-{
-  //cout << Geo <<"\n";
-  float radius = Geo.datum().semi_major_axis();
-  cout<<"radius="<<radius<<endl;
-  //float meridianOffset = Geo.datum().meridian_offset();
-  //cout<<"meridianOffset="<<meridianOffset<<endl;
- 
-  printf("width = %d, height = %d\n", width, height);
- 
-  Vector2 leftTopPixel(0,0);
-  Vector2 leftTopLonLat = Geo.pixel_to_lonlat(leftTopPixel);
-
-
-  Vector2 rightBottomPixel(width-1, height-1);
-  Vector2 rightBottomLonLat = Geo.pixel_to_lonlat(rightBottomPixel);
-  
-  float minLon = leftTopLonLat(0);
-  float minLat = leftTopLonLat(1);
-  float maxLon = rightBottomLonLat(0);
-  float maxLat = rightBottomLonLat(1);
-  
-  printf("**BEFORE: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n", 
-                  minLon, maxLon, minLat, maxLat);  
- 
-  /*
-  if (useUSGS_lonlat == 1){
-     float usgs_2_lonlat = 180/(3.14159265*3396190);
-     minLon = minLon*usgs_2_lonlat; 
-     maxLon = maxLon*usgs_2_lonlat; 
-     minLat = minLat*usgs_2_lonlat; 
-     maxLat = maxLat*usgs_2_lonlat;
-  }
-
-  if (minLat < 0) minLat = minLat+180;
-  if (minLon < 0) minLon = minLon+180;
-  if (maxLat < 0) maxLat = maxLat+180;
-  if (maxLon < 0) maxLon = maxLon+180;
-  */
-
-  printf("**AFTER: minLon=%f, maxLon=%f, minLat=%f, maxLat=%f\n",
-  	         minLon, maxLon, minLat, maxLat);
-
-  float numPixPerDegree;
-  numPixPerDegree = width/fabs(maxLon-minLon);
-  numPixPerDegree = height/fabs(maxLat-minLat);
-  
-  return numPixPerDegree;
-}
-
 int main( int argc, char *argv[] ) {
    
-  
   std::string foreFile;
   std::string backFile;
   std::string resDir;
@@ -173,31 +123,24 @@ int main( int argc, char *argv[] ) {
   if ((mode.compare("DEM")==0) || (mode.compare("DEM_DRG")==0) ){
     string backDEMFilename = backFile;
     string foreDEMFilename = foreFile;
-    string assembledDEMFilename = resDir+"/assembled_dem.tif";
+    //string assembledDEMFilename = resDir+"/assembled_dem.tif";
    
     //large image low res - background
     cout<<"opening"<<backDEMFilename<<"..."<<endl; 
-    //DiskImageView<PixelGray<float> >  backDEM(backDEMFilename);
     DiskImageView<float>   backDEM(backDEMFilename);
     GeoReference backDEMGeo;
     read_georeference(backDEMGeo, backDEMFilename);
-    float back_radius = backDEMGeo.datum().semi_major_axis();
-    cout<<"back_radius="<<back_radius<<endl;
-    cout<<"done"<<endl;
-    
+        
     //small image high res - foreground
     cout<<"opening"<<foreDEMFilename<<"..."<<endl;  
-    //DiskImageView<PixelGray<float> >  foreDEM(foreDEMFilename);
     DiskImageView<float>  foreDEM(foreDEMFilename);
     cout<<"done."<<endl;
+
     cout<<"opening georeference for "<<foreDEMFilename<<"..."<<endl;  
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
     cout<<"done"<<endl;
-    float fore_radius = foreDEMGeo.datum().semi_major_axis();
-    cout<<"fore_radius="<<fore_radius<<endl;
-    cout<<"done"<<endl;
-   
+ 
     float minMatchError = 100000000.0;
     
     if (settings.matchingMode != 0){
@@ -252,14 +195,55 @@ int main( int argc, char *argv[] ) {
     cout<<"final translation vector "<<translation<<endl;
     cout<<"bestDeltaLonLat="<<bestDeltaLonLat<<endl;
 
-    //ComputeAssembledImage(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
-    //                      0, translation, rotation, center, bestDeltaLonLat);
 
-    ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
-                        translation, rotation, center, bestDeltaLonLat);    
+    vector<struct tilingParams> tileParamsArray;
+    int tileSize = 128;
+    ComputeBoundariesDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, tileSize, tileParamsArray);
+    for (int i= 0; i <tileParamsArray.size(); i++){
+        stringstream ss;
+        ss<<i;
+	string assembledDEMFilename =  resDir+"/assembled_"+ss.str()+"_dem.tif";
+        cout<<assembledDEMFilename<<endl;
+	ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+			    translation, rotation, center, bestDeltaLonLat, tileParamsArray[i]);   
     }
+    //ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+    //                    translation, rotation, center, bestDeltaLonLat, tileParams);    
+  }
 
-    if (mode.compare("DEM_DRG")==0){
+  //DRG assembler
+  if (mode.compare("DRG")==0){
+  
+      string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
+      string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
+      int tileSize = 512;
+
+      //small image high res - foreground 
+      DiskImageView<PixelRGB<uint8> >  backDRG(backDRGFilename);
+      GeoReference backDRGGeo;
+      read_georeference(backDRGGeo, backDRGFilename);
+      printf("done opening the the backDRG\n");
+      
+      //large image low res - background
+      DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFilename);
+      GeoReference foreDRGGeo;
+      read_georeference(foreDRGGeo, foreDRGFilename);
+      printf("done opening the the foreDRG\n");
+      
+      vector<struct tilingParams> tileParamsArray;
+      ComputeBoundariesDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, tileSize, tileParamsArray);
+      for (int i= 0; i <tileParamsArray.size(); i++){
+        stringstream ss;
+        ss<<i;
+	string assembledDRGFilename =  resDir+"/assembled_"+ss.str()+"_drg.tif";
+        cout<<assembledDRGFilename<<endl;
+	ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
+			    translation, rotation, center, bestDeltaLonLat, tileParamsArray[i]);   
+      }
+      
+   }
+
+   if (mode.compare("DEM_DRG")==0){
       string backDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
       string foreDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/Photo-mod.tif";
       string assembledDRGFilename =  resDir+"/assembled_drg.tif";
@@ -275,44 +259,8 @@ int main( int argc, char *argv[] ) {
       GeoReference foreDRGGeo;
       read_georeference(foreDRGGeo, foreDRGFilename);
       printf("done opening the the foreDRG\n");
- 
-      //ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
-      //			    1, translation, rotation, center, bestDeltaLonLat);
-    }
-
- 
-  //DRG assembler
-  if (mode.compare("DRG")==0){
-  
-    string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
-    string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
-    string assembledDRGFilename =  resDir+"/assembled_drg.tif";
- 
-    //small image high res - foreground 
-    DiskImageView<PixelGray<uint8> >  backDRG(backDRGFilename);
-    GeoReference backDRGGeo;
-    read_georeference(backDRGGeo, backDRGFilename);
-    printf("done opening the the backDRG\n");
-
-    //large image low res - background
-    DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFilename);
-    GeoReference foreDRGGeo;
-    read_georeference(foreDRGGeo, foreDRGFilename);
-    printf("done opening the the foreDRG\n");
- 
-    //ComputeAssembledImage(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
-    //                      1, translation, rotation, center, bestDeltaLonLat);
-    ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 
-                        translation, rotation, center, bestDeltaLonLat);   
-    /*
-    (ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
-                    ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                    string assembledImgFilename, int mode, Vector3 translation, Matrix<float,3,3>rotation, 
-                    Vector3 center, Vector2 bestDeltaLonLat)
-    */
    }
-  
-   
+    
 }
 
 
