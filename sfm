@@ -1,0 +1,86 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+#include <sstream>
+#include <iostream>
+#include <fstream>
+
+//#include <math.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+//#include <opencv/cv.h>
+//#include <opencv/highgui.h>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/calib3d/calib3d.hpp> // for homography
+
+#include "PairwisePose.h"
+#include "PoseComposition.h"
+#include "display.h"
+
+void DepthToPointCLoud(IplImage *depthImage, vector<float> &x, vector<float> &y, vector<float> &z)
+{
+  //compute point cloud from kinect depth - START
+  float gamma[2048];
+  for (size_t i = 0; i < 2048; i++){
+    const float k1 = 1.1863;
+    const float k2 = 2842.5;
+    const float k3 = 0.1236;
+    gamma[i] = k3 * tan(i/k2 + k1);
+  }
+  
+  // camera intrinsic parameters, representative values, see http://nicolas.burrus.name/index.php/Research/KinectCalibration for more info
+  float cx = 320.0; // center of projection
+  float cy = 240.0; // center of projection
+  float fx = 600.0; // focal length in pixels
+  float fy = 600.0; // focal length in pixels
+
+  unsigned char *depthData = (unsigned char*)(depthImage->imageData);
+  for (int i = 0; i < depthImage->height; i++){
+    for (int j = 0; j < depthImage->width; j++){
+      float gamma_depth_data = gamma[((short*)depthData)[i*depthImage->width+j]];
+        int index = i*depthImage->width+j;
+	x[index] = (j - cx) * gamma_depth_data / fx;
+	y[index] = (i - cy) * gamma_depth_data / fy;
+	z[index] = gamma_depth_data;
+    }
+  }
+}
+
+void DepthToPointCLoud(IplImage *depthImage, vector<cv::Point3f> &points)
+{
+  //compute point cloud from kinect depth - START
+  float gamma[2048];
+  for (size_t i = 0; i < 2048; i++){
+    const float k1 = 1.1863;
+    const float k2 = 2842.5;
+    const float k3 = 0.1236;
+    gamma[i] = k3 * tan(i/k2 + k1);
+  }
+  
+  // camera intrinsic parameters, representative values, see http://nicolas.burrus.name/index.php/Research/KinectCalibration for more info
+  float cx = 320.0; // center of projection
+  float cy = 240.0; // center of projection
+  float fx = 600.0; // focal length in pixels
+  float fy = 600.0; // focal length in pixels
+
+  unsigned char *depthData = (unsigned char*)(depthImage->imageData);
+  points.resize(depthImage->height*depthImage->width);
+  for (int i = 0; i < depthImage->height; i++){
+    for (int j = 0; j < depthImage->width; j++){
+      float gamma_depth_data = gamma[((short*)depthData)[i*depthImage->width+j]];
+        int index = i*depthImage->width+j;
+	points[index].x = (j - cx) * gamma_depth_data / fx;
+	points[index].y = (i - cy) * gamma_depth_data / fy;
+	points[index].z = gamma_depth_data;
+    }
+  }
+}
