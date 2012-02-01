@@ -198,10 +198,18 @@ int main( int argc, char *argv[] ) {
 
     vector<struct tilingParams> tileParamsArray;
     int tileSize = 128;
-    ComputeBoundariesDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, tileSize, tileParamsArray);
+    int numTiles = 128;
+    Vector2 DEMOffset;
+    DEMOffset(0) = (tileSize*numTiles - backDEM.cols())/2;
+    DEMOffset(1) = (tileSize*numTiles - backDEM.rows())/2;
+    cout<<"DEMOffset="<<DEMOffset<<endl;
+
+    ComputeBoundariesDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, tileSize, DEMOffset, tileParamsArray);
     for (int i= 0; i <tileParamsArray.size(); i++){
         stringstream ss;
-        ss<<i;
+        ss<<tileParamsArray[i].horTileIndex<<"_"<<tileParamsArray[i].verTileIndex;
+        //ss<<tileParamsArray[i].verTileIndex;
+
 	string assembledDEMFilename =  resDir+"/assembled_"+ss.str()+"_dem.tif";
         cout<<assembledDEMFilename<<endl;
 	ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
@@ -217,9 +225,13 @@ int main( int argc, char *argv[] ) {
       string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
       string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
       int tileSize = 512;
+      int numTiles = 128;
+      Vector2 DRGOffset;
+      Vector4 paddingParams;
 
       //small image high res - foreground 
-      DiskImageView<PixelRGB<uint8> >  backDRG(backDRGFilename);
+      //DiskImageView<PixelRGB<uint8> >  backDRG(backDRGFilename);
+      DiskImageView<PixelGray<uint8> >  backDRG(backDRGFilename);
       GeoReference backDRGGeo;
       read_georeference(backDRGGeo, backDRGFilename);
       printf("done opening the the backDRG\n");
@@ -229,12 +241,18 @@ int main( int argc, char *argv[] ) {
       GeoReference foreDRGGeo;
       read_georeference(foreDRGGeo, foreDRGFilename);
       printf("done opening the the foreDRG\n");
-      
+
+      DRGOffset(0) = (tileSize*numTiles - backDRG.cols())/2;
+      DRGOffset(1) = (tileSize*numTiles - backDRG.rows())/2;
+      cout<<"DRGOffset="<<DRGOffset<<endl;
+   
       vector<struct tilingParams> tileParamsArray;
-      ComputeBoundariesDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, tileSize, tileParamsArray);
+      
+      ComputeBoundariesDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, tileSize, DRGOffset, tileParamsArray);
       for (int i= 0; i <tileParamsArray.size(); i++){
         stringstream ss;
-        ss<<i;
+        //ss<<i;
+        ss<<tileParamsArray[i].horTileIndex<<"_"<<tileParamsArray[i].verTileIndex;
 	string assembledDRGFilename =  resDir+"/assembled_"+ss.str()+"_drg.tif";
         cout<<assembledDRGFilename<<endl;
 	ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, assembledDRGFilename, 

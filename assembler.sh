@@ -2,11 +2,11 @@
   
 #run the assembler in DEM mode with ICP
 #can be used with assembler_no_ICP_settings.txt or assembler_settings.txt
-./assembler  -m DEM -b ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_no_ICP_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-Sol-855.tif
+#./assembler  -m DEM -b ../../../msl/MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif  -r ../../../msl/results/Mars/MER_HIRISE -c assembler_settings.txt ../../../msl/MSLData/Mars/MER_HIRISE/Height-Sol-855.tif
 
   #generate shade-relief
   for demFile in `echo ../../../msl/results/Mars/MER_HIRISE/*dem.tif` 
-  #for demFile in `echo ../MSLData/Mars/MER_HIRISE/DEM*.tif` 
+ 
   do
       shadeFile=${demFile/.tif/_shade.tif}
       colorShadeFile=${demFile/.tif/_clrshade.tif}

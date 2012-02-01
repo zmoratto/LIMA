@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <math.h>
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -39,12 +40,14 @@ typedef struct tilingParams
   int back_yt;
   int back_xr;
   int back_yb;
+  int horTileIndex;
+  int verTileIndex;
 };
 
 template <class ViewT1, class ViewT2 >
 void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
 			  ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo, 
-			  int tileSize, std::vector<struct tilingParams> &tileParamsArray)
+			  int tileSize, Vector2 offsetPix, std::vector<struct tilingParams> &tileParamsArray)
 {
 
 
@@ -138,17 +141,21 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   Vector2 topLeftLonLat;
   Vector2 bottomRightLonLat;
   topLeftLonLat(0)=minLon;
-  topLeftLonLat(1)=minLat;
+  topLeftLonLat(1)=maxLat;//minLat;
   bottomRightLonLat(0)=maxLon;
-  bottomRightLonLat(1)=maxLat;
+  bottomRightLonLat(1)=minLat;//maxLat;
 
   Vector2 topLeftPix = backGeo.lonlat_to_pixel(topLeftLonLat);
   Vector2 bottomRightPix = backGeo.lonlat_to_pixel(bottomRightLonLat);
   cout<<"topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
 
   //determine closest tilebreak x
-  topLeftPix = floor(topLeftPix/tileSize)*tileSize;
-  bottomRightPix = ceil(bottomRightPix/tileSize)*tileSize;
+  topLeftPix = floor((topLeftPix+offsetPix)/tileSize)*tileSize - offsetPix;
+  bottomRightPix = ceil((bottomRightPix+offsetPix)/tileSize)*tileSize - offsetPix;
+  //determine the top left tile index
+  Vector2 topLeftTile = floor((topLeftPix+offsetPix)/tileSize);
+  cout<<"topLeftTile="<<topLeftTile<<endl;
+
   cout<<"adjusted to tiles: topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
 
   //determine the number of tiles
@@ -159,19 +166,27 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   //pad the tiles with the N pixels where 2^N is the background upsampling ratio 
   float numPyramidLevels = ceil(log2(backUpsamplingFactor))-1;
   cout<<"numPyramidLevels="<<numPyramidLevels<<endl;
-  
-  
-  //vector<tilingParams> tileParamsArray;
+
+  float leftNumPixPadding = 1;
+  float rightNumPixPadding = 1;
+  float topNumPixPadding = 1;
+  float bottomNumPixPadding = 1;
+
+  int horTileIndex, verTileIndex;
+
+  horTileIndex = topLeftTile(0);
   for (int i = topLeftPix(0); i < bottomRightPix(0); i = i + tileSize){
-    //STRANGE!!!!!!
-      for (int j = bottomRightPix(1); j < topLeftPix(1); j = j + tileSize){
+    verTileIndex = topLeftTile(1);
+    for (int j = topLeftPix(1); j < bottomRightPix(1); j = j + tileSize){
 	tilingParams thisTileParams;
         thisTileParams.backUpsampleFactor = pow(2, numPyramidLevels);
 	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
-        thisTileParams.back_xl = i;
-        thisTileParams.back_xr = i+tileSize;
-        thisTileParams.back_yt = j;
-        thisTileParams.back_yb = j+tileSize;
+        thisTileParams.back_xl = i - leftNumPixPadding;
+        thisTileParams.back_xr = i + tileSize + rightNumPixPadding;
+        thisTileParams.back_yt = j - topNumPixPadding;
+        thisTileParams.back_yb = j + tileSize + bottomNumPixPadding;
+        thisTileParams.horTileIndex = horTileIndex;
+	thisTileParams.verTileIndex = verTileIndex;
         tileParamsArray.push_back(thisTileParams);
 	
         cout<<"xl="<<thisTileParams.back_xl<<endl;
@@ -179,9 +194,13 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
         cout<<"yt="<<thisTileParams.back_yt<<endl;
         cout<<"yb="<<thisTileParams.back_yb<<endl;
         cout<<"backUpsampleFactor="<<thisTileParams.backUpsampleFactor<<endl;
-        cout<<"foreUpsampleFactor="<<thisTileParams.foreUpsampleFactor<<endl; 
-       
+        cout<<"foreUpsampleFactor="<<thisTileParams.foreUpsampleFactor<<endl;
+	cout<<"horTileIndex="<<thisTileParams.horTileIndex<<endl;
+        cout<<"verTileIndex="<<thisTileParams.verTileIndex<<endl;
+ 
+	verTileIndex++;
       }
+    horTileIndex++;
   }
   
   cout<<"---------------------------------"<<endl;
@@ -190,7 +209,7 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
 template <class ViewT1, class ViewT2 >
 void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
 			  ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo, 
-			  int tileSize, vector<struct tilingParams> &tileParamsArray)
+			  int tileSize, Vector2 offsetPix, vector<struct tilingParams> &tileParamsArray)
 {
 
 
@@ -285,9 +304,181 @@ void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   Vector2 topLeftLonLat;
   Vector2 bottomRightLonLat;
   topLeftLonLat(0)=minLon;
+  topLeftLonLat(1)=maxLat;//minLat; UBER-HACK
+  bottomRightLonLat(0)=maxLon;
+  bottomRightLonLat(1)=minLat;//maxLat; UBER-HACK
+
+  cout<<"topLeftLonLat="<<topLeftLonLat<<endl;
+  cout<<"bottomRightLonLat="<<bottomRightLonLat<<endl;
+
+  //cout<<"offsetPix="<<offsetPix<<endl;
+  //Vector2 padTopLeftPix = backGeo.point_to_pixel(offsetPix);
+  //cout<<"padTopLeftPix="<<padTopLeftPix<<endl;
+
+  Vector2 topLeftPix = backGeo.lonlat_to_pixel(topLeftLonLat);
+  Vector2 bottomRightPix = backGeo.lonlat_to_pixel(bottomRightLonLat);
+  cout<<"topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
+
+  //determine closest tilebreak x
+
+  topLeftPix = floor((topLeftPix+offsetPix)/(float)tileSize)*tileSize - offsetPix;
+  bottomRightPix = ceil((bottomRightPix+offsetPix)/(float)tileSize)*tileSize - offsetPix;
+  cout<<"adjusted to tiles: topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
+  Vector2 topLeftTile = floor((topLeftPix+offsetPix)/tileSize);
+  cout<<"topLeftTile="<<topLeftTile<<endl;
+
+  //determine the number of tiles
+  int numHorTiles = fabs(bottomRightPix(0)-topLeftPix(0))/tileSize;
+  int numVerTiles = fabs(bottomRightPix(1)-topLeftPix(1))/tileSize;
+  cout<<"numHorTiles = "<<numHorTiles<<", numVerTiles="<<numVerTiles<<endl;
+ 
+  //pad the tiles with the N pixels where 2^N is the background upsampling ratio 
+  float numPyramidLevels = ceil(log2(backUpsamplingFactor))-1;
+  cout<<"numPyramidLevels="<<numPyramidLevels<<endl;
+
+  float leftNumPixPadding = 1;
+  float rightNumPixPadding = 2;
+  float topNumPixPadding = 1;
+  float bottomNumPixPadding = 2;
+ 
+  int horTileIndex, verTileIndex;
+  horTileIndex = topLeftTile(0); 
+  for (int i = topLeftPix(0); i < bottomRightPix(0); i = i + tileSize){
+    verTileIndex = topLeftTile(1);
+    for (int j = topLeftPix(1); j < bottomRightPix(1); j = j + tileSize){
+	
+        tilingParams thisTileParams;
+        thisTileParams.backUpsampleFactor = pow(2, numPyramidLevels);
+	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
+        thisTileParams.back_xl = i - leftNumPixPadding;
+        thisTileParams.back_xr = i + tileSize + rightNumPixPadding;
+        thisTileParams.back_yt = j - topNumPixPadding;
+        thisTileParams.back_yb = j + tileSize + bottomNumPixPadding;
+	thisTileParams.horTileIndex = horTileIndex;
+	thisTileParams.verTileIndex = verTileIndex;
+        tileParamsArray.push_back(thisTileParams);
+	
+        cout<<"xl="<<thisTileParams.back_xl<<endl;
+        cout<<"xr="<<thisTileParams.back_xr<<endl;
+        cout<<"yt="<<thisTileParams.back_yt<<endl;
+        cout<<"yb="<<thisTileParams.back_yb<<endl;
+        cout<<"backUpsampleFactor="<<thisTileParams.backUpsampleFactor<<endl;
+        cout<<"foreUpsampleFactor="<<thisTileParams.foreUpsampleFactor<<endl; 
+        cout<<"horTileIndex="<<thisTileParams.horTileIndex<<endl;
+        cout<<"verTileIndex="<<thisTileParams.verTileIndex<<endl; 
+	
+        verTileIndex++;
+      }
+    horTileIndex++;
+  }
+  
+  cout<<"---------------------------------"<<endl;
+}
+
+#if 0
+void ComputeTileParams(Vector2 topLeftLonLat, Vector2 bottomRightLonLat, 
+                       float foreNumPixPerDegree, float backNumPixPerDegree;
+                       GeoReference const &backGeo, GeoReference const &foreGeo, 
+		       int tileSize, vector<struct tilingParams> &tileParamsArray)
+{
+
+
+  /*
+  InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<typename ViewT1::pixel_type>, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> foreImg
+    = interpolate(edge_extend(orig_foreImg.impl(),ConstantEdgeExtension()), BilinearInterpolation());
+
+  //compute the background an foreground upsampling factor;
+  
+  int foreWidth = foreImg.cols(); 
+  int foreHeight = foreImg.rows();
+ 
+  cout<<"foreWidth="<<foreWidth<<", foreHeight="<<foreHeight<<endl;
+
+  Vector2 foreLeftTopPixel(0,0);
+  Vector2 foreLeftTopLonLat = foreGeo.pixel_to_lonlat(foreLeftTopPixel);
+
+  Vector2 foreRightBottomPixel(foreWidth-1, foreHeight-1);
+  Vector2 foreRightBottomLonLat = foreGeo.pixel_to_lonlat(foreRightBottomPixel);
+  
+  float foreNumPixPerDegree = foreHeight/fabs(foreRightBottomLonLat(1)-foreLeftTopLonLat(1));
+
+  InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<typename ViewT2::pixel_type>, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> backImg
+    = interpolate(edge_extend(orig_backImg.impl(),ConstantEdgeExtension()), BilinearInterpolation());
+  
+  int backWidth = backImg.cols(); 
+  int backHeight = backImg.rows();
+ 
+  cout<<"backWidth="<<backWidth<<", backHeight="<<backHeight<<endl;
+
+  Vector2 backLeftTopPixel(0,0);
+  Vector2 backLeftTopLonLat = backGeo.pixel_to_lonlat(backLeftTopPixel);
+
+  Vector2 backRightBottomPixel(backWidth-1, backHeight-1);
+  Vector2 backRightBottomLonLat = backGeo.pixel_to_lonlat(backRightBottomPixel);
+  
+  float backNumPixPerDegree = backHeight/fabs(backRightBottomLonLat(1)-backLeftTopLonLat(1));
+  
+  //compute centroid and boundary coordinates - START
+  Vector2 foreCenterLonLat;
+
+  float minLat =  180;
+  float maxLat = -180;
+  float minLon =  180;
+  float maxLon = -180;
+
+  int count = 0;
+  for (int j = 0; j < foreImg.impl().rows()-1; j++){
+    for (int i = 0; i < foreImg.impl().cols()-1; i++){ 
+    if ( ((foreImg.impl()(i,j)[0]) != 0) || ((foreImg.impl()(i,j)[1]) != 0) || ((foreImg.impl()(i,j)[2]) != 0) ) { 
+       
+	  //case of cartesian coordinates
+	  //get the coordinates
+	  Vector2 forePix(i,j);
+	  Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
+	  fore_lon_lat(0)=fore_lon_lat(0);//+bestDeltaLonLat(0);
+	  fore_lon_lat(1)=fore_lon_lat(1);//+bestDeltaLonLat(1);
+
+          if (fore_lon_lat(0) < minLon){
+	    minLon = fore_lon_lat(0);
+          }
+          if (fore_lon_lat(0) > maxLon){
+	    maxLon = fore_lon_lat(0);
+          }
+	  if (fore_lon_lat(1) < minLat){
+	    minLat = fore_lon_lat(1);
+          }
+          if (fore_lon_lat(1) > maxLat){
+	    maxLat = fore_lon_lat(1);
+          }
+    
+          foreCenterLonLat = foreCenterLonLat + fore_lon_lat;
+    	  count++;
+	}
+    }
+  }
+  
+  foreCenterLonLat = foreCenterLonLat/count;
+  //compute centroid and boundary coordinates - END
+  
+
+  cout<<"---------------------------------"<<endl;
+  cout<<"foreNumPixelPerDegree="<<foreNumPixPerDegree<<endl;
+  cout<<"backNumPixelPerDegree="<<backNumPixPerDegree<<endl;
+  
+  float backUpsamplingFactor = foreNumPixPerDegree/backNumPixPerDegree;
+  cout<<"backUpsamplingFactor="<<backUpsamplingFactor<<endl;
+
+  cout<<"foreCenterLonLat"<<foreCenterLonLat<<endl;
+  cout<<"minLon="<<minLon<<", maxLon="<<maxLon<<", minLat="<<minLat<<", maxLat="<<maxLat<<endl;
+  
+  //compute initial pixel boundaries within the HiRISE image
+  Vector2 topLeftLonLat;
+  Vector2 bottomRightLonLat;
+  topLeftLonLat(0)=minLon;
   topLeftLonLat(1)=minLat;
   bottomRightLonLat(0)=maxLon;
   bottomRightLonLat(1)=maxLat;
+  */
 
   Vector2 topLeftPix = backGeo.lonlat_to_pixel(topLeftLonLat);
   Vector2 bottomRightPix = backGeo.lonlat_to_pixel(bottomRightLonLat);
@@ -306,7 +497,6 @@ void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   //pad the tiles with the N pixels where 2^N is the background upsampling ratio 
   float numPyramidLevels = ceil(log2(backUpsamplingFactor))-1;
   cout<<"numPyramidLevels="<<numPyramidLevels<<endl;
-  
   
   //vector<tilingParams> tileParamsArray;
   for (int i = topLeftPix(0); i < bottomRightPix(0); i = i + tileSize){
@@ -333,7 +523,7 @@ void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   
   cout<<"---------------------------------"<<endl;
 }
-
+#endif
 //overlays the foreground image on the top of the background image
 //if needed it downsamples and crops the background image
 //or pads it with non-data values to allow for partial ovelap between background and fore image.
@@ -403,7 +593,6 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
 
       Vector2 assembledLonLat = assembledGeo.pixel_to_lonlat(assembledPix);
       Vector2 backPix = backGeo.lonlat_to_pixel(assembledLonLat);
-      
      
       Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
       
@@ -423,8 +612,8 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
       Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat_rad);
       
       //transform using new rotation and translation-translation only for now.
-      //Vector3 transf_fore_xyz = rotation*(fore_xyz-foreCenter_xyz)+translation+foreCenter_xyz;   
-      Vector3 transf_fore_xyz = fore_xyz + translation;
+      Vector3 transf_fore_xyz = rotation*(fore_xyz/*-foreCenter_xyz*/)+translation/*+foreCenter_xyz*/;   
+      //Vector3 transf_fore_xyz = fore_xyz + translation;
       
       //transform back in spherical coords
       Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
@@ -512,8 +701,6 @@ ComputeAssembledDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
   for (int j = 0; j < assembledHeight; j++){
     for (int i = 0; i < assembledWidth; i++){
      
-      //cout<<"i="<<i<<", j="<<j<<endl;
-
       Vector2 assembledPix;
       assembledPix(0) = i;
       assembledPix(1) = j;
@@ -530,16 +717,16 @@ ComputeAssembledDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
       if ((foreImg.impl()(f_x, f_y)[0]!=255) && (foreImg.impl()(f_x, f_y)[1]!=255) && (foreImg.impl()(f_x, f_y)[2]!=255) && 
 	  (foreImg.impl()(f_x, f_y)[0]!=0) && (foreImg.impl()(f_x, f_y)[1]!=0) && (foreImg.impl()(f_x, f_y)[2]!=0)){
 	  assembledImg.impl()(i,j)[0] = foreImg.impl()(f_x,f_y)[0];
-	  assembledImg.impl()(i,j)[1] = foreImg.impl()(f_x,f_y)[1];
-	  assembledImg.impl()(i,j)[2] = foreImg.impl()(f_x,f_y)[2];
+	  //assembledImg.impl()(i,j)[1] = foreImg.impl()(f_x,f_y)[1];
+	  //assembledImg.impl()(i,j)[2] = foreImg.impl()(f_x,f_y)[2];
       }
       
       else{
 	//cout<<"i="<<i<<", j="<<j<<", bx="<<b_x<<", b_y="<<b_y<<", backWidth="<<backImg.cols()<<", backHeight="<<backImg.rows()<<endl; 
 	if((b_x<backImg.cols()) && (b_x>=0) && (b_y<backImg.rows()) && (b_y>=0)){
 	  assembledImg.impl()(i,j)[0] = backImg.impl()(b_x,b_y)[0];
-	  assembledImg.impl()(i,j)[1] = backImg.impl()(b_x,b_y)[0];
-	  assembledImg.impl()(i,j)[2] = backImg.impl()(b_x,b_y)[0];
+	  //assembledImg.impl()(i,j)[1] = backImg.impl()(b_x,b_y)[0];
+	  //assembledImg.impl()(i,j)[2] = backImg.impl()(b_x,b_y)[0];
 	}
       }
     }
