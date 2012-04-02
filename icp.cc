@@ -22,7 +22,7 @@ using namespace std;
 
 #include "icp.h"
 #include "coregister.h"
-
+/*
 Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat)
 { 
   //change into USGS coords
@@ -42,22 +42,22 @@ Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
   fore_lon_lat(1) = back_lon_lat(1)*usgs_2_lonlat; 
   return fore_lon_lat;
 }
-
+*/
 //computes the translation between the foreground and background pixels
 Vector3 ComputeDEMTranslation(const vector<Vector3>& featureArray, 
-	                      const vector<Vector3>& matchArray)
+	                      const vector<Vector3>& referenceArray)
 {
   Vector3 translation(0,0,0);
   
   int numValidMatches = 0;
   for (unsigned int i = 0; i < featureArray.size(); i++){
-    if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){
-       translation += matchArray[i] - featureArray[i];
+    if ((referenceArray[i][0]!=0) && (referenceArray[i][1]!=0) && (referenceArray[i][2]!=0)){
+       translation += referenceArray[i] - featureArray[i];
        numValidMatches++;
     }
   }
 
-  return translation / numValidMatches;//featureArray.size();
+  return translation/numValidMatches;//featureArray.size();
 }
 
 
@@ -89,22 +89,32 @@ ComputeMatchingError(const vector<Vector3>& modelArray,
   return errorArray;
 }
 
-//compute the matching error vector in the form of individual errors 
-//given in absolute value 
-vector<Vector3> 
-ComputeMatchingError3D(const vector<Vector3>& modelArray, 
-                       const vector<Vector3>& matchArray)
+//compute the matching error vector in the form of individual errors
+float ComputeMatchingError3D(const vector<Vector3>& modelArray, 
+			     const vector<Vector3>& matchArray)
 {
-  vector<Vector3> errorArray( modelArray.size() );
+  float avgError;
+  Vector3 avgErrorVect;
+  Vector3 currErrorVect;
+  float currError;
+
+  avgError = 0.0;
+  
   for (unsigned int i = 0; i < modelArray.size(); i++){
-    //float overallDist=0.0;
-    float dist=0.0;
+    currError = 0.0;
     for (int j = 0; j < 3; j++){
-      dist = modelArray[i](j) - matchArray[i](j);
-      errorArray[i][j]=fabs(dist);
+       currError = currError + (modelArray[i](j) - matchArray[i](j))*(modelArray[i](j) - matchArray[i](j));  
+       avgErrorVect[j] = avgErrorVect[j] + fabs(modelArray[i](j) - matchArray[i](j));
     }
+    avgError = avgError + sqrt(currError);
   }
-  return errorArray;
+
+  avgError = avgError/modelArray.size();
+  avgErrorVect = avgErrorVect/modelArray.size();
+
+  cout<<"avgErrorvect = "<<avgErrorVect<<endl;
+
+  return avgError;
 }
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 
@@ -114,28 +124,14 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
 {
 
   Matrix<float, 3, 3> rotation;
-  
+ 
   Matrix<float,3,3> A;
   Matrix<float,3,3> U;
   Vector<float,3>   s;
   Matrix<float,3,3> V;
   
   A.set_zero(); // Fill with zeros, maybe what the below meant?
-  /*
-  //compute the centroid
-  Vector3 featureCenter;
-  int numValidMatches = 0;
-  for (unsigned int i = 0; i < featureArray.size(); i++){ 
-    if ((matchArray[i][0]!=0) && (matchArray[i][1]!=0) && (matchArray[i][2]!=0)){//ignore invalid matches
-       featureCenter += featureArray[i];
-       numValidMatches++;
-    }
-  }
-
-  cout<<"NUM_VALID_MATCHES="<<numValidMatches<<endl;
-  featureCenter /= numValidMatches;
-  */
-
+  
   vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
   vw_out(vw::InfoMessage, "icp") << "  M_center: " << matchCenter   << endl;
   
@@ -159,11 +155,10 @@ Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray,
     }
   }
   
-svd(A, U, s, V);
+  svd(A, U, s, V);
 
-/* Never used? 
-Matrix<float,3,3> VT = transpose(V);
-*/
+//Never used 
+//Matrix<float,3,3> VT = transpose(V);
 
 // use Kabsch Algorithm to form the rotation matrix
 if( det(A) < 0 ){
@@ -175,9 +170,11 @@ else {
   rotation = U*V;
 }
  
-/* Never used?
-Matrix<float,3,3> id = rotation*transpose(rotation); 
-*/
+//check if this is a rotation matrix - START
+//Matrix<float,3,3> id = rotation*transpose(rotation); 
+//cout<<"identity matrix = "<<endl;
+//PrintMatrix(id);
+//check if this is a rotation matrix - END
 
 return rotation;
 }
@@ -195,6 +192,17 @@ void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matr
 
   for (unsigned int i=0; i < featureArray.size(); i++){
     featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
+  }
+
+ 
+}
+//applies a 3D rotation and transform to a DEM
+void  TransformFeatures(vector<Vector3> &featureArray, Vector3 featureCenter, Vector3 translation, Matrix<float,3,3> rotation)
+{
+
+  for (unsigned int i=0; i < featureArray.size(); i++){
+    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
+    //featureArray[i] = rotation*(featureArray[i]) + translation; 
   }
 
  

@@ -42,12 +42,16 @@ typedef struct tilingParams
   int back_yb;
   int horTileIndex;
   int verTileIndex;
+  string filename;
+  string pcFilename;
 };
+
 
 template <class ViewT1, class ViewT2 >
 void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
 			  ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo, 
-			  int tileSize, Vector2 offsetPix, std::vector<struct tilingParams> &tileParamsArray)
+			  Vector2 bestDeltaLonLat, int tileSize, Vector2 offsetPix, Vector4 paddingParams, 
+                          std::vector<struct tilingParams> &tileParamsArray)
 {
 
 
@@ -102,8 +106,8 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
 	  //get the coordinates
 	  Vector2 forePix(i,j);
 	  Vector2 fore_lon_lat = foreGeo.pixel_to_lonlat(forePix);
-	  fore_lon_lat(0)=fore_lon_lat(0);//+bestDeltaLonLat(0);
-	  fore_lon_lat(1)=fore_lon_lat(1);//+bestDeltaLonLat(1);
+	  fore_lon_lat(0)=fore_lon_lat(0)+bestDeltaLonLat(0);
+	  fore_lon_lat(1)=fore_lon_lat(1)+bestDeltaLonLat(1);
 
           if (fore_lon_lat(0) < minLon){
 	    minLon = fore_lon_lat(0);
@@ -167,10 +171,10 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   float numPyramidLevels = ceil(log2(backUpsamplingFactor))-1;
   cout<<"numPyramidLevels="<<numPyramidLevels<<endl;
 
-  float leftNumPixPadding = 1;
-  float rightNumPixPadding = 1;
-  float topNumPixPadding = 1;
-  float bottomNumPixPadding = 1;
+  float leftNumPixPadding = paddingParams(0);
+  float topNumPixPadding = paddingParams(1);
+  float rightNumPixPadding = paddingParams(2);
+  float bottomNumPixPadding = paddingParams(3);
 
   int horTileIndex, verTileIndex;
 
@@ -179,16 +183,35 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
     verTileIndex = topLeftTile(1);
     for (int j = topLeftPix(1); j < bottomRightPix(1); j = j + tileSize){
 	tilingParams thisTileParams;
-        thisTileParams.backUpsampleFactor = pow(2, numPyramidLevels);
-	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
+   
         thisTileParams.back_xl = i - leftNumPixPadding;
         thisTileParams.back_xr = i + tileSize + rightNumPixPadding;
         thisTileParams.back_yt = j - topNumPixPadding;
         thisTileParams.back_yb = j + tileSize + bottomNumPixPadding;
         thisTileParams.horTileIndex = horTileIndex;
 	thisTileParams.verTileIndex = verTileIndex;
-        tileParamsArray.push_back(thisTileParams);
 	
+	stringstream ss;
+	ss<<tileParamsArray[i].horTileIndex<<"_"<<tileParamsArray[i].verTileIndex;
+	string assembledDEMFilename =  /*resDir+"/"+*/"assembled_"+ss.str()+"_dem.tif";
+	cout<<assembledDEMFilename<<endl;
+	string assembledPCFilename =  /*resDir+"/"+*/"assembled_"+ss.str()+"_pc.txt";
+
+        thisTileParams.filename = assembledDEMFilename;
+	thisTileParams.pcFilename = assembledPCFilename;
+        //if (file exists)
+	thisTileParams.backUpsampleFactor = pow(2, numPyramidLevels);
+	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
+	//else
+	//thisTileParams.backUpsampleFactor = 1;
+	//thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
+	//thisTileParams.back_xl = 0;
+        //thisTileParams.back_xr = tileSize + leftNumPixPadding + rightNumPixPadding;
+        //thisTileParams.back_yt = 0;
+        //thisTileParams.back_yb = tileSize + topNumPixPadding + bottomNumPixPadding;
+
+        tileParamsArray.push_back(thisTileParams);
+             
         cout<<"xl="<<thisTileParams.back_xl<<endl;
         cout<<"xr="<<thisTileParams.back_xr<<endl;
         cout<<"yt="<<thisTileParams.back_yt<<endl;
@@ -209,7 +232,7 @@ void ComputeBoundariesDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
 template <class ViewT1, class ViewT2 >
 void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
 			  ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo, 
-			  int tileSize, Vector2 offsetPix, vector<struct tilingParams> &tileParamsArray)
+			  int tileSize, Vector2 offsetPix, Vector4 paddingParams,  vector<struct tilingParams> &tileParamsArray)
 {
 
 
@@ -336,10 +359,10 @@ void ComputeBoundariesDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReferenc
   float numPyramidLevels = ceil(log2(backUpsamplingFactor))-1;
   cout<<"numPyramidLevels="<<numPyramidLevels<<endl;
 
-  float leftNumPixPadding = 1;
-  float rightNumPixPadding = 2;
-  float topNumPixPadding = 1;
-  float bottomNumPixPadding = 2;
+  float leftNumPixPadding = paddingParams(0);//1;
+  float topNumPixPadding = paddingParams(1);//1;
+  float rightNumPixPadding = paddingParams(2);//2;
+  float bottomNumPixPadding = paddingParams(3);//2;
  
   int horTileIndex, verTileIndex;
   horTileIndex = topLeftTile(0); 
@@ -531,10 +554,10 @@ template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
                     ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                    string assembledImgFilename, Vector3 translation, Matrix<float,3,3>rotation, 
+                    string assembledImgFilename, string assembledAccFilename, 
+                    Vector3 translation, Matrix<float,3,3>rotation, 
                     Vector3 center, Vector2 bestDeltaLonLat, struct tilingParams &tileParams)
 {
- 
 
   InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<typename ViewT1::pixel_type>, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> foreImg
     = interpolate(edge_extend(orig_foreImg.impl(),ConstantEdgeExtension()), BilinearInterpolation());
@@ -550,8 +573,7 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
   Matrix<double> H;
   ImageView<typename ViewT2::pixel_type> assembledImg(assembledWidth, assembledHeight);
   int upsampleRatioBackImg = tileParams.backUpsampleFactor;
-  //END HERE
-  
+ 
   H = backGeo.transform();
   //lon = H(0,0)*i+0*j + H(0,2)
   //lat = 0*i+H(1,1)*j + H(1,2)
@@ -577,13 +599,51 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
   GeoReference assembledGeo = backGeo; 
   assembledGeo.set_transform(H);
 
+  //create or read the accuracy file
+  ImageView<float> assembledAcc (assembledWidth, assembledHeight);
+  ifstream ifile(assembledAccFilename.c_str());
+  if (!ifile) {
+    cout<<"writting the accuracy file"<<endl;
+    for (int j = 0; j < assembledHeight; j++){
+       for (int i = 0; i < assembledWidth; i++){
+	 assembledAcc(i,j) = 1.0;
+       }
+    }
+    //save the assembled accuracy file
+    write_georeferenced_image(assembledAccFilename,
+                             assembledAcc,
+                             assembledGeo, TerminalProgressCallback("{Core}","Processing:"));
+
+  }
+
+  //open background accuracy file
+  cout<<"opening"<<assembledAccFilename<<"..."<<endl; 
+  DiskImageView<float> backAcc(assembledAccFilename);  
+  //GeoReference backAccGeo;
+  //read_georeference(backAccGeo, assembledAccFilename);
+  
   typedef typename PixelChannelType<typename ViewT2::pixel_type>::type channel_type;
 
   int num_channels = PixelNumChannels<typename ViewT1::pixel_type>::value;
   cout << "num_channels = "<< num_channels << "\n";
   
   //copy the background image to the assembled image.
+  cout<<"****center="<<center<<endl;
+  
+  //determine the pixel where is the rover - START
+  Vector2 camPoint;
+  camPoint(0) = 0;
+  camPoint(1) = 0;
+  Vector2 camPix;
+  camPix = foreGeo.point_to_pixel(camPoint);
+  cout<<camPix<<endl;
+  Vector2 camLonLat;
+  camLonLat = foreGeo.point_to_lonlat(camPoint);
+  cout<<camLonLat<<endl;
+  //determine the pixel where is the rover - END
 
+  float minDist = 1000000.0;
+  float maxDist = 0.0;
   for (int j = 0; j < assembledHeight; j++){
     for (int i = 0; i < assembledWidth; i++){
       
@@ -597,43 +657,75 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
       Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
       
       Vector2 fore_lonlat;
-      fore_lonlat(0) = back_lonlat(0)-bestDeltaLonLat(0);
-      fore_lonlat(1) = back_lonlat(1)-bestDeltaLonLat(1);
+      fore_lonlat(0) = back_lonlat(0) - bestDeltaLonLat(0);
+      fore_lonlat(1) = back_lonlat(1) - bestDeltaLonLat(1);
       
       Vector2 forePix;
       forePix = foreGeo.lonlat_to_pixel(fore_lonlat);
       
+      Vector2 forePoint;
+      forePoint = foreGeo.pixel_to_point(forePix);
+     
       Vector3 fore_lonlat_rad;
       fore_lonlat_rad[0]=fore_lonlat[0];
       fore_lonlat_rad[1]=fore_lonlat[1];
       fore_lonlat_rad[2]=foreImg.impl()(forePix[0], forePix[1]);
-      
+   
       //transform in xyz coords
       Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat_rad);
       
       //transform using new rotation and translation-translation only for now.
-      Vector3 transf_fore_xyz = rotation*(fore_xyz/*-foreCenter_xyz*/)+translation/*+foreCenter_xyz*/;   
+      Vector3 transf_fore_xyz = rotation*(fore_xyz-center)+translation+center;   
       //Vector3 transf_fore_xyz = fore_xyz + translation;
       
       //transform back in spherical coords
       Vector3 transf_fore_lon_lat_rad = foreGeo.datum().cartesian_to_geodetic(transf_fore_xyz);
-        
+      
+      float backAccuracy = backAcc(i,j);//1; //1m/pixel HIRISE accuracy
+
       if ((isnan(foreImg.impl()(forePix[0], forePix[1]))!=FP_NAN) && (foreImg.impl()(forePix[0], forePix[1])) != 0)  {   
-	assembledImg.impl()(i,j) = transf_fore_lon_lat_rad(2);
+	//determine distance from camera to current pixel
+        //cout<<"forePoint="<<forePoint<<endl;
+        float distToCam = sqrt(forePoint(0)*forePoint(0) + forePoint(1)*forePoint(1));
+        float foreWeight = 0.5;
+        
+        //delta_d = 43 micro, f = 43mm, b = 0.3m
+        float foreAccuracy = distToCam*distToCam/300.0; ///delta_r = r*r*delta_d/(b*f)
+        foreWeight = backAccuracy/(foreAccuracy+backAccuracy);
+
+        if (distToCam < minDist){
+	  minDist = distToCam;
+        }
+	if (distToCam > maxDist){
+	  maxDist = distToCam;
+        }
+        //cout<<"distToCam="<<distToCam<<endl; 
+        
+	//assembledImg.impl()(i,j) = transf_fore_lon_lat_rad(2);
+	
+	assembledImg.impl()(i,j) = foreWeight*(transf_fore_lon_lat_rad(2)) + (1-foreWeight)*backImg.impl()(backPix[0], backPix[1]);
+        assembledAcc(i,j) = 1/(foreWeight*(1/foreAccuracy) + (1-foreWeight)*(1/backAccuracy)); 
       }
       else{
 	assembledImg.impl()(i,j) = backImg.impl()(backPix[0], backPix[1]);
+        assembledAcc(i,j) = backAccuracy;
       }
   
     }
   }
-  
+  cout<<"*******minDist="<<minDist<<", maxDist="<<maxDist<<endl;
   cout<<"translation"<<translation<<endl;
 
   write_georeferenced_image(assembledImgFilename,
                             assembledImg,
                             assembledGeo, TerminalProgressCallback("{Core}","Processing:"));
- 
+
+  
+  //save assembled DEM accuracy as well 
+  write_georeferenced_image(assembledAccFilename,
+                            assembledAcc,
+                            assembledGeo, TerminalProgressCallback("{Core}","Processing:"));
+  
 }
 
 //overlays the foreground image on the top of the background image

@@ -37,6 +37,44 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+
+void SaveAssembledPC(string DEMFilename, string assembledPCFilename)
+{
+  cout<<"Saving the PC to file ..."<<endl;
+  
+  DiskImageView<float>   DEM(DEMFilename);
+  GeoReference Geo;
+  read_georeference(Geo, DEMFilename);
+  int verStep = 20;
+  int horStep = 20;
+  float noDataVal = -37687.0;
+  
+ 
+  ImageViewRef<float>interpDEM = interpolate(edge_extend(DEM.impl(),
+							 ConstantEdgeExtension()),
+					     BilinearInterpolation());
+
+  Vector2 pix_0(0,0);
+  Vector2 lonlat_0= Geo.pixel_to_lonlat(pix_0);
+  Vector3 lonlat3_0(lonlat_0(0), lonlat_0(1), (interpDEM.impl())(0,0));
+  Vector3 xyz_0 = Geo.datum().geodetic_to_cartesian(lonlat3_0);
+  
+  FILE* fp = fopen(assembledPCFilename.c_str(), "wt");
+   
+  for (int j = 0; j < DEM.impl().rows(); j=j+verStep){
+    for (int i = 0; i < DEM.impl().cols(); i=i+horStep){
+      if ((isnan(DEM.impl()(i,j))!=FP_NAN) && (DEM.impl()(i,j)) != -noDataVal)  {
+	Vector2 pix(i,j);
+	Vector2 lonlat = Geo.pixel_to_lonlat(pix);
+	Vector3 lonlat3(lonlat(0), lonlat(1), (interpDEM.impl())(i,j));
+	Vector3 xyz = Geo.datum().geodetic_to_cartesian(lonlat3);
+	fprintf(fp, "%f %f %f\n", xyz[0]-xyz_0[0], xyz[1]-xyz_0[1], xyz[2]-xyz_0[2]);
+      }
+    }
+  }
+
+  fclose(fp);
+}
 int main( int argc, char *argv[] ) {
    
   std::string foreFile;
@@ -109,51 +147,62 @@ int main( int argc, char *argv[] ) {
   std::cerr << settings << endl;
   
   Vector3 translation;
+
   Matrix<float, 3,3 > rotation;
   rotation[0][0]=1.0;
   rotation[1][1]=1.0;
   rotation[2][2]=1.0;
 
   Vector3 center;
+
   Vector2 bestDeltaLonLat;
-  
   bestDeltaLonLat(0)=0;
   bestDeltaLonLat(1)=0;
 
   if ((mode.compare("DEM")==0) || (mode.compare("DEM_DRG")==0) ){
-    string backDEMFilename = backFile;
-    string foreDEMFilename = foreFile;
-    //string assembledDEMFilename = resDir+"/assembled_dem.tif";
-   
+    string backDEMFilename = backFile;//"../MSLData/Mars/MER_HIRISE/DTEEC_001513_1655_001777_1650_U01.tif";
+    string foreDEMFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Height-Sol-855.tif";
+
     //large image low res - background
     cout<<"opening"<<backDEMFilename<<"..."<<endl; 
     DiskImageView<float>   backDEM(backDEMFilename);
     GeoReference backDEMGeo;
     read_georeference(backDEMGeo, backDEMFilename);
-        
+    
     //small image high res - foreground
     cout<<"opening"<<foreDEMFilename<<"..."<<endl;  
     DiskImageView<float>  foreDEM(foreDEMFilename);
-    cout<<"done."<<endl;
-
-    cout<<"opening georeference for "<<foreDEMFilename<<"..."<<endl;  
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
-    cout<<"done"<<endl;
  
     float minMatchError = 100000000.0;
     
+    /*
+    //test code to determine the offset in number of background pixels for a specific lon lat offset - START
+    //determine  a reasonable pixel location;
+    Vector2 centerPixel;
+    centerPixel(0) = backDEM.cols()/2;
+    centerPixel(1) = backDEM.rows()/2;
+    Vector2 origLonLat = backDEMGeo.pixel_to_lonlat(centerPixel);
+    Vector2 origPixel = backDEMGeo.lonlat_to_pixel(origLonLat);
+    Vector2 deltaLonLat(0.0001,0.0001);
+    Vector2 newLonLat = origLonLat + deltaLonLat;
+    Vector2 newPixel = backDEMGeo.lonlat_to_pixel(newLonLat);
+    Vector2 deltaPixel = newPixel-origPixel;
+    cout<<"deltaPixel = "<<deltaPixel<<endl;
+    //test code to determine the offset in number of background pixels for a specific lon lat offset - END 
+    */
     if (settings.matchingMode != 0){
        
-       Vector2 delta_lonlat; 
-       
+       float matchError;
+       Vector2 delta_lonlat;        
        int numVerRestarts = sqrt(settings.maxNumStarts); 
        int numHorRestarts = sqrt(settings.maxNumStarts);
       
        for (int k = -(numVerRestarts-1)/2; k < (numVerRestarts+1)/2; k++){
-	   delta_lonlat(0) = k*0.001; 
+	 delta_lonlat(0) = k*0.0001; //~5 meters increments
 	   for (int l = -(numHorRestarts-1)/2; l < (numHorRestarts+1)/2; l++){
-	       delta_lonlat(1) = l*0.001;
+	     delta_lonlat(1) = l*0.0001; //~5 meters increments
                cout<<"k ="<<k<<", l="<<l<<endl; 
 	       cout<<"Feature extraction ..."<<endl;
 	       vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, 
@@ -166,15 +215,16 @@ int main( int argc, char *argv[] ) {
                Matrix<float, 3,3 > currRotation;
 	       cout<<"running ICP"<<endl;
                ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
-		             currTranslation, currRotation, center, errorArray);
+		             currTranslation, currRotation, center, matchError/*errorArray*/);
                cout<<"done."<<endl;
-                
+               /* 
 	       float matchError = 0;
 	       for (int m = 0; m < errorArray.size(); m++){
 		 matchError = matchError+errorArray[m];
 	       }
 	       matchError = matchError/errorArray.size();
                cout<<"currMatchError="<<matchError<<", minMatchError="<<minMatchError<<endl;
+               */
 
 	       if (matchError < minMatchError){
 		  minMatchError = matchError;
@@ -186,8 +236,6 @@ int main( int argc, char *argv[] ) {
 	 }
        }
        
-       //bestDeltaLonLat(0) = 0.002;
-       //bestDeltaLonLat(1) = 0.002;
     }
     
     cout<<"minMatchError "<<minMatchError<<endl;
@@ -199,36 +247,54 @@ int main( int argc, char *argv[] ) {
     vector<struct tilingParams> tileParamsArray;
     int tileSize = 128;
     int numTiles = 128;
+    Vector4 paddingParams;
+    paddingParams(0) = 1;//left
+    paddingParams(1) = 1;//top
+    paddingParams(2) = 1;//right
+    paddingParams(3) = 1;//bottom
+    
     Vector2 DEMOffset;
     DEMOffset(0) = (tileSize*numTiles - backDEM.cols())/2;
     DEMOffset(1) = (tileSize*numTiles - backDEM.rows())/2;
     cout<<"DEMOffset="<<DEMOffset<<endl;
 
-    ComputeBoundariesDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, tileSize, DEMOffset, tileParamsArray);
+    ComputeBoundariesDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, bestDeltaLonLat, tileSize, DEMOffset, paddingParams, tileParamsArray);
+    
     for (int i= 0; i <tileParamsArray.size(); i++){
         stringstream ss;
         ss<<tileParamsArray[i].horTileIndex<<"_"<<tileParamsArray[i].verTileIndex;
-        //ss<<tileParamsArray[i].verTileIndex;
-
 	string assembledDEMFilename =  resDir+"/assembled_"+ss.str()+"_dem.tif";
         cout<<assembledDEMFilename<<endl;
-	ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
+        
+	string assembledAccFilename =  resDir+"/assembled_"+ss.str()+"_acc.tif";
+        cout<<assembledDEMFilename<<endl;
+
+	ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, assembledAccFilename, 
 			    translation, rotation, center, bestDeltaLonLat, tileParamsArray[i]);   
+	
+        //Save the assembled DEM to PointCloud file such that it can be displayed with pc_vis
+	//used for debug only
+	string assembledPCFilename =  resDir+"/assembled_"+ss.str()+"_pc.txt";
+        cout<<assembledPCFilename<<endl;
+        SaveAssembledPC(assembledDEMFilename, assembledPCFilename);
     }
-    //ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assembledDEMFilename, 
-    //                    translation, rotation, center, bestDeltaLonLat, tileParams);    
+   
   }
 
   //DRG assembler
   if (mode.compare("DRG")==0){
   
-      string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
-      string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-mod.tif";
+      string backDRGFilename = backFile;//"../MSLData/Mars/MER_HIRISE/DT1EA_001513_1655_001777_1650_U01.tif";
+      string foreDRGFilename = foreFile;//"../MSLData/Mars/MER_HIRISE/Photo-Sol-855.tif";
       int tileSize = 512;
       int numTiles = 128;
-      Vector2 DRGOffset;
       Vector4 paddingParams;
+      paddingParams(0) = 1;//left 
+      paddingParams(1) = 1;//top 
+      paddingParams(2) = 2;//right
+      paddingParams(3) = 2;//bottom
 
+      Vector2 DRGOffset;
       //small image high res - foreground 
       //DiskImageView<PixelRGB<uint8> >  backDRG(backDRGFilename);
       DiskImageView<PixelGray<uint8> >  backDRG(backDRGFilename);
@@ -248,10 +314,9 @@ int main( int argc, char *argv[] ) {
    
       vector<struct tilingParams> tileParamsArray;
       
-      ComputeBoundariesDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, tileSize, DRGOffset, tileParamsArray);
+      ComputeBoundariesDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, tileSize, DRGOffset, paddingParams, tileParamsArray);
       for (int i= 0; i <tileParamsArray.size(); i++){
         stringstream ss;
-        //ss<<i;
         ss<<tileParamsArray[i].horTileIndex<<"_"<<tileParamsArray[i].verTileIndex;
 	string assembledDRGFilename =  resDir+"/assembled_"+ss.str()+"_drg.tif";
         cout<<assembledDRGFilename<<endl;
