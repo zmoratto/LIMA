@@ -186,7 +186,7 @@ int main( int argc, char *argv[] )
      numOverlappingDEMs = (int)overlapIndices.size();
   }
   cout<<"numOverlapDEMs="<<numOverlappingDEMs<<endl;
-  cout<<"done."<<endl;
+  cout<<"done determining the overlapping DEMs."<<endl;
   //determine the overlapping DEMs - END
    
   for (int index = 0; index < numOverlappingDEMs; index++){
@@ -253,9 +253,10 @@ int main( int argc, char *argv[] )
 	  model = trackPts[k][i].LOLAPt[2];
 	  model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
           
-	  if ((model[0] >1e-100) && (model[1] > 1e-100) && (model[2]>1e-100) && 
-              (model[0] < 360) && (model[0] > -180) && 
-              (model[2] > 1720000) && (model[2] < 1750000)){//this should go into the LOLA reader 
+	  if ( ( trackPts[k][i].DEMPt[0].val > 0 ) &&
+           (model.x() <= 360) && (model.x() >= -180) && 
+           (model.y() <= 90) && (model.y() >= -90) && 
+           (model.z() > 1720000) && (model.z() < 1750000)){//this should go into the LOLA reader 
 	    if (verbose > 1){ 
 	      cout<<"altitude="<<model[2]<<", dem="<< trackPts[k][i].DEMPt[0].val<<endl; 
 	    }

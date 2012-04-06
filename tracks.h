@@ -328,21 +328,9 @@ GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
   float radius = DEMGeo.datum().semi_major_axis();
   
   //determine the minmx value of the DEM - START
-  int width = DEM.impl().cols();
-  int height = DEM.impl().rows();
   float minVal = 100000000.0;
   float maxVal = -100000000.0;
-  for (int i = 0; i < height; i++){
-    for (int j = 0; j < width; j++){
-      
-      if ((DEM.impl()(j,i) < minVal) && (DEM.impl()(j,i) > noDEMVal)){
-	minVal = DEM.impl()(j,i);
-      }
-      if ((DEM.impl()(j,i) > maxVal) && (DEM.impl()(j,i) > noDEMVal)){
-	maxVal = DEM.impl()(j,i);
-      }
-    }
-  }
+  min_max_pixel_values( create_mask(DEM,noDEMVal), minVal, maxVal );
 
   cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
   //determine the minmx value of the DEM - END

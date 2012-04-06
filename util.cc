@@ -86,7 +86,7 @@ void PrintOverlapList(std::vector<int>  overlapIndices)
 {
   printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
     for (unsigned int i = 0; i < overlapIndices.size(); i++){
-      printf("%d ", overlapIndices[i]);
+      printf("index: %d \n", overlapIndices[i]);
     }
 }
 
