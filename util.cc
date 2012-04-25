@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem.hpp>
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -20,6 +21,8 @@
 #include <asp/IsisIO/IsisCameraModel.h>
 
 #include "util.h"
+
+namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::math;
@@ -561,30 +564,25 @@ vector<string> ReadFileList( const string& filepath ) {
   return fileArray;
 }
 
+vector<string> AccessDataFilesFromInput(const string& inputFile) {
+  const vector<string> v(1,inputFile);
+  return AccessDataFilesFromInput( v );
+}
 
-vector<string> AccessDataFilesFromInput(vector<string> &inputFiles)
-{
-  int numInputFiles = inputFiles.size();
-  vector<string> files;
-  
-  if( numInputFiles == 1) {
-     string inputFileExtension = GetFilenameExt(inputFiles[0]);
-     cout<<inputFileExtension<<endl;
-     if (inputFileExtension.compare(string("txt")) ==0){
-        ReadFileList(inputFiles[0], files);
-     }
-     else{
-       files.resize(1);
-       files[0] = inputFiles[0]; 
-     }
-     
+vector<string> AccessDataFilesFromInput(const vector<string>& inputFiles) {
+  vector<string> v;
+  if( inputFiles.empty() ){ 
+    vw_throw( ArgumentErr() << "There are no input files to read." );
   }
-  if  ( numInputFiles > 1) {
-       files.resize(numInputFiles);
-       for (int i = 0; i < numInputFiles; i++){
-	 files[i] = inputFiles[i]; 
-         cout<<files[i]<<endl;
-       }
+  for( vector<string>::const_iterator i = inputFiles.begin();
+       i != inputFiles.end();
+       ++i ){
+    fs::path p( *i );
+    if( p.extension() == string(".txt") ){
+      vector<string> list = ReadFileList(p.string());
+      v.insert( v.end(), list.begin(), list.end() );
+    }
+    else{ v.push_back( *i ); }
   }
-  return files;
+  return v;
 }

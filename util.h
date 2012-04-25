@@ -37,7 +37,8 @@ void ReadFileList( const std::string&, std::vector<std::string>& );
 
 //determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
 //by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 
-vector<string> AccessDataFilesFromInput(vector<string> &inputFiles);
+std::vector<std::string> AccessDataFilesFromInput(const std::string& );
+std::vector<std::string> AccessDataFilesFromInput(const std::vector<std::string>& );
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
