@@ -1,7 +1,7 @@
 # GNU Makefile
 
-#include ../makefile.ross
-include ../makefile.obs
+include ../makefile.ross
+#include ../makefile.obs
 
 tests = Test_util
 
