@@ -1,0 +1,14 @@
+# GNU Makefile
+
+#include ../makefile.ross
+include ../makefile.obs
+
+tests = Test_util
+
+test: $(tests)
+
+Test_util: ../util.o Test_util.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
+
+clean:
+	rm -f $(tests) *.o

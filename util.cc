@@ -546,8 +546,7 @@ void ReadFileList(string fileListFilename, vector<string> &fileArray)
  file.open(fileListFilename.c_str());
  string filename;
  if (file.is_open()) {
-    while (!file.eof()) {
-      file >> filename;
+    while( file >> filename ) {
       fileArray.push_back(filename);
       cout<<filename<<endl;
     }
