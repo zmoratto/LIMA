@@ -32,7 +32,8 @@ int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 Vector4 ComputeGeoBoundary(string cubFilename);
 
 
-void ReadFileList(string camFileListFilename, vector<string> &camFileArray);
+std::vector<std::string> ReadFileList( const std::string& );
+void ReadFileList( const std::string&, std::vector<std::string>& );
 
 //determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
 //by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 

@@ -538,22 +538,29 @@ void ReadStatistics (const string& filename, vector<int>& hist,
   file.close();
     
 }
-// this should be moved to util
-void ReadFileList(string fileListFilename, vector<string> &fileArray)
-{
 
- ifstream file;
- file.open(fileListFilename.c_str());
- string filename;
- if (file.is_open()) {
-    while( file >> filename ) {
-      fileArray.push_back(filename);
-      cout<<filename<<endl;
-    }
+
+
+void ReadFileList( const string& filepath, vector<string>& fileArray ) {
+  fileArray.clear();
+  fileArray = ReadFileList( filepath );
+  return;
+}
+
+vector<string> ReadFileList( const string& filepath ) {
+  ifstream file( filepath.c_str() );
+  if (!file){
+     vw_throw( ArgumentErr() << "Can't open file " << filepath );
   }
+
+  vector<string> fileArray;
+  string readfile;
+  while( file >> readfile ){ fileArray.push_back(readfile); }
   file.close();
 
+  return fileArray;
 }
+
 
 vector<string> AccessDataFilesFromInput(vector<string> &inputFiles)
 {
