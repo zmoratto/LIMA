@@ -137,8 +137,7 @@ Vector4 ComputeGeoTiffBoundary(string filename)
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
-Vector4 ComputeGeoBoundary(string cubFilename)
-{
+Vector4 ComputeGeoBoundary( const string& cubFilename ){
   GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
   boost::shared_ptr<IsisCameraModel> isiscam( new IsisCameraModel( cubFilename ) );
   BBox2 camera_boundary =

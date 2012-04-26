@@ -171,7 +171,8 @@ TEST_F( AccessDataFilesFromInputTest, multipleElementsWFileName ) {
 }
 
 TEST( ComputeGeoBoundary_Test, temporary ) {
-  Vector4 test = ComputeGeoBoundary( "AS15-M-2327.lev1.500.cub" );
+  string filename( "AS15-M-2327.lev1.500.cub" );
+  Vector4 test = ComputeGeoBoundary( filename );
   unsigned int four = 4;
   ASSERT_EQ(four, test.size()) << "Vectors are of unequal length";
 

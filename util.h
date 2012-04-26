@@ -29,7 +29,7 @@ int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
-Vector4 ComputeGeoBoundary(string cubFilename);
+vw::Vector4 ComputeGeoBoundary( const std::string& );
 
 
 std::vector<std::string> ReadFileList( const std::string& );
