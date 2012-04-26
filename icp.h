@@ -360,7 +360,7 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    xyzMatchArray,
    
   vector<Vector3> translationArray;
   vector<Matrix<float, 3,3> > rotationArray;
-  vector<Vector3> xyz3DErrorArray;
+  //vector<Vector3> xyz3DErrorArray;
   int numIter = 0;
   float avgMatchError = std::numeric_limits<float>::max();
   //rotationArray.clear();
@@ -375,7 +375,7 @@ ICP_LIDAR_2_DEM(vector<Vector3>& 	    xyzMatchArray,
 		       settings.matchWindowHalfSize);
     
     vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-    xyz3DErrorArray = ComputeMatchingError3D(xyzModelArray, xyzMatchArray);
+    //xyz3DErrorArray = ComputeMatchingError3D(xyzModelArray, xyzMatchArray);
     xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
     avgMatchError = xyzErrorArray.sum()/xyzErrorArray.size();
     cout<<"avgMatchError="<<avgMatchError<<endl;
