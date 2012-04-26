@@ -13,9 +13,7 @@
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
-#include "match.h"
 #include "coregister.h"
-#include "display.h"
 #include "util.h"
 #include "tracks.h"
 
