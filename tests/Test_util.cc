@@ -170,6 +170,24 @@ TEST_F( AccessDataFilesFromInputTest, multipleElementsWFileName ) {
   }
 }
 
+TEST( ComputeGeoBoundary_Test, temporary ) {
+  Vector4 test = ComputeGeoBoundary( "AS15-M-2327.lev1.500.cub" );
+  unsigned int four = 4;
+  ASSERT_EQ(four, test.size()) << "Vectors are of unequal length";
+
+  float minLon = test(0);
+  float maxLon = test(1);
+  float minLat = test(2);
+  float maxLat = test(3);
+
+  //  cout << test << endl;
+  // Vector4(-31.2156,-24.3621,25.4635,31.4475)
+  EXPECT_NEAR(-31.2156,minLon,0.0001) << "Minimum Longitude is incorrect."; 
+  EXPECT_NEAR(-24.3621,maxLon,0.0001) << "Maximum Longitude is incorrect."; 
+  EXPECT_NEAR( 25.4635,minLat,0.0001) << "Minimum Latitude is incorrect."; 
+  EXPECT_NEAR( 31.4475,maxLat,0.0001) << "Maximum Latitude is incorrect."; 
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
