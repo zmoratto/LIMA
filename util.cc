@@ -260,43 +260,38 @@ int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
    }
 }
 
-void SaveDEMErrors( const string& filename, 
-		  const vector<Vector3>& locations, 
-		  const valarray<float>& errors,
-		  const vector<string>&  titles,
-		  const string& separator,
-		  const string& commentor)
-{
-
-   ofstream file( filename.c_str() );
+void SaveDEMErrors( const string&          filename, 
+                    const vector<Vector3>& locations, 
+                    const valarray<float>& errors,
+                    const vector<string>&  titles,
+                    const string&          separator,
+                    const string&          commentor) {
+  ofstream file( filename.c_str() );
    
-   if( !file ) {
-     vw_throw( ArgumentErr() << "Can't open error output file \"" << filename << "\"" );
-   }
-   
-   if( locations.size() != errors.size() ) {
-     vw_throw( ArgumentErr() 
-	       << "The there are a different number of locations (" 
-	       << locations.size() << ") than errors (" 
-	       << errors.size() <<") which is a problem." );
-   }
-   
-   if( titles.size() > 0 ){
-     file << commentor << " ";
-     string title = boost::join( titles, separator );
-     file << title << endl;
-   }
-   
-   for( unsigned int i = 0; i < locations.size(); i++ ){
-     file  << locations[i].x() << separator
-	   << locations[i].y() << separator
-	   << fixed
-	   << locations[i].z() << separator
-	   << errors[i] << endl;
+  if( !file ) {
+    vw_throw( ArgumentErr() << "Can't open error output file \"" << filename << "\"" );
   }
    
+  if( locations.size() != errors.size() ) {
+    vw_throw( ArgumentErr() << "The there are a different number of locations (" 
+                            << locations.size() << ") than errors (" 
+                            << errors.size() <<") which is a problem." );
+  }
    
-   file.close();
+  if( titles.size() > 0 ){
+    file << commentor << " ";
+    string title = boost::join( titles, separator );
+    file << title << endl;
+  }
+   
+  for( unsigned int i = 0; i < locations.size(); i++ ){
+    file << locations[i].x() << separator
+         << locations[i].y() << separator
+         << fixed
+         << locations[i].z() << separator
+         << errors[i] << endl;
+  }
+  file.close();
 }
 
 
