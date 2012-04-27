@@ -253,7 +253,7 @@ void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
    ofstream file( filename.c_str() );
    //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
    if (overlapIndices.size() > 0){
-     for (int i = 0; i < overlapIndices.size()-1; i++){
+     for (unsigned int i = 0; i < overlapIndices.size()-1; i++){
        file<<overlapIndices[i]<<endl;
      }
      file<<overlapIndices[overlapIndices.size()-1];
@@ -269,7 +269,7 @@ void SaveOverlapList(string filename, std::vector<std::string> &filenames)
    ofstream file( filename.c_str() );
    //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
    if (filenames.size() > 0){
-     for (int i = 0; i < filenames.size()-1; i++){
+     for (unsigned int i = 0; i < filenames.size()-1; i++){
        file<<filenames[i]<<endl;
      }
      file<<filenames[filenames.size()-1];
@@ -359,7 +359,6 @@ void SaveStatistics (const string& filename, const vector<float>& errors, const 
       if (errors[i]<0){
 	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
       }
-      float stdv;
 
       if (errors[i]>=0){
      
@@ -369,7 +368,7 @@ void SaveStatistics (const string& filename, const vector<float>& errors, const 
         numValidPts++;
         
         //update the bins
-        for (int k = 0; k < histBins.size(); k++){
+        for (unsigned int k = 0; k < histBins.size(); k++){
 	  if ((stdv>histBins[k]) && (stdv<= histBins[k+1])){
 	    errorHist[k]++;
            }
@@ -428,7 +427,6 @@ void SaveStatistics (const string& filename, const valarray<float>& errors, cons
       if (errors[i]<0){
 	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
       }
-      float stdv;
 
       if (errors[i]>=0){
      
@@ -438,7 +436,7 @@ void SaveStatistics (const string& filename, const valarray<float>& errors, cons
         numValidPts++;
         
         //update the bins
-        for (int k = 0; k < histBins.size(); k++){
+        for (unsigned int k = 0; k < histBins.size(); k++){
 	  if ((stdv>histBins[k]) && (stdv<= histBins[k+1])){
 	    errorHist[k]++;
            }
