@@ -199,53 +199,11 @@ std::vector<int> makeOverlapList( const std::vector<std::string>& inputFiles,
   return makeOverlapList( inputFiles, bbox );
 }
 
-//this function determines the image overlap for the general case
-//it takes into consideration any set of overlapping images.
-std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles, Vector4 currCorners) 
-{  
-  std::vector<int> overlapIndices;
- 
-  for (unsigned int i = 0; i < inputFiles.size(); i++){
-
-       int lonOverlap = 0;
-       int latOverlap = 0; 
-     
-       Vector4 corners = ComputeGeoTiffBoundary(inputFiles[i]);
-       //corners(0) = minLon;
-       //corners(1) = maxLon;
-       //corners(2) = minLat;
-       //corners(3) = maxLat;
-
-       printf("query corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
-       printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
-
-       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
-	  ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1))) //maxlon corners in interval of currCorners
-          ||((currCorners(0)>corners(0)) && (currCorners(0)<corners(1)))
-          ||((currCorners(1)>corners(0)) && (currCorners(1)<corners(1)))) 
-            
-       {
-         lonOverlap = 1;
-       }
-       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat corners in interval of currCorners
-	  ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3))) //maxlat corners in interval of currCorners
-          ||((currCorners(2)>corners(2)) && (currCorners(2)<corners(3))) //minlat corners in interval of currCorners
-	  ||((currCorners(3)>corners(2)) && (currCorners(3)<corners(3)))) //maxlat corners in interval of currCorners
-	
-       { 
-         latOverlap = 1;
-       }
-    
-       cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
-       cout<<"-----------------------------------------"<<endl;
-
-       if ((lonOverlap == 1) && (latOverlap == 1)){
-           overlapIndices.push_back(i);
-       }
-  }
-
-  //cout<<overlapIndices<<endl;
-  return overlapIndices;
+// Since makeOverlapList() is now completely generalized, this isn't needed anymore,
+// but is retained for historical interface reasons.
+std::vector<int> makeOverlapListFromGeoTiff( const vector<string>& inputFiles, 
+                                             const Vector4&        currCorners) {
+  return makeOverlapList( inputFiles, currCorners );
 }
 
 void SaveOverlapList(string filename, std::vector<int> &overlapIndices)

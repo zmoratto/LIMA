@@ -48,7 +48,8 @@ std::vector<std::string> AccessDataFilesFromInput(const std::vector<std::string>
 //it takes into consideration any set of overlapping images.
 std::vector<int> makeOverlapList( const std::vector<std::string>&, const vw::Vector4& );
 std::vector<int> makeOverlapList( const std::vector<std::string>&, const vw::BBox2& );
-std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles, Vector4 currCorners);
+std::vector<int> makeOverlapListFromGeoTiff( const std::vector<std::string>&, 
+                                             const vw::Vector4& );
 
 /* Stream manipulator to ignore until the end of line
  * Use like: std::cin >> ignoreLine;
