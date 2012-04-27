@@ -137,85 +137,66 @@ Vector4 ComputeGeoTiffBoundary(string filename)
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
-Vector4 ComputeGeoBoundary( const string& cubFilename ){
-  GeoReference moonref( Datum("D_MOON"), identity_matrix<3>() );
-  boost::shared_ptr<IsisCameraModel> isiscam( new IsisCameraModel( cubFilename ) );
-  BBox2 camera_boundary =
-    camera_bbox( moonref, boost::shared_dynamic_cast<CameraModel>(isiscam),
-		 isiscam->samples(), isiscam->lines() );
- 
+
+BBox2 ComputeGeoBBoxISIS( const string& f, const GeoReference& g ) {
+  boost::shared_ptr<IsisCameraModel> isiscam( new IsisCameraModel( f ) );
+  BBox2 bbox = camera_bbox( g, boost::shared_dynamic_cast<CameraModel>(isiscam),
+		                    isiscam->samples(), isiscam->lines() ); 
+  return bbox;
+}
+
+BBox2 ComputeGeoBBoxISIS( const string& filename, const string& datumname ) {
+  GeoReference georef( Datum( datumname ), identity_matrix<3>() );
+  return ComputeGeoBBoxISIS( filename, georef );
+}
+
+BBox2 ComputeGeoBBox( const string& f ) {
+  GeoReference g;
+  vw_log().console_log().rule_set().add_rule(-1,"fileio"); // Silence GDAL
+  bool r = read_georeference( g, f );
+  vw_settings().reload_config();                           // unsilence it
+  if( !r ){
+    // Can't read a GeoReference from the file, so we will now assume that
+    // it is an unprojected ISIS cube.  We also assume the Moon, which is perhaps
+    // not the best.
+    return ComputeGeoBBoxISIS( f, "D_MOON" );
+  }
+  
+  DiskImageView<PixelGray<float> > image( f );
+  BBox2 image_bbox = g.pixel_to_lonlat_bbox( bounding_box(image) );
+  return image_bbox;
+}
+
+Vector4 ComputeGeoBoundary( const string& cubFilename ) {
+
+  BBox2 camera_boundary = ComputeGeoBBox( cubFilename );
   Vector4 corners;
- 
-
-  float minLon = camera_boundary.min()[0];
-  float minLat = camera_boundary.min()[1];
-  float maxLon = camera_boundary.max()[0];
-  float maxLat = camera_boundary.max()[1];
-
-  //printf("minLon = %f, minLat = %f, maxLon = %f, maxLat = %f\n", minLon, minLat, maxLon, maxLat);
-  if (maxLat<minLat){
-      float temp = minLat;
-      minLat = maxLat;
-      maxLat = temp;    
-  }
-
-  if (maxLon<minLon){
-     float temp = minLon;
-     minLon = maxLon;
-     maxLon = temp;    
-  }
-
-  corners(0) = minLon;
-  corners(1) = maxLon;
-  corners(2) = minLat;
-  corners(3) = maxLat;
-
+  corners(0) = camera_boundary.min().x();
+  corners(1) = camera_boundary.max().x();
+  corners(2) = camera_boundary.min().y();
+  corners(3) = camera_boundary.max().y();
   return corners;
 }
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
-std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, Vector4 currCorners) {
-  
+std::vector<int> makeOverlapList( const std::vector<std::string>& inputFiles,
+                                  const vw::BBox2&                bbox ) {
   std::vector<int> overlapIndices;
- 
-  for (unsigned int i = 0; i < inputFiles.size(); i++){
-
-       int lonOverlap = 0;
-       int latOverlap = 0; 
-     
-       Vector4 corners = ComputeGeoBoundary(inputFiles[i]);
-   
-       //printf("lidar corners = %f %f %f %f\n", currCorners[0], currCorners[1], currCorners[2], currCorners[3]); 
-       //printf("image corners = %f %f %f %f\n", corners[0], corners[1], corners[2], corners[3]);       
-
-       if(  ((corners(0)>currCorners(0)) && (corners(0)<currCorners(1))) //minlon corners in interval of currCorners 
-	  ||((corners(1)>currCorners(0)) && (corners(1)<currCorners(1))) //maxlon corners in interval of currCorners
-          ||((currCorners(0)>corners(0)) && (currCorners(0)<corners(1)))
-          ||((currCorners(1)>corners(0)) && (currCorners(1)<corners(1)))) 
-            
-       {
-         lonOverlap = 1;
-       }
-       if(  ((corners(2)>currCorners(2)) && (corners(2)<currCorners(3))) //minlat corners in interval of currCorners
-	  ||((corners(3)>currCorners(2)) && (corners(3)<currCorners(3))) //maxlat corners in interval of currCorners
-          ||((currCorners(2)>corners(2)) && (currCorners(2)<corners(3))) //minlat corners in interval of currCorners
-	  ||((currCorners(3)>corners(2)) && (currCorners(3)<corners(3)))) //maxlat corners in interval of currCorners
-	
-       { 
-         latOverlap = 1;
-       }
-    
-       //cout<<"lonOverlap="<<lonOverlap<<", latOverlap="<<latOverlap<<endl; 
-       //cout<<"-----------------------------------------"<<endl;
-
-       if ((lonOverlap == 1) && (latOverlap == 1)){
-           overlapIndices.push_back(i);
-       }
+  for( unsigned int i = 0; i < inputFiles.size(); ++i ){
+    BBox2 image_bbox = ComputeGeoBBox( inputFiles[i] );
+    if( bbox.intersects(image_bbox) ){ overlapIndices.push_back(i); }
   }
-
-  //cout<<overlapIndices<<endl;
   return overlapIndices;
+} 
+    
+
+std::vector<int> makeOverlapList( const std::vector<std::string>& inputFiles, 
+                                  const Vector4&                  currCorners) {
+  Vector2 min( currCorners(0), currCorners(2) );
+  Vector2 max( currCorners(1), currCorners(3) );
+  BBox2 bbox( min, max );
+  return makeOverlapList( inputFiles, bbox );
 }
 
 //this function determines the image overlap for the general case

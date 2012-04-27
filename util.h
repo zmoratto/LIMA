@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <vw/Core/Exception.h>
+#include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 
 #include <vw/Cartography.h>
@@ -30,6 +31,9 @@ int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
 vw::Vector4 ComputeGeoBoundary( const std::string& );
+vw::BBox2 ComputeGeoBBox( const std::string& );
+vw::BBox2 ComputeGeoBBoxISIS( const std::string&, const vw::cartography::GeoReference& );
+vw::BBox2 ComputeGeoBBoxISIS( const std::string& filename, const std::string& datumname );
 
 
 std::vector<std::string> ReadFileList( const std::string& );
@@ -42,7 +46,8 @@ std::vector<std::string> AccessDataFilesFromInput(const std::vector<std::string>
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
-std::vector<int> makeOverlapList(std::vector<std::string> inputFiles, vw::Vector4 currCorners);
+std::vector<int> makeOverlapList( const std::vector<std::string>&, const vw::Vector4& );
+std::vector<int> makeOverlapList( const std::vector<std::string>&, const vw::BBox2& );
 std::vector<int> makeOverlapListFromGeoTiff(std::vector<std::string> inputFiles, Vector4 currCorners);
 
 /* Stream manipulator to ignore until the end of line
