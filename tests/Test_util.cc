@@ -245,6 +245,65 @@ TEST_F( makeOverlapList_Test, coords_outside_image ) {
   ASSERT_TRUE( test.empty() ) << "Return vector should be empty.";
 }
 
+class makeOverlapListFromGeoTiff_Test : public ::testing::Test {
+  protected:
+  virtual void SetUp() {
+    files_.push_back( "M111578606RE.10mpp.tif" );
+    files_.push_back( "M111578606RE.10mpp.tif" );
+    // MinimumLatitude      = 25.591191678781
+    // MaximumLatitude      = 26.535020201925
+    // MinimumLongitude     = 3.5042809131219
+    // MaximumLongitude     = 3.6015317721328
+    inside_(0) = 3.58;
+    inside_(1) = 3.59;
+    inside_(2) = 26;
+    inside_(3) = 26.2;
+    partial_(0) = 3.6;
+    partial_(1) = 4.0;
+    partial_(2) = 26;
+    partial_(3) = 26.2;
+    outside_(0) = 0;
+    outside_(1) = 1;
+    outside_(2) = 0;
+    outside_(3) = 1;
+  }
+
+  virtual void TearDown() {}
+
+  vector<string> files_;
+  Vector4 inside_;
+  Vector4 partial_;
+  Vector4 outside_;
+};
+
+TEST_F( makeOverlapListFromGeoTiff_Test, coords_inside_image ) {
+  vector<int> test;
+  test = makeOverlapListFromGeoTiff( files_, inside_ );
+
+  ASSERT_EQ(files_.size(), test.size()) << "Vectors are of unequal length.";
+  for(  unsigned int i = 0; i < test.size(); ++i ) {
+    EXPECT_EQ((int)i, test[i]) << "Coords did not overlap at index " << i;
+  }
+}
+
+TEST_F( makeOverlapListFromGeoTiff_Test, coords_partiallly_inside_image ) {
+  vector<int> test;
+  test = makeOverlapListFromGeoTiff( files_, partial_ );
+
+  ASSERT_EQ(files_.size(), test.size()) << "Vectors are of unequal length.";
+  for(  unsigned int i = 0; i < test.size(); ++i ) {
+    EXPECT_EQ((int)i, test[i]) << "Coords did not overlap at index " << i;
+  }
+}
+
+TEST_F( makeOverlapListFromGeoTiff_Test, coords_outside_image ) {
+  vector<int> test;
+  test = makeOverlapListFromGeoTiff( files_, outside_ );
+
+  ASSERT_TRUE( test.empty() ) << "Return vector should be empty.";
+}
+
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
