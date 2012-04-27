@@ -295,141 +295,71 @@ void SaveDEMErrors( const string&          filename,
 }
 
 
-void SaveStatistics (const string& filename, const vector<float>& errors, const vector<float> &histBins)
-{
-    float minError = 10000000.0; 
-    float maxError = -10000000.0;
-    float avgError = 0.0;
-    int numValidPts = 0;
-
-    int numBins = histBins.size();
-    vector<float> errorHist;
-    errorHist.resize(numBins);
-  
-
-    for ( unsigned int i = 0; i < errors.size(); i++ ){
-
-      if (errors[i]<0){
-	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
-      }
-
-      if (errors[i]>=0){
-     
-	float stdv = errors[i];
-	
-        //update the number of valid points
-        numValidPts++;
-        
-        //update the bins
-        for (unsigned int k = 0; k < histBins.size(); k++){
-	  if ((stdv>histBins[k]) && (stdv<= histBins[k+1])){
-	    errorHist[k]++;
-           }
-        }
-	if (stdv > histBins.back()){
-	  errorHist[histBins.size()-1]++;
-	}
-
-        //update the average
-        avgError = avgError + stdv;
-
-        //update the max error
-	if (stdv> maxError){
-	  maxError = stdv; 
-	}  
-        
-        //update the min error
-	if (stdv< minError){
-	  minError = stdv; 
-	}
-
-      }  
-
-    }
-
-    if (numValidPts){
-      avgError = avgError/numValidPts;
-    }
-
-    ofstream file( filename.c_str() );
-    file<<"minError= "<<minError<<endl;
-    file<<"maxError= "<<maxError<<endl;
-    file<<"avgError= "<<avgError<<endl;
-    file<<"numValidPts= "<<numValidPts<<endl;
-
-    for (int i = 0; i<numBins; i++){
-      file<<"hist_"<<i<<"= "<<errorHist[i]<<endl;
-    }
-  
-    file.close();
+void SaveStatistics( const string&        filename, 
+                     const vector<float>& errors, 
+                     const vector<float>& histBins) {
+  valarray<float> valerrors(errors.size());
+  for( unsigned int i = 0; i < errors.size(); ++i ){
+    valerrors[i] = errors[i];
+  }
+  SaveStatistics( filename, valerrors, histBins );
 }
 
-void SaveStatistics (const string& filename, const valarray<float>& errors, const vector<float> &histBins)
-{
-    float minError = 10000000.0; 
-    float maxError = -10000000.0;
-    float avgError = 0.0;
-    int numValidPts = 0;
- 
-    int numBins = histBins.size();
-    vector<float> errorHist;
-    errorHist.resize(numBins);
+void SaveStatistics( const string&          filename, 
+                     const valarray<float>& errors, 
+                     const vector<float>&   histBins) {
+  float minError = 10000000.0; 
+  float maxError = -10000000.0;
+  float avgError = 0.0;
+  int numValidPts = 0;
+  vector<float> errorHist( histBins.size() );
 
-    for ( unsigned int i = 0; i < errors.size(); i++ ){
-
-      if (errors[i]<0){
-	cout<<"writeStats: inavlid error"<<errors[i]<<endl;
+  for( unsigned int i = 0; i < errors.size(); ++i ){
+    if( errors[i] < 0 ){
+      cout << "writeStats: inavlid error" << errors[i] << endl;
+      continue;
       }
-
-      if (errors[i]>=0){
-     
 	float stdv = errors[i];
 	
-        //update the number of valid points
-        numValidPts++;
+    //update the number of valid points
+    ++numValidPts;
         
-        //update the bins
-        for (unsigned int k = 0; k < histBins.size(); k++){
-	  if ((stdv>histBins[k]) && (stdv<= histBins[k+1])){
-	    errorHist[k]++;
-           }
-        }
-	if (stdv > histBins.back()){
-	  errorHist[histBins.size()-1]++;
-	}
+    //update the bins
+    for( unsigned int k = 0; k < histBins.size(); ++k ){
+	  if( (stdv > histBins[k]) && (stdv <= histBins[k+1]) ){
+	    ++errorHist[k];
+        break;
+      }
+    }
+	if( stdv > histBins.back() ){ errorHist.back()++; }
 
-        //update the average
-        avgError = avgError + stdv;
+    //update the average
+    avgError += stdv;
 
-        //update the max error
-	if (stdv> maxError){
-	  maxError = stdv; 
-	}  
+    //update the max error
+	if( stdv > maxError ){ maxError = stdv; }  
         
-        //update the min error
-	if (stdv< minError){
-	  minError = stdv; 
-	}
+    //update the min error
+	if( stdv< minError ){ minError = stdv; }
+  }  
 
-      }  
+  if( numValidPts ){ avgError /= numValidPts; }
 
-    }
+  ofstream file( filename.c_str() );
 
-    if (numValidPts){
-      avgError = avgError/numValidPts;
-    }
+  if( !file ) {
+      vw_throw( ArgumentErr() << "Can't open statistics output file \"" << filename << "\"" );
+  }
 
-    ofstream file( filename.c_str() );
-    file<<"minError= "<<minError<<endl;
-    file<<"maxError= "<<maxError<<endl;
-    file<<"avgError= "<<avgError<<endl;
-    file<<"numValidPts= "<<numValidPts<<endl;
+  file << "minError= "    << minError    << endl;
+  file << "maxError= "    << maxError    << endl;
+  file << "avgError= "    << avgError    << endl;
+  file << "numValidPts= " << numValidPts << endl;
 
-    for (int i = 0; i<numBins; i++){
-      file<<"hist_"<<i<<"= "<<errorHist[i]<<endl;
-    }
-  
-    file.close();
+  for( unsigned int i = 0; i < histBins.size(); ++i){
+    file << "hist_" << i << "= " << errorHist[i] << endl;
+  }
+  file.close();
 }
 
 
