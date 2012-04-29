@@ -106,7 +106,11 @@ void SaveStatistics( const std::string&          filename,
                      const std::valarray<float>& errors, 
                      const std::vector<float>&   histBins);
 
-void ReadStatistics (const string& filename, vector<int>& hist, 
-                     float *minError, float *maxError, float *avgError, int *numValidPts);
+void ReadStatistics( const std::string&      filename, 
+                           std::vector<int>& hist, 
+                           float*            minError, 
+                           float*            maxError, 
+                           float*            avgError, 
+                           int*              numValidPts );
 #endif
 

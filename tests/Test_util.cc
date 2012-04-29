@@ -303,6 +303,51 @@ TEST_F( makeOverlapListFromGeoTiff_Test, coords_outside_image ) {
   ASSERT_TRUE( test.empty() ) << "Return vector should be empty.";
 }
 
+TEST( Save_and_ReadStatistics_Test, file_write_and_read ){
+  fs::path p( "Save_and_ReadStatistics_Test.txt" );
+  valarray<float> e(5);
+  e[0] = 1.0;
+  e[1] = 2.2;
+  e[2] = 3.3;
+  e[3] = 7.9;
+  e[4] = 4.4;
+  vector<float> b(4);
+  b[0] = 0;
+  b[1] = 2.5;
+  b[2] = 5;
+  b[3] = 7.5;
+  vector<int> h(4);
+  float minValid = 0;
+  h[0] = static_cast<valarray<float> >(      e[ e>b[0] && e<=b[1] ] ).size();
+  h[1] = static_cast<valarray<float> >(      e[ e>b[1] && e<=b[2] ] ).size();
+  h[2] = static_cast<valarray<float> >(      e[ e>b[2] && e<=b[3] ] ).size();
+  h[3] = static_cast<valarray<float> >(      e[ e>b[3] ]            ).size();
+  int valid = static_cast<valarray<float> >( e[ e>minValid ]        ).size();
+
+  SaveStatistics( p.string(), e, b );
+
+  vector<int> test_h;
+  float test_minE;
+  float test_maxE;
+  float test_avgE;
+  int   test_valid;
+
+  ReadStatistics( p.string(), test_h, &test_minE, &test_maxE, &test_avgE, &test_valid );
+
+  ASSERT_EQ(h.size(), test_h.size()) << "Vectors are of unequal length.";
+  for(  unsigned int i = 0; i < test_h.size(); ++i ) {
+    EXPECT_EQ(h[i], test_h[i]) << "Histograms didn't have same values at index " << i 
+                               << " truth: " << h[i] 
+                               << " from file: " << test_h[i];
+  }
+
+  EXPECT_EQ( e.min(), test_minE )                   << "Minimum error differed.";
+  EXPECT_EQ( e.max(), test_maxE )                   << "Maximum error differed.";
+  EXPECT_NEAR( e.sum()/e.size(), test_avgE, 0.005 ) << "Average error differed.";
+  EXPECT_EQ( valid, test_valid )                    << "Number of valid points differ.";
+
+  fs::remove( p );
+}
 
 
 int main(int argc, char **argv) {

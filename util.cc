@@ -325,9 +325,9 @@ void SaveStatistics( const string&          filename,
     ++numValidPts;
         
     //update the bins
-    for( unsigned int k = 0; k < histBins.size(); ++k ){
-	  if( (stdv > histBins[k]) && (stdv <= histBins[k+1]) ){
-	    ++errorHist[k];
+    for( unsigned int k = 1; k < histBins.size(); ++k ){
+	  if( (stdv > histBins[k-1]) && (stdv <= histBins[k]) ){
+	    ++errorHist[k-1];
         break;
       }
     }
@@ -363,11 +363,17 @@ void SaveStatistics( const string&          filename,
 }
 
 
-void ReadStatistics (const string& filename, vector<int>& hist, 
-                     float *minError, float *maxError, float *avgError, int *numValidPts)
-{
-  ifstream file;
-  file.open(filename.c_str());
+void ReadStatistics( const string&      filename,
+                           vector<int>& hist, 
+                           float*       minError, 
+                           float*       maxError, 
+                           float*       avgError, 
+                           int*         numValidPts) {
+  ifstream file( filename.c_str() );
+
+  if( !file ) {
+      vw_throw( ArgumentErr() << "Can't open statistics input file \"" << filename << "\"" );
+  }
 
   int val;
   string temp;
@@ -376,31 +382,18 @@ void ReadStatistics (const string& filename, vector<int>& hist,
   float l_maxError;
   int l_numValidPts;
 
-  if (file.is_open()) {
-    file >> temp;
-    file >> l_minError;
-    file >> temp;
-    file >> l_maxError;
-    file >> temp;
-    file >> l_avgError;
-    file >> temp;
-    file >> l_numValidPts;
+  file >> temp >> l_minError;
+  file >> temp >> l_maxError;
+  file >> temp >> l_avgError;
+  file >> temp >> l_numValidPts;
    
-    while (!file.eof()) {
-      file >> temp;
-      file >> val;
-      hist.push_back(val);
-      //cout<<val<<endl;
-    }
-  
-    *minError = l_minError;
-    *maxError = l_maxError;
-    *avgError = l_avgError;
-    *numValidPts = l_numValidPts;
- 
-  }
+  while( file >> temp >> val ){ hist.push_back(val); }
   file.close();
-    
+  
+  *minError = l_minError;
+  *maxError = l_maxError;
+  *avgError = l_avgError;
+  *numValidPts = l_numValidPts;
 }
 
 
