@@ -75,6 +75,190 @@ void SaveAssembledPC(string DEMFilename, string assembledPCFilename)
 
   fclose(fp);
 }
+
+int ReadAssemblerConfigFile(string assemblerConfigFilename, struct AssemblerParams *assemblerParams)
+{
+  ifstream configFile (assemblerConfigFilename.c_str());
+  std::string line;
+  double val, val1, val2, val3, val4; 
+  std::string identifier;
+
+  if (configFile.is_open()){ 
+ 
+    //matching params
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline0; 
+    sline0 << line;
+    sline0 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->matchingMode = val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline1; 
+    sline1 << line;
+    sline1 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->maxNumStarts= val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline2; 
+    sline2 << line;
+    sline2 >> identifier >> val1 >> val2;
+    //cout<<val<<endl;
+    assemblerParams->deltaLonLat(0)=val1;
+    assemblerParams->deltaLonLat(1)=val2;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline3; 
+    sline3 << line;
+    sline3 >> identifier >> val1 >> val2;
+    //cout<<val<<endl;
+    assemblerParams->samplingStep(0)=val1;
+    assemblerParams->samplingStep(1)=val2;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline4; 
+    sline4 << line;
+    sline4 >> identifier >> val1 >> val2;
+    //cout<<val<<endl;
+    assemblerParams->matchWindowHalfSize(0)=val1;
+    assemblerParams->matchWindowHalfSize(1)=val2;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline5; 
+    sline5 << line;
+    sline5 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->maxNumIter;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline6; 
+    sline6 << line;
+    sline6 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->minConvThresh;
+  
+    //tiling params
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline10; 
+    sline10<<line;
+    sline10 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->tileSizeDEM=val;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline11; 
+    sline11<<line;
+    sline11 >> identifier >> val1>>val2>>val3>>val4;
+    //cout<<val<<endl;
+    assemblerParams->paddingParamsDEM(0)=val1;
+    assemblerParams->paddingParamsDEM(1)=val2;
+    assemblerParams->paddingParamsDEM(2)=val3;
+    assemblerParams->paddingParamsDEM(3)=val4;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline12; 
+    sline12<<line;
+    sline12 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->tileSizeDRG=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline13; 
+    sline13<<line;
+    sline13 >> identifier >> val1>>val2>>val3>>val4;
+    //cout<<val<<endl;
+    assemblerParams->paddingParamsDRG(0)=val1;
+    assemblerParams->paddingParamsDRG(1)=val2;
+    assemblerParams->paddingParamsDRG(2)=val3;
+    assemblerParams->paddingParamsDRG(3)=val4;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline14; 
+    sline14<<line;
+    sline14 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->foreNoDataValDEM = val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline15; 
+    sline15<<line;
+    sline15>> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->backNoDataValDEM=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline16; 
+    sline16<<line;
+    sline16>> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->foreNoDataValDRG = val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline17; 
+    sline17<<line;
+    sline17>> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->backNoDataValDRG=val;
+   
+    configFile.close();
+    return 1;
+  }
+  else{
+    cout << "Unable to open settings file. Use default values"; 
+
+     //matching params - START
+     assemblerParams->matchingMode = 1; 
+     assemblerParams->maxNumStarts = 36;
+     assemblerParams->deltaLonLat(0) = 0.0001;
+     assemblerParams->deltaLonLat(1) = 0.0001;
+     assemblerParams->samplingStep(0) = 256;
+     assemblerParams->samplingStep(1) = 256;
+     assemblerParams->matchWindowHalfSize(0) = 9;
+     assemblerParams->matchWindowHalfSize(1) = 9;
+     assemblerParams->maxNumIter = 5;
+     assemblerParams->minConvThresh = 0.01;
+     //matching params - END
+
+     //tiling params - START
+     assemblerParams->tileSizeDEM=128;
+     assemblerParams->paddingParamsDEM(0)=0;
+     assemblerParams->paddingParamsDEM(1)=0;
+     assemblerParams->paddingParamsDEM(2)=1;
+     assemblerParams->paddingParamsDEM(3)=1;
+     
+     assemblerParams->tileSizeDRG=512;
+     assemblerParams->paddingParamsDRG(0)=1;
+     assemblerParams->paddingParamsDRG(1)=1;
+     assemblerParams->paddingParamsDRG(2)=2;
+     assemblerParams->paddingParamsDRG(3)=2;
+     
+     assemblerParams->foreNoDataValDEM = -3.4028226550889e+38;
+     assemblerParams->backNoDataValDEM = -3.4028226550889e+38;
+     assemblerParams->foreNoDataValDRG = 0;
+     assemblerParams->backNoDataValDRG = 0;
+     //matching params - END
+  
+     return 0;
+  }
+  
+}
+
 int main( int argc, char *argv[] ) {
    
   std::string foreFile;
@@ -135,60 +319,40 @@ int main( int argc, char *argv[] ) {
       printf("DRG\n");
   }
  
-  
-  struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) ){
-     std::cerr << "Config file " << configFilename << " found." << endl;
+  struct AssemblerParams assemblerParams;
+  string assemblerConfigFilename;
+ 
+  if( ReadAssemblerConfigFile(assemblerConfigFilename, &assemblerParams) ){
+     std::cerr << "Assembler Config file " << assemblerConfigFilename << " found." << endl;
   }
   else{
-    std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+    std::cerr << "Assembler Config file " << assemblerConfigFilename << " not found, using defaults." << endl;
   }
-  //PrintGlobalParams(&settings);
-  std::cerr << settings << endl;
   
-  struct AssemblerParams assemblerParams;
-  assemblerParams.deltaLonLat(0)=0.0001;
-  assemblerParams.deltaLonLat(1)=0.0001;
- 
-  assemblerParams.tileSizeDEM=128;
-  assemblerParams.paddingParamsDEM(0)=0;
-  assemblerParams.paddingParamsDEM(1)=0;
-  assemblerParams.paddingParamsDEM(2)=1;
-  assemblerParams.paddingParamsDEM(3)=1;
+  //PrintGlobalParams(&settings);
+  //std::cerr << assemblerParams << endl;
 
-  assemblerParams.tileSizeDRG=512;
-  assemblerParams.paddingParamsDRG(0)=1;
-  assemblerParams.paddingParamsDRG(1)=1;
-  assemblerParams.paddingParamsDRG(2)=2;
-  assemblerParams.paddingParamsDRG(3)=2;
-
-  assemblerParams.foreNoDataValDEM = -3.4028226550889e+38;
-  assemblerParams.backNoDataValDEM = -3.4028226550889e+38;
-  assemblerParams.foreNoDataValDRG = 0;
-  assemblerParams.backNoDataValDRG = 0;
- 
-  assemblerParams.matchingMode = 0; 
 
   //determine the noDataValues for fore and back files - START
-  float backNoDataVal = settings.noDataVal;
+  float backNoDataVal;
   boost::shared_ptr<DiskImageResource> back_rsrc( new DiskImageResourceGDAL(backFile) );
   if (back_rsrc->has_nodata_read()){
       backNoDataVal = back_rsrc->nodata_read();
       cout<<"noDataVal for background ="<<backNoDataVal;
   }
   else{
-      backNoDataVal = assemblerParams.backNoDataValDEM;//settings.noDataVal;
+      backNoDataVal = assemblerParams.backNoDataValDEM;
       cout<<"noDataVal not found for background, using: "<<backNoDataVal<<endl;
   }
     
-  float foreNoDataVal = settings.noDataVal;
+  float foreNoDataVal;// = settings.noDataVal;
   boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL(foreFile) );
   if (fore_rsrc->has_nodata_read()){
     foreNoDataVal = fore_rsrc->nodata_read();
     cout<<"noDataVal for foreground ="<<foreNoDataVal;
   }
   else{
-      foreNoDataVal = assemblerParams.foreNoDataValDEM;//settings.noDataVal;
+      foreNoDataVal = assemblerParams.foreNoDataValDEM;
       cout<<"noDataVal not found for foreground, using: "<<foreNoDataVal<<endl;
   }
   //determine the noDataValues for fore and back files - END
@@ -235,13 +399,14 @@ int main( int argc, char *argv[] ) {
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
    
-    if (settings.matchingMode != 0){
+    if (assemblerParams.matchingMode != 0){
        
        float matchError;
        Vector2 delta_lonlat;        
-       int numVerRestarts = sqrt(settings.maxNumStarts); 
-       int numHorRestarts = sqrt(settings.maxNumStarts);
-      
+ 
+       int numVerRestarts = sqrt(assemblerParams.maxNumStarts); 
+       int numHorRestarts = sqrt(assemblerParams.maxNumStarts);
+
        for (int k = -(numVerRestarts-1)/2; k < (numVerRestarts+1)/2; k++){
 	 delta_lonlat(0) = k*assemblerParams.deltaLonLat(0); //~5 meters increments
 	 for (int l = -(numHorRestarts-1)/2; l < (numHorRestarts+1)/2; l++){
@@ -250,7 +415,8 @@ int main( int argc, char *argv[] ) {
 	   
 	   cout<<"Feature extraction ..."<<endl;
 	   vector<Vector3> featureArray = GetFeatures(foreDEM, foreDEMGeo, backDEM, backDEMGeo, 
-						      settings.samplingStep, delta_lonlat, settings.noDataVal);
+						      assemblerParams.samplingStep, delta_lonlat, 
+                                                      assemblerParams.foreNoDataValDEM);
 	   cout<<"done."<<endl;
 	   vector<float> errorArray;
 	   errorArray.resize(featureArray.size());
@@ -260,8 +426,21 @@ int main( int argc, char *argv[] ) {
 	   Vector3 currCenter;
 	   
 	   cout<<"running ICP"<<endl;
-	   ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, settings,
-			 currTranslation, currRotation, currCenter, matchError);
+           struct CoregistrationParams coregistrationParams;
+           coregistrationParams.matchingMode = assemblerParams.matchingMode;
+           coregistrationParams.reflectanceType = 0;
+           coregistrationParams.analyseFlag = 0;
+           coregistrationParams.useReflectanceFeatures = 1;
+           coregistrationParams.topPercentFeatures = 1;
+           coregistrationParams.samplingStep = assemblerParams.samplingStep;
+           coregistrationParams.matchWindowHalfSize = assemblerParams.matchWindowHalfSize;
+           coregistrationParams.maxNumIter = assemblerParams.maxNumIter;
+           coregistrationParams.maxNumStarts = assemblerParams.maxNumStarts;
+           coregistrationParams.noDataVal = assemblerParams.foreNoDataValDEM;
+           coregistrationParams.minConvThresh = assemblerParams.minConvThresh;
+
+	   ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, coregistrationParams,
+	   		 currTranslation, currRotation, currCenter, matchError);
 	   cout<<"done."<<endl;
 	   
 	   if (matchError <registrationParams.error){       
@@ -300,7 +479,7 @@ int main( int argc, char *argv[] ) {
   }
 
   //DRG assembler
-  if (mode.compare("DRG")==0){
+  if ((mode.compare("DRG")==0) || (mode.compare("DEM_DRG")==0)){
   
       Vector2 DRGOffset;
       //small image high res - foreground 
@@ -334,27 +513,7 @@ int main( int argc, char *argv[] ) {
       }
       
    }
-
-   // this will most likely no longer be used - START
-   if (mode.compare("DEM_DRG")==0){
-      string backDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/PSP_001777_1650_1m_o-crop-geo.tif";
-      string foreDRGFilename = "../../../msl/MSLData/Mars/MER_HIRISE/Photo-mod.tif";
-      string assembledDRGFilename =  resDir+"/assembled_drg.tif";
  
-      //small image high res - foreground 
-      DiskImageView<PixelGray<uint8> >  backDRG(backDRGFilename);
-      GeoReference backDRGGeo;
-      read_georeference(backDRGGeo, backDRGFilename);
-      printf("done opening the the backDRG\n");
-
-      //large image low res - background
-      DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFilename);
-      GeoReference foreDRGGeo;
-      read_georeference(foreDRGGeo, foreDRGFilename);
-      printf("done opening the the foreDRG\n");
-   }
-    // this will most likely no longer be used - END  
-  
 }
 
 

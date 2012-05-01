@@ -44,7 +44,13 @@ typedef struct AssemblerParams
   float backNoDataValDEM;
   float foreNoDataValDRG;
   float backNoDataValDRG;
+  Vector2 samplingStep;
+  float maxNumStarts; 
   int matchingMode;
+
+  Vector2 matchWindowHalfSize;
+  int maxNumIter;
+  float minConvThresh;
 };
 
 typedef struct RegistrationParams
