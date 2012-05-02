@@ -60,7 +60,7 @@ class ReadFileToVectorTest : public ::testing::Test {
 };
 
 TEST_F( ReadFileToVectorTest, stringvector_returnsString ) {
-  vector<string> test = ReadFileList( p_.string() );
+  vector<string> test = ReadVectorFrom<string>( p_.string() );
 
   ASSERT_EQ(truth_.size(), test.size()) << "Vectors are of unequal length";
 
@@ -380,6 +380,50 @@ TEST( Save_and_ReadStatistics_Test, file_write_and_read ){
   EXPECT_EQ( valid, test_valid )                    << "Number of valid points differ.";
 
   fs::remove( p );
+}
+
+TEST( SaveOverlapList_Test, int_vector ){
+  fs::path p("SaveOverlapList_Test.txt");
+  vector<int> truth(4);
+  truth[0] = 0;
+  truth[1] = 1;
+  truth[2] = 2;
+  truth[3] = 3;
+
+  SaveOverlapList( p.string(), truth );
+  
+  vector<int> test;
+  test = ReadVectorFrom<int>( p );
+
+  ASSERT_EQ(truth.size(), test.size()) << "Vectors are of unequal length";
+
+  for( unsigned int i = 0; i < truth.size(); ++i ) {
+    EXPECT_EQ(truth[i], test[i]) << "Vectors truth and test differ at index " << i;
+  } 
+
+  fs::remove(p);
+}
+
+TEST( SaveOverlapList_Test, string_vector ){
+  fs::path p("SaveOverlapList_Test.txt");
+  vector<string> truth(4);
+  truth[0] = "This";
+  truth[1] = "is";
+  truth[2] = "a";
+  truth[3] = "test.";
+
+  SaveOverlapList( p.string(), truth );
+  
+  vector<string> test;
+  test = ReadVectorFrom<string>( p );
+
+  ASSERT_EQ(truth.size(), test.size()) << "Vectors are of unequal length";
+
+  for( unsigned int i = 0; i < truth.size(); ++i ) {
+    EXPECT_EQ(truth[i], test[i]) << "Vectors truth and test differ at index " << i;
+  } 
+
+  fs::remove(p);
 }
 
 
