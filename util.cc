@@ -250,9 +250,8 @@ int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
    else{
      cout<<"file found"<<endl;
      fileFound = 1;
-     while (!file.eof()){
-       int index;
-       file>>index;  
+     int index;
+     while( file >> index ){
        overlapIndices.push_back(index);
      }
      file.close();

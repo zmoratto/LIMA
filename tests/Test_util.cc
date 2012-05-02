@@ -25,23 +25,41 @@ class ReadFileToVectorTest : public ::testing::Test {
     truth_[2] = "a";
     truth_[3] = "test.";
 
+    truthi_.resize(4);
+    truthi_[0] = 1;
+    truthi_[1] = 1;
+    truthi_[2] = 2;
+    truthi_[3] = 3;
+    
+
     p_ = "ReadFileToVector_temp.txt";
+    pi_ = "ReadFileToVector_tempi.txt";
 
     std::ofstream file( p_.c_str() );
     ASSERT_TRUE( file ) << "Can't open file " << p_ ;
     test_write_vector_to_stream( truth_, file );
     file.close();
+
+    std::ofstream filei( pi_.c_str() );
+    ASSERT_TRUE( filei ) << "Can't open file " << pi_ ;
+    for( vector<int>::const_iterator i = truthi_.begin(); i != truthi_.end(); ++i ) {
+      filei << *i << endl;
+    }
+    filei.close();
   }
 
   virtual void TearDown() {
     fs::remove( p_ );
+    fs::remove( pi_ );
   }
 
   vector<string> truth_;
+  vector<int> truthi_;
   fs::path p_;
+  fs::path pi_;
 };
 
-TEST_F( ReadFileToVectorTest, returnsString ) {
+TEST_F( ReadFileToVectorTest, stringvector_returnsString ) {
   vector<string> test = ReadFileList( p_.string() );
 
   ASSERT_EQ(truth_.size(), test.size()) << "Vectors are of unequal length";
@@ -51,7 +69,7 @@ TEST_F( ReadFileToVectorTest, returnsString ) {
   }
 }
 
-TEST_F( ReadFileToVectorTest, returnsVoid ) {
+TEST_F( ReadFileToVectorTest, stringvector_returnsVoid ) {
   vector<string> test;
   ReadFileList( p_.string(), test );
 
@@ -61,6 +79,21 @@ TEST_F( ReadFileToVectorTest, returnsVoid ) {
     EXPECT_EQ(truth_[i], test[i]) << "Vectors truth and test differ at index " << i;
   }
 }
+
+TEST_F( ReadFileToVectorTest, intvector_returnsint ) {
+  vector<int> test;
+  int return_value = ReadOverlapList( pi_.string(), test );
+
+  ASSERT_EQ( 1, return_value ) << "Function could not open file " << pi_.string();
+
+  ASSERT_EQ(truthi_.size(), test.size()) << "Vectors are of unequal length";
+
+  for( unsigned int i = 0; i < truth_.size(); ++i ) {
+    EXPECT_EQ(truthi_[i], test[i]) << "Vectors truth and test differ at index " << i;
+  }
+}
+
+
 
 class AccessDataFilesFromInputTest: public ::testing::Test {
   protected:
