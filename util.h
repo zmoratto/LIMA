@@ -36,7 +36,6 @@ vw::BBox2 ComputeGeoBBoxISIS( const std::string&, const vw::cartography::GeoRefe
 vw::BBox2 ComputeGeoBBoxISIS( const std::string& filename, const std::string& datumname );
 
 
-std::vector<std::string> ReadFileList( const std::string& );
 void ReadFileList( const std::string&, std::vector<std::string>& );
 
 //determine if inputFiles is a text file containing a list of input files, one input file or a set of input files

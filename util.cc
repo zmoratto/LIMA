@@ -393,20 +393,6 @@ void ReadFileList( const string& filepath, vector<string>& fileArray ) {
   return;
 }
 
-vector<string> ReadFileList( const string& filepath ) {
-  ifstream file( filepath.c_str() );
-  if (!file){
-     vw_throw( ArgumentErr() << "Can't open file " << filepath );
-  }
-
-  vector<string> fileArray;
-  string readfile;
-  while( file >> readfile ){ fileArray.push_back(readfile); }
-  file.close();
-
-  return fileArray;
-}
-
 vector<string> AccessDataFilesFromInput(const string& inputFile) {
   const vector<string> v(1,inputFile);
   return AccessDataFilesFromInput( v );
@@ -422,7 +408,7 @@ vector<string> AccessDataFilesFromInput(const vector<string>& inputFiles) {
        ++i ){
     fs::path p( *i );
     if( p.extension() == string(".txt") ){
-      vector<string> list = ReadFileList(p.string());
+      vector<string> list = ReadVectorFrom<string>( p );
       v.insert( v.end(), list.begin(), list.end() );
     }
     else{ v.push_back( *i ); }
