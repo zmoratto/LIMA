@@ -206,36 +206,12 @@ std::vector<int> makeOverlapListFromGeoTiff( const vector<string>& inputFiles,
   return makeOverlapList( inputFiles, currCorners );
 }
 
-void SaveOverlapList(string filename, std::vector<int> &overlapIndices)
-{
-   ofstream file( filename.c_str() );
-   //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
-   if (overlapIndices.size() > 0){
-     for (unsigned int i = 0; i < overlapIndices.size()-1; i++){
-       file<<overlapIndices[i]<<endl;
-     }
-     file<<overlapIndices[overlapIndices.size()-1];
-   }
-   else{
-      file<<-1;
-   }
-   file.close();
+void SaveOverlapList( const string& filename, const std::vector<int>& overlapIndices ) {
+  WriteVectorTo( filename, overlapIndices );
 }
 
-void SaveOverlapList(string filename, std::vector<std::string> &filenames)
-{
-   ofstream file( filename.c_str() );
-   //cout<<"numImgsOverlap="<<overlapIndices.size()<<endl;
-   if (filenames.size() > 0){
-     for (unsigned int i = 0; i < filenames.size()-1; i++){
-       file<<filenames[i]<<endl;
-     }
-     file<<filenames[filenames.size()-1];
-   }
-   else{
-      file<<-1;
-   }
-   file.close();
+void SaveOverlapList( const string& filename, const std::vector<std::string>& filenames ) {
+  WriteVectorTo( filename, filenames );
 }
 
 int ReadOverlapList( const string& filename, std::vector<int>& overlapIndices ) {

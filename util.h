@@ -24,8 +24,8 @@ std::string GetFilenameNoPath(std::string const& filename);
 std::string GetFilenameExt(std::string const& filename);
 
 void PrintOverlapList( const std::vector<int>& );
-void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
-void SaveOverlapList(string filename, std::vector<std::string> &filenames);
+void SaveOverlapList( const std::string&, const std::vector<int>& );
+void SaveOverlapList( const std::string&, const std::vector<std::string>& );
 int ReadOverlapList( const std::string&, std::vector<int>&);
 
 //this will be used to compute the makeOverlapList in a more general way.
@@ -109,6 +109,38 @@ template <class T>
 inline std::vector<T> ReadVectorFrom( const boost::filesystem::path& p ){
   return ReadVectorFrom<T>( p.string() );
 }
+
+template <class T>
+inline std::ostream& WriteVectorTo( std::ostream& stream, const std::vector<T>& v){
+  if( v.empty() ){ return stream; }
+  for( typename std::vector<T>::const_iterator i = v.begin(); i != v.end(); ++i ){
+    stream << *i << std::endl;
+  }
+  return stream;
+}
+
+template <class T>
+inline void WriteVectorTo( const std::string& s, const std::vector<T>& v){
+  if( v.empty() ){
+    vw_throw( vw::ArgumentErr() << "WriteVectorTo: the input vector is empty." );
+  }
+
+  std::ofstream file( s.c_str() );
+  if( !file ) {
+    vw_throw( vw::ArgumentErr() << "Can't open file \"" << s << "\"" );
+  }
+
+  WriteVectorTo( file, v );
+  file.close();
+  return;
+}
+
+template <class T>
+inline void WriteVectorTo( const boost::filesystem::path& p, const std::vector<T>& v){
+  WriteVectorTo( p.string(), v );
+  return;
+}
+
 
 
 // Writes out the locations and errors to a file
