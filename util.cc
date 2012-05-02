@@ -238,26 +238,16 @@ void SaveOverlapList(string filename, std::vector<std::string> &filenames)
    file.close();
 }
 
-int ReadOverlapList(string filename, std::vector<int> &overlapIndices)
-{
-   int fileFound = 0;
-   overlapIndices.clear();
-   ifstream file( filename.c_str() );
-   if (!file){
-     cout<<"file not found"<<endl;
-     return fileFound;
-   }
-   else{
-     cout<<"file found"<<endl;
-     fileFound = 1;
-     int index;
-     while( file >> index ){
-       overlapIndices.push_back(index);
-     }
-     file.close();
-     return fileFound;
-   }
+int ReadOverlapList( const string& filename, std::vector<int>& overlapIndices ) {
+  try{
+    overlapIndices = ReadVectorFrom<int>( filename );
+    return 1;
+  }
+  catch( const vw::ArgumentErr& error ){
+    return 0;
+  }
 }
+
 
 void SaveDEMErrors( const string&          filename, 
                     const vector<Vector3>& locations, 

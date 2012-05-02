@@ -26,7 +26,7 @@ std::string GetFilenameExt(std::string const& filename);
 void PrintOverlapList(std::vector<int>  overlapIndices);
 void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 void SaveOverlapList(string filename, std::vector<std::string> &filenames);
-int  ReadOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
+int ReadOverlapList( const std::string&, std::vector<int>&);
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
@@ -88,6 +88,29 @@ inline Vector3 find_centroid( const vector<Vector3>& points )
   centroid /= points.size();
   return centroid;
   }
+
+template <class T>
+inline std::vector<T> ReadVectorFrom( std::istream& stream ){
+  std::vector<T> v;
+  T item;
+  while( stream >> item ){ v.push_back( item ); }
+  return v;
+}
+
+template <class T>
+inline std::vector<T> ReadVectorFrom( const std::string& s ){
+  std::ifstream file( s.c_str() );
+    if (!file){
+      vw_throw( vw::ArgumentErr() << "Can't open file " << s );
+    }
+  return ReadVectorFrom<T>( file );
+}
+
+template <class T>
+inline std::vector<T> ReadVectorFrom( const boost::filesystem::path& p ){
+  return ReadVectorFrom<T>( p.string() );
+}
+
 
 // Writes out the locations and errors to a file
 void
