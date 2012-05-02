@@ -85,11 +85,11 @@ std::string GetFilenameNoPath(std::string const& filename) {
   return result;
 }
 
-void PrintOverlapList(std::vector<int>  overlapIndices)
-{
-  printf("numOverlapping images = %d\n", (int)(overlapIndices.size()));
-    for (unsigned int i = 0; i < overlapIndices.size(); i++){
-      printf("index: %d \n", overlapIndices[i]);
+void PrintOverlapList( const std::vector<int>& overlapIndices ) {
+  cout << "numOverlapping = " << overlapIndices.size() << endl;
+  std::vector<int>::const_iterator i;
+  for( i = overlapIndices.begin(); i != overlapIndices.end(); ++i){
+    cout << "index: " << *i << endl;
     }
 }
 

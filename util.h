@@ -23,7 +23,7 @@ std::string GetFilenameNoExt(std::string const& filename);
 std::string GetFilenameNoPath(std::string const& filename);
 std::string GetFilenameExt(std::string const& filename);
 
-void PrintOverlapList(std::vector<int>  overlapIndices);
+void PrintOverlapList( const std::vector<int>& );
 void SaveOverlapList(string lidarFilename, std::vector<int> &overlapIndices);
 void SaveOverlapList(string filename, std::vector<std::string> &filenames);
 int ReadOverlapList( const std::string&, std::vector<int>&);
