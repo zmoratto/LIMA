@@ -389,7 +389,7 @@ void ReadStatistics( const string&      filename,
 
 void ReadFileList( const string& filepath, vector<string>& fileArray ) {
   fileArray.clear();
-  fileArray = ReadFileList( filepath );
+  fileArray = ReadVectorFrom<string>( filepath );
   return;
 }
 
