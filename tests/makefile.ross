@@ -3,11 +3,14 @@
 include ../makefile.ross
 #include ../makefile.obs
 
-tests = Test_util
+tests = Test_util Test_tracks
 
 test: $(tests)
 
 Test_util: ../util.o Test_util.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
+
+Test_tracks: ../util.o ../coregister.o ../tracks.o Test_tracks.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
 clean:
