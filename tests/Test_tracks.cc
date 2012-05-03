@@ -55,6 +55,18 @@ TEST( GetPointFromIndex_Test, works ){
   ASSERT_EQ( point3.s, test.s ) << "Point with the wrong detector.";
 }
 
+TEST( FindMinMaxLat_Test, works ){
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > test = LOLAFileRead( p.string() );
+
+  Vector4 bounds = FindMinMaxLat( test );
+  //Vector4(24.5005,27.5,3.06477,3.77167)
+  EXPECT_NEAR( 24.5005, bounds[0], 0.0001 ) << "Minimum latitude is wrong.";
+  EXPECT_NEAR( 27.5   , bounds[1], 0.0001 ) << "Maximum latitude is wrong.";
+  EXPECT_NEAR( 3.06477, bounds[2], 0.0001 ) << "Minimum longitude is wrong.";
+  EXPECT_NEAR( 3.77167, bounds[3], 0.0001 ) << "Maximum longitude is wrong.";
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
