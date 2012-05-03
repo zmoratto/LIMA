@@ -4,7 +4,10 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <iomanip>
+#include <math.h>
 #include <boost/tokenizer.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <vw/Core.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Cartography.h>
@@ -96,6 +99,25 @@ LOLAShot::LOLAShot( pointCloud pt )
   LOLAShot::init( pcv );
   }
 
+bool isTimeDiff( pointCloud p, pointCloud c, float timeThresh){
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+  float intpart;
+  ptime first( date(p.year,p.month,p.day),
+               hours(p.hour) +minutes(p.min)+seconds(p.sec)
+               +microseconds( modf(p.sec, &intpart) * 1000000 ) );
+  ptime second( date(c.year,c.month,c.day),
+                hours(c.hour)+minutes(c.min)+seconds(c.sec)
+                +microseconds( modf(c.sec, &intpart) * 1000000 ) );
+
+  if( first == second ) { return false; }
+
+  time_duration duration( second - first );
+  if( duration.is_negative() ) { duration = duration.invert_sign(); }
+
+  if( duration.total_seconds() < timeThresh ){ return false; }
+  return true;
+}
 
 
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
@@ -187,7 +209,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
             }
 			else
 				{
-				if( GetTimeDiff(prevPt, currPt, 3000) )
+				if( isTimeDiff(prevPt, currPt, 3000) )
 					{ //new track
 					trackIndex++;
 					trackPts.resize(trackIndex+1); //start new track
@@ -200,7 +222,7 @@ vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
 	    		 	}
 				else
 					{ //same track
-					if( GetTimeDiff(prevPt, currPt, 0) )
+					if( isTimeDiff(prevPt, currPt, 0) )
 						{//new shot
 						trackPts[trackIndex].push_back( LOLAShot(currPt) );
 						//shot.LOLAPt.clear();
@@ -1321,36 +1343,3 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
   }
  
 }
-
-
-
-int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh)
-{
-
-
-  double prevTime = prevPt.hour*3600.0 + prevPt.min*60.0 + prevPt.sec;
-  double currTime = currPt.hour*3600.0 + currPt.min*60.0 + currPt.sec;
- 
-  if (prevPt.year != currPt.year){//new orbit
-      return (1);
-  }  
-
-  if (prevPt.month != currPt.month){ //new orbit
-      return (1);
-  } 
-  
-  if (prevPt.day != currPt.day){//new orbit
-      return (1);
-  } 
- 
-  if (currTime - prevTime > timeThresh){ //new orbit
-     return (1);
-  }
-  else{
-     return (0);
-  }
-}
- 
-
-
-

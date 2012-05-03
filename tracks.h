@@ -28,16 +28,6 @@ using namespace std;
 #include <math.h>
 #include "coregister.h"
 
-struct ShotTime
-{
-  int year;
-  int month;
-  int dap;
-  int hour; //24hr format
-  int min;
-  float sec;
-};
-
 namespace vw
 {
 namespace math
@@ -202,7 +192,6 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
   }
 
 
-int GetTimeDiff(pointCloud prevPt, pointCloud currPt, float timeThresh);
 vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
 //computes the scale factor for all tracks at once
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
