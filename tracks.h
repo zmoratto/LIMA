@@ -198,9 +198,10 @@ inline std::vector<std::vector<LOLAShot> > CSVFileRead( const std::string& f ){
   return LOLAFileRead( f );
 }
 
+// Finds the lat/lon bounding box that encloses all the points.
+vw::BBox2  FindShotBounds( const std::vector<std::vector<LOLAShot> >& );
+vw::Vector4 FindMinMaxLat( const std::vector<std::vector<LOLAShot> >& );
 
-//computes the scale factor for all tracks at once
-Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 
 //float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 Vector2 ComputeGainBiasFactor(vector<LOLAShot > &trackPts);

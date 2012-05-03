@@ -1169,47 +1169,38 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
 }
 
 //computes the min and max lon and lat of the LOLA data
-//this function can be moved to a new util.c file
-Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts)
-{
-  float minLat = 180;
-  float maxLat = -180;
-  float minLon = 180;
-  float maxLon = -180;
+BBox2 FindShotBounds(const vector<vector<LOLAShot> >& trackPts) {
+  Vector<float,2> min( std::numeric_limits<float>::max(), 
+                       std::numeric_limits<float>::max() );
+  Vector<float,2> max( std::numeric_limits<float>::min(), 
+                       std::numeric_limits<float>::min() );
 
-  for (unsigned int i = 0; i < trackPts.size(); i++){
-    for (unsigned int j = 0; j < trackPts[i].size(); j++){
-      for(unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); k++){
+  for(     unsigned int i = 0; i < trackPts.size();              ++i){
+    for(   unsigned int j = 0; j < trackPts[i].size();           ++j){
+      for( unsigned int k = 0; k < trackPts[i][j].LOLAPt.size(); ++k){
         float lon = trackPts[i][j].LOLAPt[k].x();
         float lat = trackPts[i][j].LOLAPt[k].y();
 
-        if (lat < minLat){
-          minLat = lat;
-        }
-
-        if (lon < minLon){
-          minLon = lon;
-        }
-
-        if (lat > maxLat){
-          maxLat = lat;
-        }
-
-        if (lon > maxLon){
-          maxLon = lon;
-        }
+        if (lat < min.y() ){ min.y() = lat; }
+        if (lon < min.x() ){ min.x() = lon; }
+        if (lat > max.y() ){ max.y() = lat; }
+        if (lon > max.x() ){ max.x() = lon; }
       }
     }
   }
 
+  BBox2 bounds( min, max );
+  return bounds;
+}
+
+Vector4 FindMinMaxLat( const vector<vector<LOLAShot> >& trackPts ) {
+  BBox2 bounds = FindShotBounds( trackPts );
   Vector4 coords;
-  coords(0) = minLat; 
-  coords(1) = maxLat; 
-  coords(2) = minLon; 
-  coords(3) = maxLon;
-
+  coords(0) = bounds.min().y();
+  coords(1) = bounds.max().y();
+  coords(2) = bounds.min().x();
+  coords(3) = bounds.max().x();
   return coords;
-
 }
 
 void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
