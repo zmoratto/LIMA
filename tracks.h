@@ -101,7 +101,7 @@ struct DEMPoint
 
 
 // prototype for GetPointFromIndex
-pointCloud GetPointFromIndex( vector<pointCloud> const & LOLAPts, int index);
+pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int );
 
 class LOLAShot
 {

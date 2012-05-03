@@ -769,17 +769,20 @@ int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams 
 }
 #endif
 
-pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index)
-{
-  pointCloud pt;
-  pt.s = -1;//invalid pointCloud
-  for(unsigned int i = 0;i < LOLAPts.size(); i++){
-    if (LOLAPts[i].s == index){
+pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int index ) {
+  for( unsigned int i = 0; i < LOLAPts.size(); ++i ) {
+    if( LOLAPts[i].s == index ){
       return LOLAPts[i];
     }
   }
 
+  // At the moment, this returns an "invalid" point.
+  pointCloud pt;
+  pt.s = -1; //invalid
   return pt;
+  // But it really should throw, like this:
+  // vw_throw( ArgumentErr() << "Couldn't find a point with detector number " << index );
+  // However, ComputeAllReflectance must have a test, first.
 }
 
 
