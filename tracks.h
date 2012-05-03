@@ -192,7 +192,13 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
   }
 
 
-vector<vector<LOLAShot> > CSVFileRead(string CSVFilename);
+std::vector<std::vector<LOLAShot> > LOLAFileRead( const std::string& );
+inline std::vector<std::vector<LOLAShot> > CSVFileRead( const std::string& f ){
+  // This function is deprecated, please use LOLAFileRead().
+  return LOLAFileRead( f );
+}
+
+
 //computes the scale factor for all tracks at once
 Vector4 FindMinMaxLat(vector<vector<LOLAShot> >trackPts);
 

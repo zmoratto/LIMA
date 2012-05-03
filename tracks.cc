@@ -41,7 +41,7 @@ pointCloud::pointCloud
   int     d,
   int     h,
   int     mi,
-  float   s,
+  float   se,
   int     detector 
   )
   :
@@ -52,7 +52,7 @@ pointCloud::pointCloud
   day = d;
   hour = h;
   min = mi;
-  sec = s;
+  sec = se;
   s = detector;
   }
 
@@ -120,144 +120,113 @@ bool isTimeDiff( pointCloud p, pointCloud c, float timeThresh){
 }
 
 
-vector<vector<LOLAShot> > CSVFileRead(string CSVFilename)
-	{
-	// This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
-	// It will ignore lines which do not start with year (or a value that can be converted
-	// into an integer greater than zero, specfically).
-	ifstream myfile (CSVFilename.c_str());
+vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
+  // This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
+  // It will ignore lines which do not start with year (or a value that can be converted
+  // into an integer greater than zero, specfically).
+  ifstream file( f.c_str() );
+  if( !file ) {
+    vw_throw( vw::IOErr() << "Unable to open track file \"" << f << "\"" );
+  }
+
+  vector<vector<LOLAShot> > trackPts(1);
+
+  // Prepare the tokenizer stuff.
+  typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+  boost::char_separator<char> sep(" ,");
+
+  // file >> ignoreLine; // Skip header line
  
-	int trackIndex = 0;
-	vector<vector<LOLAShot> > trackPts(1);
- 
-	pointCloud currPt;
-	pointCloud prevPt;
+  // Establish 3d bounding box for acceptable LOLA data. 
+  //Vector3 LOLAmin( -180, -90, 1720 );
+  //Vector3 LOLAmax(  360,  90, 1750 );
+  BBox3 LOLArange( Vector3(-180, -90, 1720), Vector3(360,  90, 1750) );
 
-	if (!myfile)
-		{
-		vw_throw( vw::IOErr() << "Unable to open track file \"" << CSVFilename << "\"" );
-		}
+  int trackIndex = 0;
+  pointCloud currPt;
+  pointCloud prevPt;
+  string line;
+  while( getline(file, line, '\n') ) {
+    /*
+    // For Debugging: this reads the first line, parses, numbers, and prints
+    tokenizer tokens( line, sep );
+    int counter(0);
+    for( tokenizer::iterator token = tokens.begin();
+    		token != tokens.end();
+    		++token, counter++)
+    	{
+    	cerr	<< boost::lexical_cast<std::string>(counter) 
+    			<< ". " << *token << endl;
+    	}
+    exit(1);
+    */
 
-	// Prepare the tokenizer stuff.
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-	boost::char_separator<char> sep(" ,");
+    tokenizer tokens( line, sep );
+    tokenizer::iterator token = tokens.begin();
 
-	// myfile >> ignoreLine; // Skip header line
+    istringstream date_s( *token );
+    date_s >>  setw(4) >> currPt.year
+	       >> ignoreOne // -
+	       >> setw(2) >> currPt.month
+	       >> ignoreOne // -
+	       >> setw(2) >> currPt.day
+	       >> ignoreOne // T
+	       >> setw(2) >> currPt.hour
+	       >> ignoreOne // :
+	       >> setw(2) >> currPt.min
+	       >> ignoreOne // :
+	       >> currPt.sec;
+    //cout<<"year "<< currPt.year << endl;
+    if( currPt.year <= 0 ) { continue; }
+    //cout << currPt.year <<' '<< currPt.month <<' '<< currPt.day 
+    //	<<' '<< currPt.hour <<' '<< currPt.min <<' '<< currPt.sec << endl;
 
-	string line;
-    while ( getline( myfile, line, '\n' ) )
-		{
+    ++token;
+    istringstream lon_s( *token );
+    lon_s >> currPt.x(); // Pt_Longitude
+    // cout<<"lon "<< currPt.coords	s_s >> "s_s"<<currPt.s; // S(0) << endl;
 
-		/*
-		// For Debugging: this reads the first line, parses, numbers, and prints
-		tokenizer tokens( line, sep );
-		int counter(0);
-		for( tokenizer::iterator token = tokens.begin();
-				token != tokens.end();
-				++token, counter++)
-			{
-			cerr	<< boost::lexical_cast<std::string>(counter) 
-					<< ". " << *token << endl;
-			}
-		exit(1);
-		*/
+    ++token;
+    istringstream lat_s( *token );
+    lat_s >> currPt.y(); // Pt_Latitude
 
-		tokenizer tokens( line, sep );
-		tokenizer::iterator token = tokens.begin();
+    ++token;
+    istringstream rad_s( *token );
+    rad_s >> currPt.z(); // Pt_Radius
+    // cout<<"radius "<< currPt.coords(2) << endl;
 
-		istringstream date_s( *token );
-		date_s >>  setw(4) >> currPt.year
-				>> ignoreOne // -
-				>> setw(2) >> currPt.month
-				>> ignoreOne // -
-				>> setw(2) >> currPt.day
-				>> ignoreOne // T
-				>> setw(2) >> currPt.hour
-				>> ignoreOne // :
-				>> setw(2) >> currPt.min
-				>> ignoreOne // :
-				>> currPt.sec;
-		//cout<<"year "<< currPt.year << endl;
-		if( currPt.year <= 0 ) { continue; }
-		//cout << currPt.year <<' '<< currPt.month <<' '<< currPt.day 
-		//	<<' '<< currPt.hour <<' '<< currPt.min <<' '<< currPt.sec << endl;
-
-		++token;
-		istringstream lon_s( *token );
-		lon_s >> currPt.x(); // Pt_Longitude
-		// cout<<"lon "<< currPt.coords	s_s >> "s_s"<<currPt.s; // S(0) << endl;
-
-		++token;
-		istringstream lat_s( *token );
-		lat_s >> currPt.y(); // Pt_Latitude
-
-		++token;
-		istringstream rad_s( *token );
-		rad_s >> currPt.z(); // Pt_Radius
-		// cout<<"radius "<< currPt.coords(2) << endl;
-
-		advance( token, 8 );
-		istringstream s_s( *token );
-		s_s >>currPt.s; // S
-                //cout<<"s_s "<<currPt.s<<endl;
-
-        if ((currPt.x()!=0.0) && (currPt.y()!=0.0) )
-			{ //valid lidar point
-
-			if( trackPts[trackIndex].empty() ) {
-			  trackPts[trackIndex].push_back( LOLAShot(currPt) );
-            }
-			else
-				{
-				if( isTimeDiff(prevPt, currPt, 3000) )
-					{ //new track
-					trackIndex++;
-					trackPts.resize(trackIndex+1); //start new track
-					trackPts[trackIndex].push_back( LOLAShot(currPt) ); //put the new shot in it
-//add last shot to the previous track
-					//shot.LOLAPt.clear();
-					//trackIndex++;
-					//trackPts.resize(trackIndex+1); //start new track
-					//shot.LOLAPt.push_back(currPt);
-	    		 	}
-				else
-					{ //same track
-					if( isTimeDiff(prevPt, currPt, 0) )
-						{//new shot
-						trackPts[trackIndex].push_back( LOLAShot(currPt) );
-						//shot.LOLAPt.clear();
-						//shot.LOLAPt.push_back(currPt);
-						}
-					else
-						{ //same shot
-						// shot.LOLAPt.push_back(currPt);
-						trackPts[trackIndex].back().LOLAPt.push_back( currPt );
-						}
-					}
-				}
+    advance( token, 8 );
+    istringstream s_s( *token );
+    s_s >>currPt.s; // S
+    //cout<<"s_s "<<currPt.s<<endl;
     
-			//copy current pc into prevPt
-			prevPt = currPt;
-            /*
-			prevPt.x() = currPt.x();
-			prevPt.y() = currPt.y();
-			prevPt.z() = currPt.z();
-			prevPt.year = currPt.year;
-			prevPt.month = currPt.month;
-			prevPt.day = currPt.day;
-			prevPt.hour = currPt.hour;
-			prevPt.min = currPt.min;
-			prevPt.sec = currPt.sec;   
-			prevPt.s = currPt.s;
-			*/
-			}
+    if( LOLArange.contains(currPt) ){
+      if( trackPts[trackIndex].empty() ) {
+        trackPts[trackIndex].push_back( LOLAShot(currPt) );
+      }
+      else {
+        if( isTimeDiff(prevPt, currPt, 3000) ) { //new track
+          trackIndex++;
+          trackPts.resize(trackIndex+1); //start new track
+          trackPts[trackIndex].push_back( LOLAShot(currPt) ); //put the new shot in it
+        }
+        else { //same track
+          if( isTimeDiff(prevPt, currPt, 0) ) { //new shot
+            trackPts[trackIndex].push_back( LOLAShot(currPt) );
+          }
+          else { //same shot
+            trackPts[trackIndex].back().LOLAPt.push_back( currPt );
+          }
+        }
+      }
 
-		} 
-
-	myfile.close();
-
-	return trackPts; 
-	}
+      //copy current pc into prevPt
+      prevPt = currPt;
+    }
+  } 
+  file.close();
+  return trackPts; 
+}
 
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
 {
