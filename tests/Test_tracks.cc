@@ -37,6 +37,23 @@ TEST( LOLAfileRead_Test, canRead ){
   
 }
 
+TEST( GetPointFromIndex_Test, works ){
+  pointCloud point0( Vector3(1,1,1), 2009, 10, 3, 13, 26, 0, 0 );
+  pointCloud point1( Vector3(1,1,1), 2009, 10, 3, 13, 26, 0, 1 );
+  pointCloud point2( Vector3(1,1,1), 2009, 10, 3, 13, 26, 0, 2 );
+  pointCloud point3( Vector3(1,1,1), 2009, 10, 3, 13, 26, 0, 3 );
+  pointCloud point4( Vector3(1,1,1), 2009, 10, 3, 13, 26, 0, 4 );
+  vector<pointCloud> truth(5);
+  truth[0] = point0;
+  truth[1] = point1;
+  truth[2] = point2;
+  truth[3] = point3;
+  truth[4] = point4;
+
+  pointCloud test = GetPointFromIndex( truth, 3 );
+
+  ASSERT_EQ( point3.s, test.s ) << "Point with the wrong detector.";
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
