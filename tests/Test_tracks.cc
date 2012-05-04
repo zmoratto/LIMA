@@ -70,9 +70,27 @@ TEST( FindMinMaxLat_Test, works ){
   EXPECT_NEAR( 3.77167, bounds[3], 0.0001 ) << "Maximum longitude is wrong.";
 }
 
-TEST( ComputeAllReflectance_Test, works ){
-  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
-  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+class ReflectanceTests : public ::testing::Test {
+  protected:
+  virtual void SetUp() {
+    p_ = "RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv";
+    camera_pos_(0) = 1.60109e+06;
+    camera_pos_(1) = 82708.6;
+    camera_pos_(2) = 784432;
+    light_pos_(0) = 1.28119e+11;
+    light_pos_(1) = 7.5658e+10;
+    light_pos_(2) = -3.98442e+09;
+  }
+
+  virtual void TearDown() {}
+
+  fs::path p_;
+  Vector3 camera_pos_;
+  Vector3 light_pos_;
+};
+
+TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
   unsigned int num_shots = shots.size();
 
   /*
@@ -87,21 +105,18 @@ TEST( ComputeAllReflectance_Test, works ){
   // light Vector3(1.28119e+11,7.5658e+10,-3.98442e+09)
   */
 
-  Vector3 cameraPosition( 1.60109e+06,82708.6,784432 );
-  Vector3 lightPosition( 1.28119e+11,7.5658e+10,-3.98442e+09 );
-
   int test_valid_points = ComputeAllReflectance( shots,  
-                                                 cameraPosition, 
-                                                 lightPosition);
+                                                 camera_pos_, 
+                                                 light_pos_);
   ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
   ASSERT_EQ( 2723, test_valid_points ) << "There is the wrong number of valid points.";
   ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
 }
 
-TEST( ComputeGainBiasFactor, DISABLED_vector_of_shots ){
-  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
-  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
-  // I think we need to run ComputeAllReflectance here, but it needs a test, first.
+TEST_F( ReflectanceTests,  DISABLED_ComputeGainBiasFactor_vector_of_shots ){
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
+  ComputeAllReflectance( shots,  camera_pos_, light_pos_ );
+  // imgPts need to be filled out, too.
   Vector2 test = ComputeGainBiasFactor( shots );
 
   cout << test << endl;
