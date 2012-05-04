@@ -89,12 +89,10 @@ TEST( ComputeAllReflectance_Test, works ){
 
   Vector3 cameraPosition( 1.60109e+06,82708.6,784432 );
   Vector3 lightPosition( 1.28119e+11,7.5658e+10,-3.98442e+09 );
-  struct CoregistrationParams settings;
 
   int test_valid_points = ComputeAllReflectance( shots,  
                                                  cameraPosition, 
-                                                 lightPosition, 
-                                                 settings);
+                                                 lightPosition);
   ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
   ASSERT_EQ( 2723, test_valid_points ) << "There is the wrong number of valid points.";
   ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";

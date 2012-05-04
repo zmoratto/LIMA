@@ -639,135 +639,53 @@ float ComputeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPo
   return reflectance;
 }
 
-int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks,  Vector3 cameraPosition, Vector3 lightPosition, CoregistrationParams coregistrationParams)
-{
-
-  vector<pointCloud> LOLAPts;
+int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,  
+                           const Vector3&                    cameraPosition, 
+                           const Vector3&                    lightPosition) {
   int numValidReflPts = 0;
 
-  float minReflectance =  10000.0;
-  float maxReflectance = -10000.0;
+  float minReflectance = std::numeric_limits<float>::max();
+  float maxReflectance = std::numeric_limits<float>::min();
  
-  for (unsigned int k = 0; k < allTracks.size(); k++ ){
-    for (unsigned int i = 0; i < allTracks[k].size(); i++){
-      LOLAPts = allTracks[k][i].LOLAPt;
+  for( unsigned int k = 0; k < shots.size(); ++k ){
+    for( unsigned int i = 0; i < shots[k].size(); ++i ){
+      pointCloud centerPt = GetPointFromIndex( shots[k][i].LOLAPt, 1 );
+      pointCloud topPt    = GetPointFromIndex( shots[k][i].LOLAPt, 3 );
+      pointCloud leftPt   = GetPointFromIndex( shots[k][i].LOLAPt, 2 );
       
-      /*
-      //old
-      pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-      pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-      pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
-      */
-      
-      //new
-      pointCloud centerPt = GetPointFromIndex(LOLAPts, 1);
-      pointCloud topPt = GetPointFromIndex(LOLAPts, 3);
-      pointCloud leftPt = GetPointFromIndex(LOLAPts, 2);
-      
-      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) /*&& (allTracks[k][i].valid == 1)*/ && ((LOLAPts.size() <= 5))){
-
-        centerPt.z() = centerPt.z()*1000;
-        topPt.z() = topPt.z()*1000;
-        leftPt.z() = leftPt.z()*1000;
+      if( (centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) 
+          && (shots[k][i].LOLAPt.size() <= 5) ){
+        centerPt.z() *= 1000;
+        topPt.z()    *= 1000;
+        leftPt.z()   *= 1000;
         
         Vector3 xyz = lon_lat_radius_to_xyz(centerPt);
         Vector3 xyzTop = lon_lat_radius_to_xyz(topPt);
         Vector3 xyzLeft = lon_lat_radius_to_xyz(leftPt);
 
-   
         Vector3 normal = ComputeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
 
-        allTracks[k][i].reflectance = ComputeLunarLambertianReflectanceFromNormal(lightPosition, cameraPosition, xyz, normal); 
+        shots[k][i].reflectance = ComputeLunarLambertianReflectanceFromNormal(lightPosition, cameraPosition, xyz, normal); 
         
-        if (allTracks[k][i].reflectance != 0){ 
-	  if (allTracks[k][i].reflectance < minReflectance){
-	    minReflectance = allTracks[k][i].reflectance;
-	  } 
-	  if (allTracks[k][i].reflectance > maxReflectance){
-	    maxReflectance = allTracks[k][i].reflectance;
-	  }
-          numValidReflPts++;
-	}        
+        if( shots[k][i].reflectance != 0 ){ 
+          ++numValidReflPts;
+
+          if( shots[k][i].reflectance < minReflectance ){
+            minReflectance = shots[k][i].reflectance;
+          } 
+          if( shots[k][i].reflectance > maxReflectance ){
+            maxReflectance = shots[k][i].reflectance;
+          }
+        }        
       }
-      else{
-        allTracks[k][i].reflectance = -1;
-      }
+      else{ shots[k][i].reflectance = -1; }
     }//i
   }//k
  
-  cout<<"NEW:"<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
+  //cout<<"NEW:"<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
 
   return numValidReflPts;
 }
-
-#if 0
-int  ComputeAllReflectance( vector< vector<LOLAShot> >  &allTracks, ModelParams modelParams,  CoregistrationParams coregistrationParams)
-{
-
-  vector<pointCloud> LOLAPts;
-  int numValidReflPts = 0;
-
-  
-  GlobalParams globalParams;
-  globalParams.reflectanceType = coregistrationParams.reflectanceType;
-  globalParams.slopeType = 1;
-  globalParams.shadowThresh = 40;
-  globalParams.albedoInitType = 1;
-  globalParams.exposureInitType = 1;
-  
-  float minReflectance =  10000.0;
-  float maxReflectance = -10000.0;
- 
-  for (unsigned int k = 0; k < allTracks.size(); k++ ){
-    for (unsigned int i = 0; i < allTracks[k].size(); i++){
-      LOLAPts = allTracks[k][i].LOLAPt;
-      /*
-      pointCloud centerPt = GetPointFromIndex(LOLAPts, 3);
-      pointCloud topPt = GetPointFromIndex(LOLAPts, 2);
-      pointCloud leftPt = GetPointFromIndex(LOLAPts, 1);
-      */
-      pointCloud centerPt = GetPointFromIndex(LOLAPts, 1);
-      pointCloud topPt = GetPointFromIndex(LOLAPts, 3);
-      pointCloud leftPt = GetPointFromIndex(LOLAPts, 2);
-
-      if ((centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) /*&& (allTracks[k][i].valid == 1)*/ && ((LOLAPts.size() <= 5))){
-
-        Datum moon;
-        moon.set_well_known_datum("D_MOON");
-
-
-        centerPt.z() = (centerPt.z()-1737.4)*1000;
-        topPt.z() = (topPt.z()-1737.4)*1000;
-        leftPt.z() = (leftPt.z()-1737.4)*1000;
-
-        Vector3 xyz = moon.geodetic_to_cartesian(centerPt);
-        Vector3 xyzTop = moon.geodetic_to_cartesian(topPt);
-        Vector3 xyzLeft = moon.geodetic_to_cartesian(leftPt);
-        Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-
-        allTracks[k][i].reflectance = ComputeReflectance(normal, xyz, modelParams, globalParams);
-        if (allTracks[k][i].reflectance != 0){ 
-	  if (allTracks[k][i].reflectance < minReflectance){
-	    minReflectance = allTracks[k][i].reflectance;
-	  } 
-	  if (allTracks[k][i].reflectance > maxReflectance){
-	    maxReflectance = allTracks[k][i].reflectance;
-	  }
-          numValidReflPts++;
-	}
-        
-      }
-      else{
-        allTracks[k][i].reflectance = -1;
-      }
-    }//i
-  }//k
- 
-  cout<<"minReflectance="<<minReflectance<<", maxReflectance="<<maxReflectance<<endl;
-
-  return numValidReflPts;
-}
-#endif
 
 pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int index ) {
   for( unsigned int i = 0; i < LOLAPts.size(); ++i ) {

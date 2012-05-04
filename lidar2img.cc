@@ -246,7 +246,7 @@ int main( int argc, char *argv[] ) {
     cout<<"done."<<endl; 
   
     cout << "ComputeTrackReflectance..." << endl;
-    int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition, settings);
+    int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition);
     cout<<"numValidReflPts="<<numValidReflPts<<endl;
     cout<<"done."<<endl;
     //initialization step for LIMA - END 
@@ -363,7 +363,7 @@ int main( int argc, char *argv[] ) {
       cout << "ComputeTrackReflectance..." << endl;
       cout<<cameraPosition<<endl;
       cout<<lightPosition<<endl;
-      int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition, settings);
+      int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition);
       cout<<"numValidReflPts="<<numValidReflPts<<endl;
       cout<<"done."<<endl;
       //initialization step for LIMA - END 
