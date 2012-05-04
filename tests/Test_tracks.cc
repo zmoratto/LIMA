@@ -70,6 +70,39 @@ TEST( FindMinMaxLat_Test, works ){
   EXPECT_NEAR( 3.77167, bounds[3], 0.0001 ) << "Maximum longitude is wrong.";
 }
 
+TEST( GetAllPtsFromImage, works ){
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+  unsigned int num_shots = shots.size();
+  fs::path im("M111578606RE.10mpp.tif");
+
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( im.string() ) );
+  DiskImageView<PixelGray<uint8> > DRG( rsrc );
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, im.string() );
+
+  GetAllPtsFromImage( shots, DRG, DRGGeo );
+  ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
+
+  // for( unsigned int i = 0; i < shots.size(); ++i ){
+  //   for( unsigned int j = 0; j < shots[i].size(); ++j ){
+  //     if( shots[i][j].valid == 1 ){
+  //       for( unsigned int k = 0; k < shots[i][j].imgPt.size(); ++k ){
+  //         cout << i << " " << j << " " << k
+  //              << " x: " << shots[i][j].imgPt[k].x 
+  //              << " y: " << shots[i][j].imgPt[k].y
+  //              << " val: " << shots[i][j].imgPt[k].val << endl;
+  //       }
+  //     }
+  //   }
+  // }
+  ASSERT_EQ( (unsigned int)1, shots[4][785].valid ) << "Shot isn't valid.";
+  ASSERT_EQ( (unsigned int)5, shots[4][785].imgPt.size() ) << "Vector of imgPt wrong size.";
+  ASSERT_NEAR( 234.945, shots[4][785].imgPt[3].x, 0.001 ) << "The x value is wrong.";
+  ASSERT_NEAR( 1826.62, shots[4][785].imgPt[3].y, 0.01 ) << "The y value is wrong.";
+  ASSERT_NEAR( 10, shots[4][785].imgPt[3].val, 0.1 ) << "The y value is wrong.";
+}
+
 class ReflectanceTests : public ::testing::Test {
   protected:
   virtual void SetUp() {
