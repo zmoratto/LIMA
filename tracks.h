@@ -241,72 +241,56 @@ Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 
 template <class ViewT>
 void 
-GetAllPtsFromImage(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DRG, GeoReference const &DRGGeo)
-{
-
-  vector<pointCloud> LOLAPts;
-
+GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,  
+                    const vw::ImageViewBase<ViewT>&            DRG, 
+                    const GeoReference&                        DRGGeo) {
   ImageViewRef<float> interpDRG;
-  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+  if( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
     interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-
-    cout << "NOT masked" <<endl;
+                                                          ConstantEdgeExtension()),
+                                              BilinearInterpolation()) );
+    //cout << "NOT masked" <<endl;
   } 
-  else 
-  {
+  else {
     interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
-							  ConstantEdgeExtension()),
-					      BilinearInterpolation()) );
-    cout << "MASKED" <<endl;
+                                                          ConstantEdgeExtension()),
+                                              BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
   }
 
-  for(int k = 0; k < trackPts.size();k++){
-    for(int i = 0; i < trackPts[k].size(); i++){
-      
+  for( unsigned int k = 0; k < trackPts.size(); ++k ){
+    for( unsigned int i = 0; i < trackPts[k].size(); ++i ){
+
+      // Set initially valid
       trackPts[k][i].valid = 1; 
 
-      LOLAPts = trackPts[k][i].LOLAPt;
-      trackPts[k][i].imgPt.resize(LOLAPts.size());
+      trackPts[k][i].imgPt.resize( trackPts[k][i].LOLAPt.size() );
 
-      for (int j = 0; j < LOLAPts.size(); j++){
-          
-	    float lon = LOLAPts[j].x();
-	    float lat = LOLAPts[j].y();
-	    float rad = LOLAPts[j].z();
-     
-	    Vector2 DEM_lonlat(lon, lat);
+      BBox2i bbox = bounding_box( DRG );
+      for( unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); ++j ){
+	    Vector2 DEM_lonlat( trackPts[k][i].LOLAPt[j].x(), trackPts[k][i].LOLAPt[j].y() );
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
 	  
-	    float x = DRG_pix[0];
-	    float y = DRG_pix[1];
-
-            //check that (x,y) are within the image boundaries
-	    if ((x>=0) && (y>=0) && (x<DRG.impl().cols()) && (y<DRG.impl().rows())){//valid position  
-              //check for valid data as well
-              if (interpDRG(x, y)!=0){//valid values
-	         trackPts[k][i].imgPt[j].val = interpDRG(x, y);
-	         trackPts[k][i].imgPt[j].x = DRG_pix[0];
-	         trackPts[k][i].imgPt[j].y = DRG_pix[1];
-	      }
-              else{//invalidate the point
-                 trackPts[k][i].valid = 0;
-              }
-	    }
-            else{ //invalidate the point  
-                 trackPts[k][i].valid = 0; 
-            }
-	
+	    if( bbox.contains(DRG_pix) ){
+          //check for valid data as well
+          if( interpDRG( DRG_pix[0], DRG_pix[1] ) != 0 ){//valid values
+            trackPts[k][i].imgPt[j].val = interpDRG( DRG_pix[0], DRG_pix[1] );
+            trackPts[k][i].imgPt[j].x = DRG_pix[0];
+            trackPts[k][i].imgPt[j].y = DRG_pix[1];
+          }
+          else{// one bad point invalidates the whole set of shots
+            trackPts[k][i].valid = 0;
+          }
+        }
+        else { trackPts[k][i].valid = 0; }
       }
       //check for valid shot with 3 points to compute reflectance
-      pointCloud centerPt  = GetPointFromIndex( LOLAPts, 3);
-      pointCloud topPt     = GetPointFromIndex( LOLAPts, 2);
-      pointCloud leftPt    = GetPointFromIndex( LOLAPts, 1);
-      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (LOLAPts.size() >5)){//invalid LOLA shot
+      pointCloud centerPt  = GetPointFromIndex( trackPts[k][i].LOLAPt, 3);
+      pointCloud topPt     = GetPointFromIndex( trackPts[k][i].LOLAPt, 2);
+      pointCloud leftPt    = GetPointFromIndex( trackPts[k][i].LOLAPt, 1);
+      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (trackPts[k][i].LOLAPt.size() >5)){//invalid LOLA shot
           trackPts[k][i].valid = 0; 
       }
-
     }//i  
   }//k
 
