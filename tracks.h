@@ -211,7 +211,6 @@ int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          cameraPosition,
                            const vw::Vector3&                          lightPosition);
 
-pointCloud GetPointFromIndex(vector<pointCloud> const &  LOLAPts, int index);
 
 void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename);
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);

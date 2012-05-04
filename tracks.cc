@@ -700,7 +700,7 @@ pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int inde
   return pt;
   // But it really should throw, like this:
   // vw_throw( ArgumentErr() << "Couldn't find a point with detector number " << index );
-  // However, ComputeAllReflectance must have a test, first.
+  // However, ComputeAllReflectance() and GetAllPtsFromImage() must have a test, first.
 }
 
 
