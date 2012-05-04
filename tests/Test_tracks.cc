@@ -3,6 +3,9 @@
 #include "../tracks.h"
 #include "gtest/gtest.h"
 
+// #include <asp/IsisIO.h>
+// #include <asp/IsisIO/IsisCameraModel.h>
+
 namespace fs = boost::filesystem;
 
 using namespace std;
@@ -65,6 +68,48 @@ TEST( FindMinMaxLat_Test, works ){
   EXPECT_NEAR( 27.5   , bounds[1], 0.0001 ) << "Maximum latitude is wrong.";
   EXPECT_NEAR( 3.06477, bounds[2], 0.0001 ) << "Minimum longitude is wrong.";
   EXPECT_NEAR( 3.77167, bounds[3], 0.0001 ) << "Maximum longitude is wrong.";
+}
+
+TEST( ComputeAllReflectance_Test, works ){
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+  unsigned int num_shots = shots.size();
+
+  /*
+  camera::IsisCameraModel model("M111578606RE.10mpp.cub");
+  Vector2 pixel_location( model.samples()/2, model.lines()/2 );
+  Vector3 cameraPosition = model.camera_center( pixel_location );
+  Vector3 lightPosition = model.sun_position( pixel_location );
+  
+  cout << "camera " << cameraPosition << endl;
+  // camera Vector3(1.60109e+06,82708.6,784432)
+  cout << "light " << lightPosition << endl;
+  // light Vector3(1.28119e+11,7.5658e+10,-3.98442e+09)
+  */
+
+  Vector3 cameraPosition( 1.60109e+06,82708.6,784432 );
+  Vector3 lightPosition( 1.28119e+11,7.5658e+10,-3.98442e+09 );
+  struct CoregistrationParams settings;
+
+  int test_valid_points = ComputeAllReflectance( shots,  
+                                                 cameraPosition, 
+                                                 lightPosition, 
+                                                 settings);
+  ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
+  ASSERT_EQ( 2723, test_valid_points ) << "There is the wrong number of valid points.";
+  ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
+}
+
+TEST( ComputeGainBiasFactor, DISABLED_vector_of_shots ){
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+  // I think we need to run ComputeAllReflectance here, but it needs a test, first.
+  Vector2 test = ComputeGainBiasFactor( shots );
+
+  cout << test << endl;
+}
+
+TEST( ComputeGainBiasFactor, DISABLED_vector_of_vector_of_shots ){
 }
 
 int main(int argc, char **argv) {
