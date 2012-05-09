@@ -165,7 +165,28 @@ TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
   ASSERT_NEAR( 15.7134, test[1], 0.0001 ) << "Bias is different.";
 }
 
-TEST( ComputeGainBiasFactor, DISABLED_vector_of_vector_of_shots ){
+TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
+  ComputeAllReflectance( shots,  camera_pos_, light_pos_ );
+
+  fs::path im("M111578606RE.10mpp.tif");
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( im.string() ) );
+  DiskImageView<PixelGray<uint8> > DRG( rsrc );
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, im.string() );
+  GetAllPtsFromImage( shots, DRG, DRGGeo );
+
+  // Need to add some other reflectances.  Only one track seems to have valid
+  // values coming out of ComputeAllReflectance(), so we will fake some.
+  for( unsigned int j = 0; j < shots[2].size(); ++j ){
+    shots[2][j].valid = 1;
+    shots[2][j].reflectance = 0.3;
+  }
+
+  Vector2 test = ComputeGainBiasFactor( shots );
+
+  EXPECT_NEAR( 16.8979,  test[0], 0.0001 ) << "Gain is different.";
+  EXPECT_NEAR( -4.98357, test[1], 0.0001 ) << "Bias is different.";
 }
 
 int main(int argc, char **argv) {
