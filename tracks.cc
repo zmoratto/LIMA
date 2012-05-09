@@ -498,50 +498,21 @@ Vector2 ComputeGainBiasFactor( const vector<LOLAShot>& trackPts ) {
 }
 
 //computes the gain and bias factor for all tracks at once
-Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts)
-{
+Vector2 ComputeGainBiasFactor( const vector<vector<LOLAShot> >& trackPts ) {
   int numValidPts = 0;
   float sum_rfl = 0.0; 
   float sum_img = 0.0;
   float sum_rfl_2 = 0.0;
   float sum_rfl_img = 0.0;
-  Matrix<float,2,2> rhs;
-  Vector<float,2> lhs;
   Vector2 gain_bias;
 
-  for(unsigned int k = 0; k < trackPts.size();k++){
-    for(unsigned int i = 0; i < trackPts[k].size(); i++){
-      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
-
-        //update the nominator for the center point
-
-        for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-          if (trackPts[k][i].LOLAPt[j].s == 1){
-            sum_rfl = sum_rfl + trackPts[k][i].reflectance;
-            sum_rfl_2 = sum_rfl_2 + trackPts[k][i].reflectance*trackPts[k][i].reflectance;
-            sum_rfl_img = sum_rfl_img + trackPts[k][i].reflectance*(trackPts[k][i].imgPt[j].val);
-            sum_img = sum_img + (trackPts[k][i].imgPt[j].val);
-            numValidPts++;
-          }
-        }
-
-        //update the denominator
-        //numValidPts++;
-      }
-    }
+  for( unsigned int k = 0; k < trackPts.size(); ++k){
+    GainBiasAccumulator( trackPts[k], sum_rfl, sum_img, sum_rfl_2, sum_rfl_img, numValidPts );
   }
 
   //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
   if (numValidPts != 0){ 
-    rhs(0,0) = sum_rfl_2;
-    rhs(0,1) = sum_rfl;
-    rhs(1,0) = sum_rfl;
-    rhs(1,1) = numValidPts;
-    lhs(0) = sum_rfl_img;
-    lhs(1) = sum_img;
-    solve_symmetric_nocopy(rhs,lhs);
-    gain_bias = lhs;
-    cout<<"gain and bias"<<lhs<<endl;
+    gain_bias = GainBiasSolver( sum_rfl, sum_img, sum_rfl_2, sum_rfl_img, numValidPts );
   }
   else{
     //invalid scaleFactor, all tracks are invalid

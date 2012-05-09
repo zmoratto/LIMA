@@ -205,7 +205,7 @@ vw::Vector4 FindMinMaxLat( const std::vector<std::vector<LOLAShot> >& );
 
 //float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 vw::Vector2 ComputeGainBiasFactor( const std::vector<LOLAShot>& );
-Vector2 ComputeGainBiasFactor(vector<vector<LOLAShot > >&trackPts);
+vw::Vector2 ComputeGainBiasFactor( const std::vector<std::vector<LOLAShot> >& );
 int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename);
 int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          cameraPosition,
