@@ -216,7 +216,10 @@ void SaveReflectancePoints( const std::vector<std::vector<LOLAShot> >&,
                             const vw::Vector2&                        gain_bias,
                             const std::string&                        filename);
 
-void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
+void SaveImagePoints( const std::vector<std::vector<LOLAShot> >&,
+                      const int&                                detectNum, 
+                      const std::string&                        filename);
+
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 

@@ -771,38 +771,32 @@ void SaveReflectancePoints( const vector<vector<LOLAShot> >& trackPts,
 }
 
 //saves the image points corresponding to a detectNum
-void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename)
-{
-
-  FILE *fp;
-
-  for (unsigned int k = 0; k < allTracks.size(); k++ ){
-
-    string prefixTrackFilename = GetFilenameNoExt(filename);//prefix_from_filename(filename); 
-    char* trackFilename = new char[500];
-    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-    fp = fopen(trackFilename, "w");
-
-    for (unsigned int i = 0; i < allTracks[k].size()-1; i++){
-
-
-      int found = 0;
-      for (unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); j++){
-        if ((allTracks[k][i].LOLAPt[j].s == detectNum) && (allTracks[k][i].valid == 1)){
-          found = 1;
-          fprintf(fp, "%f\n", allTracks[k][i].imgPt[j].val);
-        }
-      }
-      if (found == 0){
-        fprintf(fp, "-1\n");
-      }
-
+void SaveImagePoints( const vector<vector<LOLAShot> >& allTracks,
+                      const int&                       detectNum,
+                      const string&                    filename) {
+  boost::filesystem::path p( filename );
+  for (unsigned int k = 0; k < allTracks.size(); ++k ){
+    ostringstream os;
+    os << p.stem().string() << "_" << k << ".txt";
+    
+    ofstream file( os.str().c_str() );
+    if( !file ) {
+      vw_throw( ArgumentErr() << "Can't open image point output file " << os.str() );
     }
 
-    fclose(fp);
-    delete trackFilename;
+    for( unsigned int i = 0; i < allTracks[k].size(); ++i){
+      bool found = false;
+      for( unsigned int j = 0; j < allTracks[k][i].LOLAPt.size(); ++j){
+        if( (allTracks[k][i].LOLAPt[j].s == detectNum) && 
+            (allTracks[k][i].valid       == 1)           ){
+          found = true;
+          file <<  allTracks[k][i].imgPt[j].val << endl;
+        }
+      }
+      if( !found ){ file << "-1" << endl; }
+    }
+    file.close();
   }
-
 }
 
 //saves the altitude  points (LOLA) corresponding to a sensor ID = detectNum

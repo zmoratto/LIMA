@@ -103,6 +103,8 @@ TEST( GetAllPtsFromImage, works ){
   ASSERT_NEAR( 234.945, shots[4][785].imgPt[3].x, 0.001 ) << "The x value is wrong.";
   ASSERT_NEAR( 1826.62, shots[4][785].imgPt[3].y, 0.01 ) << "The y value is wrong.";
   ASSERT_NEAR( 10, shots[4][785].imgPt[3].val, 0.1 ) << "The y value is wrong.";
+
+  //SaveImagePoints( shots, 1, "SaveImagePoints_Test.txt" );
 }
 
 class ReflectanceTests : public ::testing::Test {
