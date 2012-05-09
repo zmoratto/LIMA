@@ -148,13 +148,21 @@ TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
   ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
 }
 
-TEST_F( ReflectanceTests,  DISABLED_ComputeGainBiasFactor_vector_of_shots ){
+TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
   vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
   ComputeAllReflectance( shots,  camera_pos_, light_pos_ );
-  // imgPts need to be filled out, too.
-  Vector2 test = ComputeGainBiasFactor( shots );
 
-  cout << test << endl;
+  fs::path im("M111578606RE.10mpp.tif");
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( im.string() ) );
+  DiskImageView<PixelGray<uint8> > DRG( rsrc );
+  GeoReference DRGGeo;
+  read_georeference(DRGGeo, im.string() );
+  GetAllPtsFromImage( shots, DRG, DRGGeo );
+
+  Vector2 test = ComputeGainBiasFactor( shots[4] );
+
+  ASSERT_NEAR( -8.32765, test[0], 0.00001 ) << "Gain is different.";
+  ASSERT_NEAR( 15.7134, test[1], 0.0001 ) << "Bias is different.";
 }
 
 TEST( ComputeGainBiasFactor, DISABLED_vector_of_vector_of_shots ){
