@@ -800,38 +800,32 @@ void SaveImagePoints( const vector<vector<LOLAShot> >& allTracks,
 }
 
 //saves the altitude  points (LOLA) corresponding to a sensor ID = detectNum
-void SaveAltitudePoints(vector< vector<LOLAShot> >  &tracks, int detectNum, string filename)
-{
-
-  FILE *fp;
-
-  for (unsigned int t = 0; t < tracks.size(); t++ ){
-
-    string prefixTrackFilename = GetFilenameNoExt(filename);//prefix_from_filename(filename); 
-    char* trackFilename = new char[500];
-    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), t);
-    fp = fopen(trackFilename, "w");
-
-    for (unsigned int s = 0; s < tracks[t].size(); s++){
-
-      int found = 0;
-      for (unsigned int j = 0; j < tracks[t][s].LOLAPt.size(); j++){
-         if ((tracks[t][s].LOLAPt[j].s == detectNum) && (tracks[t][s].valid == 1)){
-             found = 1;
-             fprintf(fp, "%f\n", tracks[t][s].LOLAPt[j].z());
-         }
-      }
-
-      if (found == 0){
-          fprintf(fp, "-1\n");
-      }
-
+void SaveAltitudePoints( const vector<vector<LOLAShot> >& tracks,
+                         const int&                       detectNum,
+                         const string&                    filename) {
+  boost::filesystem::path p( filename );
+  for (unsigned int t = 0; t < tracks.size(); ++t ){
+    ostringstream os;
+    os << p.stem().string() << "_" << t << ".txt";
+    
+    ofstream file( os.str().c_str() );
+    if( !file ) {
+      vw_throw( ArgumentErr() << "Can't open altitude output file " << os.str() );
     }
 
-    fclose(fp);
-    delete trackFilename;
+    for( unsigned int s = 0; s < tracks[t].size(); ++s ){
+      bool found = false;
+      for( unsigned int j = 0; j < tracks[t][s].LOLAPt.size(); ++j ){
+        if( (tracks[t][s].LOLAPt[j].s == detectNum) && 
+            (tracks[t][s].valid       == 1)           ){
+          found = true;
+          file << tracks[t][s].LOLAPt[j].z() << endl;
+        }
+      }
+      if( !found ){ file << "-1" << endl; }
+    }
+    file.close();
   }
-
 }
 
 

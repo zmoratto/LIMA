@@ -37,7 +37,6 @@ TEST( LOLAfileRead_Test, canRead ){
   ASSERT_EQ( 13, test[2][0].LOLAPt[2].hour) << "This point doesn't have the right hour.";
   ASSERT_EQ( 26, test[2][0].LOLAPt[2].min) << "This point doesn't have the right minute.";
   ASSERT_NEAR( 45.2282, test[2][0].LOLAPt[2].sec, 0.0001) << "This point doesn't have the right seconds.";
-  
 }
 
 TEST( GetPointFromIndex_Test, works ){
@@ -105,6 +104,7 @@ TEST( GetAllPtsFromImage, works ){
   ASSERT_NEAR( 10, shots[4][785].imgPt[3].val, 0.1 ) << "The y value is wrong.";
 
   //SaveImagePoints( shots, 1, "SaveImagePoints_Test.txt" );
+  //SaveAltitudePoints( shots, 1, "SaveAltitudePoints_Test.txt" );
 }
 
 class ReflectanceTests : public ::testing::Test {

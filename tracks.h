@@ -220,7 +220,10 @@ void SaveImagePoints( const std::vector<std::vector<LOLAShot> >&,
                       const int&                                detectNum, 
                       const std::string&                        filename);
 
-void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
+void SaveAltitudePoints( const std::vector<std::vector<LOLAShot> >&,
+                         const int&                                detectNum,
+                         const std::string&                        filename);
+
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, 
