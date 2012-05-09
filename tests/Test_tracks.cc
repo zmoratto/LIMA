@@ -187,6 +187,8 @@ TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
 
   EXPECT_NEAR( 16.8979,  test[0], 0.0001 ) << "Gain is different.";
   EXPECT_NEAR( -4.98357, test[1], 0.0001 ) << "Bias is different.";
+
+  //SaveReflectancePoints( shots, test, "SaveReflectancePoints_Test.txt");
 }
 
 int main(int argc, char **argv) {

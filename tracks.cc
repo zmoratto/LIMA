@@ -746,35 +746,28 @@ void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, str
 }
 
 
-void SaveReflectancePoints(vector< vector<LOLAShot> >  &trackPts, Vector2 gain_bias, string filename)
-{
+void SaveReflectancePoints( const vector<vector<LOLAShot> >& trackPts, 
+                            const Vector2&                   gain_bias,
+                            const string&                    filename) {
+  boost::filesystem::path p( filename );
+  for( unsigned int k = 0; k < trackPts.size(); ++k ){
+    ostringstream os;
+    os << p.stem().string() << "_" << k << ".txt";
 
-  FILE *fp;
-  float gain = gain_bias(0);
-  float bias = gain_bias(1);
- 
-  for (unsigned int k = 0; k < trackPts.size(); k++ ){
-
-    string prefixTrackFilename =  GetFilenameNoExt(filename);//prefix_from_filename(filename);  
-    char* trackFilename = new char[500];
-    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-    fp = fopen(trackFilename, "w");
-
-
-    for (unsigned int i = 0; i < trackPts[k].size(); i++){
-      //if (allTracks[k][i].valid == 1){
-      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
-        fprintf(fp, "%f\n", gain*trackPts[k][i].reflectance + bias);
-      }
-      else{
-        fprintf(fp, "-1\n");
-      }
+    ofstream file( os.str().c_str() );
+    if( !file ) {
+      vw_throw( ArgumentErr() << "Can't open reflectance output file " << os.str() );
     }
-
-    fclose(fp);
-    delete trackFilename;
+    
+    for( unsigned int i = 0; i < trackPts[k].size(); ++i){
+      if ( (trackPts[k][i].valid == 1) && 
+           (trackPts[k][i].reflectance > 0) ){//valid track and non-zero reflectance
+        file << ( gain_bias(0)*trackPts[k][i].reflectance + gain_bias(1) ) << endl;
+      }
+      else{ file << "-1" << endl; }
+    }
+    file.close();
   }
-
 }
 
 //saves the image points corresponding to a detectNum

@@ -212,7 +212,10 @@ int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          lightPosition);
 
 
-void SaveReflectancePoints(vector< vector<LOLAShot> >  &allTracks, Vector2 gain_bias, string filename);
+void SaveReflectancePoints( const std::vector<std::vector<LOLAShot> >&,
+                            const vw::Vector2&                        gain_bias,
+                            const std::string&                        filename);
+
 void SaveImagePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveAltitudePoints(vector< vector<LOLAShot> >  &allTracks, int detectNum, string filename);
 void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
