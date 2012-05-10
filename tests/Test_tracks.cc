@@ -210,20 +210,32 @@ TEST( ComputeMinMaxValuesFromCub, works ){
 
 }
 
-TEST( GetAllPtsFromDEM, works ){
-  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
-  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+class GetAllPtsFromDEM_Test : public ::testing::Test {
+  protected:
+  virtual void SetUp() {
+    p_ = "RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv";
+    d_ = "USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif";
+    nodata_ = -10000;
+  }
 
-  fs::path d("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
+  virtual void TearDown() {}
 
-  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(d.string()) );
-  double nodata = -10000;
-  if( rsrc->has_nodata_read() ){ nodata = rsrc->nodata_read(); }
+  fs::path p_;
+  fs::path d_;
+  double nodata_;
+};
+
+
+TEST_F( GetAllPtsFromDEM_Test, works ){
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
+
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(d_.string()) );
+  if( rsrc->has_nodata_read() ){ nodata_ = rsrc->nodata_read(); }
   DiskImageView<float> DEM(rsrc);
   GeoReference DEMGeo;
-  read_georeference(DEMGeo, d.string() );
+  read_georeference(DEMGeo, d_.string() );
 
-  GetAllPtsFromDEM( shots, DEM, DEMGeo, nodata );
+  GetAllPtsFromDEM( shots, DEM, DEMGeo, nodata_ );
   
   int valid_counter = 0;
   for( unsigned int i = 0; i < shots.size(); ++i ){
@@ -249,6 +261,47 @@ TEST( GetAllPtsFromDEM, works ){
   ASSERT_NEAR( 110.213, shots[2][762].DEMPt[3].x, 0.001 ) << "The x value is wrong.";
   ASSERT_NEAR( 774.582, shots[2][762].DEMPt[3].y, 0.001 ) << "The y value is wrong.";
   ASSERT_NEAR( 1738.1,  shots[2][762].DEMPt[3].val, 0.1 ) << "The elevation value is wrong.";
+}
+
+TEST_F( GetAllPtsFromDEM_Test, precision ){
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
+
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(d_.string()) );
+  if( rsrc->has_nodata_read() ){ nodata_ = rsrc->nodata_read(); }
+  DiskImageView<float> DEM(rsrc);
+  GeoReference DEMGeo;
+  read_georeference(DEMGeo, d_.string() );
+
+  boost::shared_ptr<DiskImageResource> p_rsrc( new DiskImageResourceGDAL("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.pslope.tif") );
+  DiskImageView<float> DEM_Prec(p_rsrc);
+  
+
+  GetAllPtsFromDEM_Prec( shots, DEM, DEMGeo, nodata_, DEM_Prec );
+  
+  int valid_counter = 0;
+  for( unsigned int i = 0; i < shots.size(); ++i ){
+    for( unsigned int j = 0; j < shots[i].size(); ++j ){
+      if( shots[i][j].valid == 1 ){ 
+        for( unsigned int k = 0; k < shots[i][j].DEMPt.size(); ++k ){
+          if( shots[i][j].DEMPt[k].valid ){
+          ++valid_counter;
+          // cout << i << " " << j << " " << k
+          //      << " x: " << shots[i][j].DEMPt[k].x 
+          //      << " y: " << shots[i][j].DEMPt[k].y
+          //      << " val: " << shots[i][j].DEMPt[k].val 
+          //      << " valid: " << shots[i][j].DEMPt[k].valid << endl;
+          }
+        }
+      }
+    }
+  }
+
+  ASSERT_EQ( 2473, valid_counter ) << "There is a different number of valid DEMPts.";
+  ASSERT_EQ( 1, shots[4][523].DEMPt[3].valid ) << "Shot isn't valid.";
+  ASSERT_EQ( (unsigned int)5, shots[4][523].DEMPt.size() ) << "Vector of imgPt wrong size.";
+  ASSERT_NEAR( 80.3372, shots[4][523].DEMPt[3].x, 0.001 ) << "The x value is wrong.";
+  ASSERT_NEAR( 32.4886, shots[4][523].DEMPt[3].y, 0.001 ) << "The y value is wrong.";
+  ASSERT_NEAR( 1735.5,  shots[4][523].DEMPt[3].val, 0.1 ) << "The elevation value is wrong.";
 }
 
 int main(int argc, char **argv) {
