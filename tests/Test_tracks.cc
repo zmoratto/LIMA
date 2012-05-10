@@ -105,6 +105,7 @@ TEST( GetAllPtsFromImage, works ){
 
   //SaveImagePoints( shots, 1, "SaveImagePoints_Test.txt" );
   //SaveAltitudePoints( shots, 1, "SaveAltitudePoints_Test.txt" );
+  //SaveDEMPoints( shots, "M111578606RE.10mpp.tif" , "SaveDEMPoints_Test.txt" );
 }
 
 class ReflectanceTests : public ::testing::Test {

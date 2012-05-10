@@ -224,7 +224,6 @@ void SaveAltitudePoints( const std::vector<std::vector<LOLAShot> >&,
                          const int&                                detectNum,
                          const std::string&                        filename);
 
-void SaveDEMPoints(vector< vector<LOLAShot> > &tracks, string DEMFilename, string filename);
 
 void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, 
                vector<gcp> &gcpArray, Vector2 centroid);
@@ -240,7 +239,6 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts,
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
 vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
-vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID);
 void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
 void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 //this function does not belong here

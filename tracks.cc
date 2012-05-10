@@ -689,63 +689,6 @@ pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int inde
 }
 
 
-//this function will be similar to GetAllPtsFromImage: 
-//TO DO: rename to GetAllPtsFromDEM(vector<vector<LOLAShot > > &trackPts,  ImageViewBase<ViewT> const& DEM, GeoReference const &DEMGeo)
-vector<float> GetTrackPtsFromDEM(vector<LOLAShot> trackPts, string DEMFilename, int ID)
-{
-  DiskImageView<PixelGray<float> >   DEM(DEMFilename);
-  GeoReference DEMGeo;
-  read_georeference(DEMGeo, DEMFilename);
-
-  vector<float> demPts;
-  demPts.resize(trackPts.size());
-
-  ImageViewRef<PixelGray<float>  >  interpDEM = interpolate(edge_extend(DEM.impl(),
-        ConstantEdgeExtension()),
-      BilinearInterpolation());
-
-  int index = 0;
-  for (unsigned int i = 0; i < trackPts.size(); i++){
-    demPts[index] = -1;
-    for(unsigned int j = 0; j < trackPts[i].LOLAPt.size(); j++){
-
-      float lon = trackPts[i].LOLAPt[j].x();
-      float lat = trackPts[i].LOLAPt[j].y();
-      //float rad = trackPts[i].LOLAPt[j].coords[2];
-      int id = trackPts[i].LOLAPt[j].s;
-
-      Vector2 DEM_lonlat(lon, lat);
-      Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
-
-      int x = (int)DEM_pix[0];
-      int y = (int)DEM_pix[1];
-
-      PixelGray<float>  DEMVal = interpDEM(x, y);
-
-      if ((id == ID) && (trackPts[i].valid)){
-        //demPts.push_back((float)DEMVal);
-        demPts[index] = (float)DEMVal; 
-      }             
-    }
-    index++;
-  }
-
-  return demPts;
-}
-
-void SaveDEMPoints(vector< vector<LOLAShot> > &trackPts, string DEMFilename, string filename)
-
-{    
-  for (unsigned int k = 0; k < trackPts.size(); k++){
-    vector<float> demPts = GetTrackPtsFromDEM(trackPts[k], DEMFilename, 3);
-    string prefixTrackFilename =  GetFilenameNoExt(filename);//prefix_from_filename(filename);  
-    char* trackFilename = new char[500];
-    sprintf (trackFilename, "%s_%d.txt", prefixTrackFilename.c_str(), k);
-    SaveVectorToFile(demPts, string(trackFilename));     
-  }
-}
-
-
 void SaveReflectancePoints( const vector<vector<LOLAShot> >& trackPts, 
                             const Vector2&                   gain_bias,
                             const string&                    filename) {
