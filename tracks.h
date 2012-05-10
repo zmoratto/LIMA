@@ -306,72 +306,60 @@ GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,
 
 //determines LOLA corresponding points in a DEM
 template <class ViewT>
-void 
-GetAllPtsFromDEM(vector<vector<LOLAShot> >&  trackPts,
-                 const ImageViewBase<ViewT>& DEM,
-                 const GeoReference&         DEMGeo,
-                 const double                noDEMVal)
-{
-  vector<pointCloud> LOLAPts;
-
-  float radius = DEMGeo.datum().semi_major_axis();
-  
+void GetAllPtsFromDEM(       std::vector<std::vector<LOLAShot> >& trackPts,
+                       const vw::ImageViewBase<ViewT>&            DEM,
+                       const vw::cartography::GeoReference&       DEMGeo,
+                       const double&                              noDEMVal) {
   //determine the minmx value of the DEM - START
-  float minVal = 100000000.0;
-  float maxVal = -100000000.0;
+  float minVal = std::numeric_limits<float>::max();
+  float maxVal = std::numeric_limits<float>::min();
   min_max_pixel_values( create_mask(DEM,noDEMVal), minVal, maxVal );
-
-  cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
+  //cout<<"min="<<minVal<<", max="<<maxVal<<endl; 
   //determine the minmx value of the DEM - END
 
-  ImageViewRef<float> interpDEM;
-  if ( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
-							      ConstantEdgeExtension()),
-					              BilinearInterpolation()) );
-
+  vw::ImageViewRef<float> interpDEM;
+  if( vw::IsMasked<typename ViewT::pixel_type>::value == 0 ) {
+    interpDEM = vw::pixel_cast<float>(interpolate(edge_extend(DEM.impl(),
+							          vw::ConstantEdgeExtension()),
+					                  vw::BilinearInterpolation()) );
     //cout << "NOT masked" <<endl;
   } else {
-    interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
-							      ConstantEdgeExtension()),
-					              BilinearInterpolation()) );
+  interpDEM = vw::pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),
+							      vw::ConstantEdgeExtension()),
+					              vw::BilinearInterpolation()) );
     //cout << "MASKED" <<endl;
   }
 
-  for(unsigned int ti = 0; ti < trackPts.size(); ti++){
-    for(unsigned int si = 0; si < trackPts[ti].size(); si++){
-   
-      LOLAPts = trackPts[ti][si].LOLAPt;
-  
+  vw::BBox2i iDEM_bbox = vw::bounding_box( interpDEM );
+
+  float radius = DEMGeo.datum().semi_major_axis();
+  for( unsigned int ti = 0; ti < trackPts.size(); ++ti ){
+    for( unsigned int si = 0; si < trackPts[ti].size(); ++si ){
+//      LOLAPts = trackPts[ti][si].LOLAPt;
       trackPts[ti][si].valid = 0;
-      if (LOLAPts.size() > 0){ 
+      if( trackPts[ti][si].LOLAPt.size() > 0 ){ 
         trackPts[ti][si].valid = 1;
-	trackPts[ti][si].DEMPt.resize(LOLAPts.size());
+        trackPts[ti][si].DEMPt.resize( trackPts[ti][si].LOLAPt.size() );
 	
-	for (unsigned int li = 0; li < LOLAPts.size(); li++){
-	  float lon = LOLAPts[li].x();
-	  float lat = LOLAPts[li].y();
-	  // float rad = LOLAPts[li].coords[2];
-	  
-	  Vector2 DEM_lonlat(lon, lat);
-	  Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(DEM_lonlat);
-	  
-	  float x = DEM_pix[0];
-	  float y = DEM_pix[1];
+        for( unsigned int li = 0; li < trackPts[ti][si].LOLAPt.size(); ++li ){
+          vw::Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(
+                                       subvector( trackPts[ti][si].LOLAPt[li], 0, 2 ) );
+          float x = DEM_pix.x();
+          float y = DEM_pix.y();
       
           trackPts[ti][si].DEMPt[li].valid = 0; 
-          if ((x>=0) && (y>=0) && (x<interpDEM.cols()) && (y<interpDEM.rows())){
-	    if ((interpDEM(x,y) > minVal) && (interpDEM(x,y) < maxVal)){
-	      trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
-	      trackPts[ti][si].DEMPt[li].x = DEM_pix[0];
-	      trackPts[ti][si].DEMPt[li].y = DEM_pix[1];
-              trackPts[ti][si].DEMPt[li].valid = 1; 
-	    }
-	  }
-	}
-      } 
-    }//i  
-  }//k
+          if( (iDEM_bbox.contains(DEM_pix)) && 
+              (interpDEM(x,y) > minVal)     && 
+              (interpDEM(x,y) < maxVal)       ){
+            trackPts[ti][si].DEMPt[li].x = x;
+            trackPts[ti][si].DEMPt[li].y = y;
+            trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
+            trackPts[ti][si].DEMPt[li].valid = 1; 
+          }
+        }
+      }
+    } 
+  }
 }
 
 //determines LOLA corresponding points in a DEM
