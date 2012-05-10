@@ -228,34 +228,21 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   return trackPts; 
 }
 
-Vector2 ComputeMinMaxValuesFromCub(string cubFilename)
+Vector2 ComputeMinMaxValuesFromCub( const string& cubFilename)
 {
   Vector2 minmax;
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
   double nodataVal = rsrc->nodata_read();
-  //cout<<"nodaval:"<<nodataVal<<endl;
   DiskImageView<PixelGray<float> > isis_view( rsrc );
-  int width = isis_view.cols();
-  int height = isis_view.rows();
-  float minVal = 100000000.0;
-  float maxVal = -100000000.0;
-  for (int i = 0; i < height; i++){
-    for (int j = 0; j < width; j++){
-      
-      if ((isis_view(j,i) < minVal) && (isis_view(j,i) > nodataVal)){
-	minVal = isis_view(j,i);
-      }
-      if ((isis_view(j,i) > maxVal) && (isis_view(j,i) > nodataVal)){
-	maxVal = isis_view(j,i);
-      }
-    }
-  }
+  PixelGray<float> minVal = std::numeric_limits<float>::max();
+  PixelGray<float> maxVal = std::numeric_limits<float>::min();
+  min_max_pixel_values( create_mask(isis_view,nodataVal), minVal, maxVal );
   minmax(0) = minVal;
   minmax(1) = maxVal;
-  cout<<"min="<<minVal<<", max="<<maxVal<<endl;
-
+  //cout<<"min="<<minVal<<", max="<<maxVal<<endl;
   return minmax;
 }
+
 /*
 Vector2 ComputeMinMaxValuesFromDEM(string demFilename)
 {

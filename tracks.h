@@ -243,7 +243,7 @@ void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 // void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 
 //this function does not belong here
-Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
+vw::Vector2 ComputeMinMaxValuesFromCub( const std::string& );
 //Vector2 ComputeMinMaxValuesFromDEM(string demFilename);
 
 
