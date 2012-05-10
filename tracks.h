@@ -238,8 +238,10 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts,
 
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
-void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
-void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
+// These are not currently being used.
+// void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
+// void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
+
 //this function does not belong here
 Vector2 ComputeMinMaxValuesFromCub(string cubFilename);
 //Vector2 ComputeMinMaxValuesFromDEM(string demFilename);

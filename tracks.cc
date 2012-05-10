@@ -1012,6 +1012,7 @@ Vector4 FindMinMaxLat( const vector<vector<LOLAShot> >& trackPts ) {
   return coords;
 }
 
+/* This is not currently being used, but may be useful in the future.
 void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
 {
   int numValidPts = 0; 
@@ -1063,7 +1064,9 @@ void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts)
   avgDistance = avgDistance/numValidPts;
   cout<<"avgDistance= "<<avgDistance<<endl;
 }
+*/
 
+/* This is not currently being used, but may be useful in the future.
 //computes the average distance from the center of the shot to its neighbors in the shot
 void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
 {
@@ -1115,3 +1118,4 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
   }
  
 }
+*/
