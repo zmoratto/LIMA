@@ -194,6 +194,22 @@ TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
   //SaveReflectancePoints( shots, test, "SaveReflectancePoints_Test.txt");
 }
 
+TEST( ComputeMinMaxValuesFromCub, works ){
+  Vector2 test = ComputeMinMaxValuesFromCub( "AS15-M-2327.lev1.500.cub" );
+
+  // The output from the ISIS stats program is:
+  // Minimum                 = -1.29148247651756e-09
+  // Maximum                 = 65535.000000001
+  //
+  // Strangely the output from this function is
+  // min=-32752, max=32767
+  // So I'm pretty sure there's an error in this function.
+
+  EXPECT_NEAR( -1.29148247651756e-09, test[0], 0.000000000001 ) << "Wrong min.";
+  EXPECT_NEAR(  65535, test[0], 0.1 ) << "Wrong max.";
+
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
