@@ -373,24 +373,6 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
   return numValidImgPts;
 }
 
-vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID)
-{
-  vector<float> pts;
-  for (unsigned int i = 0; i < trackPts.size(); i++){
-    for (unsigned int k = 0; k < trackPts[i].LOLAPt.size(); k++){
-
-      float rad = trackPts[i].LOLAPt[k].z();
-      int id = trackPts[i].LOLAPt[k].s;
-
-      if (id == ID){
-        pts.push_back(rad);
-      }
-
-    }
-  }
-
-  return pts;
-}
 
 //computes the scale factor for all tracks at once
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)

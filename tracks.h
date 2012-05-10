@@ -238,7 +238,6 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts,
 
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 
-vector<float> GetTrackPtsByID(vector<LOLAShot> trackPts, int ID);
 void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
 void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 //this function does not belong here
