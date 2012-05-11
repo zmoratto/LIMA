@@ -285,12 +285,13 @@ GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,
         else { trackPts[k][i].valid = 0; }
       }
       //check for valid shot with 3 points to compute reflectance
-      pointCloud centerPt  = GetPointFromIndex( trackPts[k][i].LOLAPt, 3);
-      pointCloud topPt     = GetPointFromIndex( trackPts[k][i].LOLAPt, 2);
-      pointCloud leftPt    = GetPointFromIndex( trackPts[k][i].LOLAPt, 1);
-      if ((centerPt.s == -1) || (topPt.s == -1) || (leftPt.s == -1) || (trackPts[k][i].LOLAPt.size() >5)){//invalid LOLA shot
-          trackPts[k][i].valid = 0; 
+      if( trackPts[k][i].LOLAPt.size() >5){ trackPts[k][i].valid = 0; }
+      try { 
+        GetPointFromIndex( trackPts[k][i].LOLAPt, 3);
+        GetPointFromIndex( trackPts[k][i].LOLAPt, 2);
+        GetPointFromIndex( trackPts[k][i].LOLAPt, 1);
       }
+      catch( const vw::ArgumentErr& error ){ trackPts[k][i].valid = 0; }
     }//i  
   }//k
 

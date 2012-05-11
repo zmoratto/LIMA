@@ -598,12 +598,14 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
  
   for( unsigned int k = 0; k < shots.size(); ++k ){
     for( unsigned int i = 0; i < shots[k].size(); ++i ){
-      pointCloud centerPt = GetPointFromIndex( shots[k][i].LOLAPt, 1 );
-      pointCloud topPt    = GetPointFromIndex( shots[k][i].LOLAPt, 3 );
-      pointCloud leftPt   = GetPointFromIndex( shots[k][i].LOLAPt, 2 );
+      try {
+        if( shots[k][i].LOLAPt.size() > 5 ) { 
+          vw_throw( ArgumentErr() << "Too many LOLAPts: " << shots[k][i].LOLAPt.size() );
+        }
+        pointCloud centerPt = GetPointFromIndex( shots[k][i].LOLAPt, 1 );
+        pointCloud topPt    = GetPointFromIndex( shots[k][i].LOLAPt, 3 );
+        pointCloud leftPt   = GetPointFromIndex( shots[k][i].LOLAPt, 2 );
       
-      if( (centerPt.s != -1) && (topPt.s != -1) && (leftPt.s != -1) 
-          && (shots[k][i].LOLAPt.size() <= 5) ){
         centerPt.z() *= 1000;
         topPt.z()    *= 1000;
         leftPt.z()   *= 1000;
@@ -627,7 +629,7 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
           }
         }        
       }
-      else{ shots[k][i].reflectance = -1; }
+      catch( const vw::ArgumentErr& error ){ shots[k][i].reflectance = -1; }
     }//i
   }//k
  
@@ -642,14 +644,7 @@ pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int& ind
       return LOLAPts[i];
     }
   }
-
-  // At the moment, this returns an "invalid" point.
-  pointCloud pt;
-  pt.s = -1; //invalid
-  return pt;
-  // But it really should throw, like this:
-  // vw_throw( ArgumentErr() << "Couldn't find a point with detector number " << index );
-  // However, ComputeAllReflectance() and GetAllPtsFromImage() must have a test, first.
+  vw_throw( ArgumentErr() << "Couldn't find a point with detector number " << index );
 }
 
 
