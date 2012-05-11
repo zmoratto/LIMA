@@ -96,19 +96,18 @@ struct DEMPoint
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int& );
 
-class LOLAShot
-{
+class LOLAShot {
   public:
 
-  explicit LOLAShot( vector<pointCloud> );
-  explicit LOLAShot( pointCloud );
+  explicit LOLAShot( const std::vector<pointCloud>& );
+  explicit LOLAShot( const pointCloud& );
 
   ~LOLAShot(){};
 
   int valid;
-  int centerPtIndex;
+  // int centerPtIndex;  Not used?
   float reflectance;
-  float synthImage;
+  // float synthImage;   Not used?
 
   //following variables are for LOLA feature and weight computation
   int   calc_acp;             //is the filter valid here?
@@ -120,20 +119,20 @@ class LOLAShot
   float featurePtLOLA;
   float filresLOLA;           
         
-  vector<pointCloud> LOLAPt;
-  vector<imgPoint> imgPt;
-  vector<DEMPoint> DEMPt; 
+  std::vector<pointCloud> LOLAPt;
+  std::vector<imgPoint>   imgPt;
+  std::vector<DEMPoint>   DEMPt; 
 
   private:
   void init
     (
-    vector<pointCloud>,
-    vector<imgPoint> = vector<imgPoint>(), // explicitly make empty
-    vector<DEMPoint> = vector<DEMPoint>(), // explicitly make empty
+    std::vector<pointCloud>,
+    std::vector<imgPoint> = std::vector<imgPoint>(), // explicitly make empty
+    std::vector<DEMPoint> = std::vector<DEMPoint>(), // explicitly make empty
     int              = 0, // valid
-    int              = 0, // centerPtIndex
+    // int              = 0, // centerPtIndex
     float            = 0, // reflectance
-    float            = 0, // synthImage
+    // float            = 0, // synthImage
     int              = 0, // calc_acp
     float            = 0, // filter_response
     float            = 0, // featurePtRefl
@@ -148,33 +147,33 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
   {
   stream 
     << "valid: " << s.valid
-    << " centerPtIndex: " << s.centerPtIndex
+    // << " centerPtIndex: " << s.centerPtIndex
     << " reflectance: "   << s.reflectance
-    << " synthiImage: "   << s.synthImage
+    // << " synthiImage: "   << s.synthImage
     << " calc_acp: "      << s.calc_acp
-    << endl
+    << std::endl
     << "featurePtRefl: "  << s.featurePtRefl
     << " weightRefl: "    << s.weightRefl
     << " featurePtLOLA: " << s.featurePtLOLA
     << " filresLOLA: "    << s.filresLOLA
-    << endl
+    << std::endl
     << "Number of LOLA points in this shot: " << s.LOLAPt.size();
   for( unsigned int point = 0; point < s.LOLAPt.size(); ++point )
-    { stream << endl << "  " << s.LOLAPt[point]; }
+    { stream << std::endl << "  " << s.LOLAPt[point]; }
 
   stream << endl << "Number of img points in this shot: " << s.imgPt.size();
   for( unsigned int point = 0; point < s.imgPt.size(); ++point )
     {
-    stream << endl
+    stream << std::endl
            << " x: "   << s.imgPt[point].x 
            << " y: "   << s.imgPt[point].y 
            << " val: " << s.imgPt[point].val;
     }
 
-  stream << endl << "Number of DEM points in this shot: " << s.DEMPt.size();
+  stream << std::endl << "Number of DEM points in this shot: " << s.DEMPt.size();
   for( unsigned int point = 0; point < s.DEMPt.size(); ++point )
     {
-    stream << endl
+    stream << std::endl
            << " valid: " << s.DEMPt[point].valid 
            << " x: "     << s.DEMPt[point].x
            << " y: "     << s.DEMPt[point].y

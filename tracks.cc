@@ -58,9 +58,9 @@ LOLAShot::init
   vector<imgPoint>   ip,
   vector<DEMPoint>   dp,
   int                v,
-  int                cpi,
+  // int                cpi,
   float              r,
-  float              si,
+  // float              si,
   int                ca,
   float              fr,
   float              fpr,
@@ -73,9 +73,9 @@ LOLAShot::init
   imgPt = ip;
   DEMPt = dp;
   valid = v;
-  centerPtIndex = cpi;
+  // centerPtIndex = cpi;
   reflectance = r;
-  synthImage = si;
+  // synthImage = si;
   calc_acp = ca;
   filter_response = fr;
   featurePtRefl = fpr;
@@ -84,11 +84,11 @@ LOLAShot::init
   filresLOLA = fL;
   }
 
-LOLAShot::LOLAShot( vector<pointCloud> pcv )
+LOLAShot::LOLAShot( const vector<pointCloud>& pcv )
   {
   LOLAShot::init( pcv );
   }
-LOLAShot::LOLAShot( pointCloud pt )
+LOLAShot::LOLAShot( const pointCloud& pt )
   {
   vector<pointCloud> pcv( 1, pt );
   LOLAShot::init( pcv );
