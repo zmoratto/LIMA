@@ -636,7 +636,7 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
   return numValidReflPts;
 }
 
-pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int index ) {
+pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int& index ) {
   for( unsigned int i = 0; i < LOLAPts.size(); ++i ) {
     if( LOLAPts[i].s == index ){
       return LOLAPts[i];
