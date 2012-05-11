@@ -34,13 +34,13 @@ class pointCloud : public vw::Vector<double,3> {
   public:
   
   pointCloud( const vw::Vector3& = vw::Vector3(), //coords
-              const int&         = 0,             // year
-              const int&         = 0,             // month
-              const int&         = 0,             // day
-              const int&         = 0,             // hour
-              const int&         = 0,             // min
-              const float&       = 0,             // sec
-              const int&         = 0              // s
+              const int          = 0,             // year
+              const int          = 0,             // month
+              const int          = 0,             // day
+              const int          = 0,             // hour
+              const int          = 0,             // min
+              const float        = 0,             // sec
+              const int          = 0              // s
               );
   
   ~pointCloud(){}; 
@@ -94,7 +94,7 @@ struct DEMPoint
 
 
 // prototype for GetPointFromIndex
-pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int& );
+pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int );
 
 class LOLAShot {
   public:
@@ -209,11 +209,11 @@ void SaveReflectancePoints( const std::vector<std::vector<LOLAShot> >&,
                             const std::string&                        filename);
 
 void SaveImagePoints( const std::vector<std::vector<LOLAShot> >&,
-                      const int&                                detectNum, 
+                      const int                                 detectNum, 
                       const std::string&                        filename);
 
 void SaveAltitudePoints( const std::vector<std::vector<LOLAShot> >&,
-                         const int&                                detectNum,
+                         const int                                 detectNum,
                          const std::string&                        filename);
 
 
@@ -302,7 +302,7 @@ template <class ViewT>
 void GetAllPtsFromDEM(       std::vector<std::vector<LOLAShot> >& trackPts,
                        const vw::ImageViewBase<ViewT>&            DEM,
                        const vw::cartography::GeoReference&       DEMGeo,
-                       const double&                              noDEMVal) {
+                       const double                               noDEMVal) {
   //determine the minmx value of the DEM - START
   float minVal = std::numeric_limits<float>::max();
   float maxVal = std::numeric_limits<float>::min();
@@ -360,7 +360,7 @@ template <class ViewT>
 void GetAllPtsFromDEM_Prec(       std::vector<std::vector<LOLAShot> >& trackPts,
                             const vw::ImageViewBase<ViewT>&            DEM,
                             const vw::cartography::GeoReference&       DEMGeo,
-                            const double&                              noDEMVal,
+                            const double                               noDEMVal,
                             const vw::ImageViewBase<ViewT>&            DEM_Prec) {
   //determine the minmx value of the DEM - START
   float minVal = std::numeric_limits<float>::max();

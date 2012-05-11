@@ -34,13 +34,13 @@ using namespace vw::math;
 //Constructor for pointCloud which is really just a Vector3 
 // with some extra data fields.
 pointCloud::pointCloud ( const Vector3& coords,
-                         const int&     y,
-                         const int&     mo,
-                         const int&     d,
-                         const int&     h,
-                         const int&     mi,
-                         const float&   se,
-                         const int&     detector 
+                         const int      y,
+                         const int      mo,
+                         const int      d,
+                         const int      h,
+                         const int      mi,
+                         const float    se,
+                         const int      detector 
                          ): Vector<double,3>( coords ) {
   year = y;
   month = mo;
@@ -638,7 +638,7 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
   return numValidReflPts;
 }
 
-pointCloud GetPointFromIndex( const vector<pointCloud>&  LOLAPts, const int& index ) {
+pointCloud GetPointFromIndex( const vector<pointCloud>& LOLAPts, const int index ) {
   for( unsigned int i = 0; i < LOLAPts.size(); ++i ) {
     if( LOLAPts[i].s == index ){
       return LOLAPts[i];
@@ -674,7 +674,7 @@ void SaveReflectancePoints( const vector<vector<LOLAShot> >& trackPts,
 
 //saves the image points corresponding to a detectNum
 void SaveImagePoints( const vector<vector<LOLAShot> >& allTracks,
-                      const int&                       detectNum,
+                      const int                        detectNum,
                       const string&                    filename) {
   boost::filesystem::path p( filename );
   for (unsigned int k = 0; k < allTracks.size(); ++k ){
@@ -703,7 +703,7 @@ void SaveImagePoints( const vector<vector<LOLAShot> >& allTracks,
 
 //saves the altitude  points (LOLA) corresponding to a sensor ID = detectNum
 void SaveAltitudePoints( const vector<vector<LOLAShot> >& tracks,
-                         const int&                       detectNum,
+                         const int                        detectNum,
                          const string&                    filename) {
   boost::filesystem::path p( filename );
   for (unsigned int t = 0; t < tracks.size(); ++t ){
