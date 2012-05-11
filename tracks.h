@@ -243,18 +243,18 @@ template <class ViewT>
 void 
 GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,  
                     const vw::ImageViewBase<ViewT>&            DRG, 
-                    const GeoReference&                        DRGGeo) {
+                    const vw::cartography::GeoReference&       DRGGeo) {
   ImageViewRef<float> interpDRG;
   if( IsMasked<typename ViewT::pixel_type>::value == 0 ) {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
-                                                          ConstantEdgeExtension()),
-                                              BilinearInterpolation()) );
+    interpDRG = vw::pixel_cast<float>(interpolate(edge_extend(DRG.impl(),
+                                                          vw::ConstantEdgeExtension()),
+                                              vw::BilinearInterpolation()) );
     //cout << "NOT masked" <<endl;
   } 
   else {
-    interpDRG = pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
-                                                          ConstantEdgeExtension()),
-                                              BilinearInterpolation()) );
+    interpDRG = vw::pixel_cast<float>(interpolate(edge_extend(apply_mask(DRG.impl()),
+                                                          vw::ConstantEdgeExtension()),
+                                              vw::BilinearInterpolation()) );
     //cout << "MASKED" <<endl;
   }
 
