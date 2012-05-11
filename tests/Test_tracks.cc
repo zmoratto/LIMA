@@ -108,6 +108,37 @@ TEST( GetAllPtsFromImage, works ){
   //SaveDEMPoints( shots, "M111578606RE.10mpp.tif" , "SaveDEMPoints_Test.txt" );
 }
 
+TEST( GetAllPtsFromCub, works ){
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+  unsigned int num_shots = shots.size();
+  fs::path cub("M111578606RE.10mpp.cub");
+
+  GetAllPtsFromCub( shots, cub.string());
+  ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
+
+  int valid_counter = 0;
+  for( unsigned int i = 0; i < shots.size(); ++i ){
+    for( unsigned int j = 0; j < shots[i].size(); ++j ){
+      if( shots[i][j].valid == 1 ){ 
+        ++valid_counter;
+        // for( unsigned int k = 0; k < shots[i][j].imgPt.size(); ++k ){
+        //   cout << i << " " << j << " " << k
+        //        << " x: " << shots[i][j].imgPt[k].x 
+        //        << " y: " << shots[i][j].imgPt[k].y
+        //        << " val: " << shots[i][j].imgPt[k].val << endl;
+      }
+    }
+  }
+  ASSERT_EQ( 301, valid_counter ) << "There is a different number of valid shots.";
+  ASSERT_EQ( 1, shots[4][785].valid ) << "Shot isn't valid.";
+  ASSERT_EQ( (unsigned int)5, shots[4][785].imgPt.size() ) << "Vector of imgPt wrong size.";
+  ASSERT_NEAR( 222.973, shots[4][785].imgPt[3].x, 0.001 ) << "The x value is wrong.";
+  ASSERT_NEAR( 1826.39, shots[4][785].imgPt[3].y, 0.01 ) << "The y value is wrong.";
+  ASSERT_NEAR( 0.0439, shots[4][785].imgPt[3].val, 0.0001 ) << "The image value is wrong.";
+}
+
+
 class ReflectanceTests : public ::testing::Test {
   protected:
   virtual void SetUp() {
@@ -303,6 +334,45 @@ TEST_F( GetAllPtsFromDEM_Test, precision ){
   ASSERT_NEAR( 32.4886, shots[4][523].DEMPt[3].y, 0.001 ) << "The y value is wrong.";
   ASSERT_NEAR( 1735.5,  shots[4][523].DEMPt[3].val, 0.1 ) << "The elevation value is wrong.";
 }
+
+/*
+TEST( GCP, Update ){
+  // shots the usual.
+  // overlapCamCubFile is the name of a file that overlaps the shots.
+  // overlapMapCubFile is the CamCub with _map.cub ?
+
+  vector<gcp> gcpArray;
+  for (unsigned int t=0; t<trackPts.size(); t++){
+    for (unsigned int s=0; s<trackPts[t].size(); s++){
+      if (trackPts[t][s].featurePtLOLA==1){
+        gcp this_gcp;
+        this_gcp.lon = trackPts[t][s].LOLAPt[2].x();
+        this_gcp.lat = trackPts[t][s].LOLAPt[2].y(); 
+        this_gcp.rad = trackPts[t][s].LOLAPt[2].z()*1000;
+        this_gcp.sigma_lon = 1.0;
+        this_gcp.sigma_lat = 1.0;
+        this_gcp.sigma_rad = 1.0;
+        gcpArray.push_back(this_gcp);
+      }
+    }
+  }
+
+  GetAllPtsFromCub( shots, overlapMapCubFile );
+  ComputeAllReflectance( shots,  cameraPosition, lightPosition); // use bogus positions?
+  
+  vector<float> initMatchingErrorArray;
+  vector<Vector4> matchArray = FindMatches2D( shots, overlapMapCubFile, 
+                                              settings.matchWindowHalfSize, 80, 
+                                              initMatchingErrorArray);
+
+  UpdateGCP( shots,
+             matchArray, 
+             initMatchingErrorArray,
+             overlapCamCubFile,
+             overlapMapCubFile, 
+             4.0 );
+}
+*/
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
