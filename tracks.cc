@@ -33,20 +33,15 @@ using namespace vw::math;
 
 //Constructor for pointCloud which is really just a Vector3 
 // with some extra data fields.
-pointCloud::pointCloud
-  (
-  Vector3 coords,
-  int     y,
-  int     mo,
-  int     d,
-  int     h,
-  int     mi,
-  float   se,
-  int     detector 
-  )
-  :
-  Vector<double,3>( coords )
-  {
+pointCloud::pointCloud ( const Vector3& coords,
+                         const int&     y,
+                         const int&     mo,
+                         const int&     d,
+                         const int&     h,
+                         const int&     mi,
+                         const float&   se,
+                         const int&     detector 
+                         ): Vector<double,3>( coords ) {
   year = y;
   month = mo;
   day = d;
@@ -54,7 +49,7 @@ pointCloud::pointCloud
   min = mi;
   sec = se;
   s = detector;
-  }
+}
 
 void
 LOLAShot::init

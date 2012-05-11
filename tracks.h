@@ -19,6 +19,8 @@
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
 
 using namespace vw;
 using namespace vw::math;
@@ -28,36 +30,29 @@ using namespace std;
 #include <math.h>
 #include "coregister.h"
 
-namespace vw
-{
-namespace math
-{
-  class pointCloud : public Vector<double,3>
-  {
+class pointCloud : public vw::Vector<double,3> {
   public:
   
-    pointCloud
-      (
-  	Vector3 = Vector3(), //coords
-        int   = 0, // year
-  	int   = 0, // month
-  	int   = 0, // day
-  	int   = 0, // hour
-  	int   = 0, // min
-  	float = 0, // sec
-  	int   = 0  // s
-      );
+  pointCloud( const vw::Vector3& = vw::Vector3(), //coords
+              const int&         = 0,             // year
+              const int&         = 0,             // month
+              const int&         = 0,             // day
+              const int&         = 0,             // hour
+              const int&         = 0,             // min
+              const float&       = 0,             // sec
+              const int&         = 0              // s
+              );
   
-    ~pointCloud(){}; 
+  ~pointCloud(){}; 
   
-    int year;
-    int month;
-    int day;
-    int hour; //24hr format
-    int min;
-    float sec;
-    int s; //detector id
-  };
+  int year;
+  int month;
+  int day;
+  int hour; //24hr format
+  int min;
+  float sec;
+  int s; //detector id
+};
   
   inline
   std::ostream& operator<< ( std::ostream& stream, pointCloud p )
@@ -80,9 +75,7 @@ namespace math
   
     return stream;
     }
-  
-}
-}
+
 
 struct imgPoint
 {
