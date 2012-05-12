@@ -330,25 +330,22 @@ void GetAllPtsFromDEM(       std::vector<std::vector<LOLAShot> >& trackPts,
   float radius = DEMGeo.datum().semi_major_axis();
   for( unsigned int ti = 0; ti < trackPts.size(); ++ti ){
     for( unsigned int si = 0; si < trackPts[ti].size(); ++si ){
-//      LOLAPts = trackPts[ti][si].LOLAPt;
+      vector<pointCloud> points = trackPts[ti][si].LOLAPt;
       trackPts[ti][si].valid = 0;
-      if( trackPts[ti][si].LOLAPt.size() > 0 ){ 
+      if( points.size() > 0 ){ 
         trackPts[ti][si].valid = 1;
-        trackPts[ti][si].DEMPt.resize( trackPts[ti][si].LOLAPt.size() );
+        trackPts[ti][si].DEMPt.resize( points.size() );
 	
-        for( unsigned int li = 0; li < trackPts[ti][si].LOLAPt.size(); ++li ){
+        for( unsigned int li = 0; li < points.size(); ++li ){
           vw::Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(
-                                       subvector( trackPts[ti][si].LOLAPt[li], 0, 2 ) );
-          float x = DEM_pix.x();
-          float y = DEM_pix.y();
-      
+                                       subvector( points[li], 0, 2 ) );
           trackPts[ti][si].DEMPt[li].valid = 0; 
-          if( (iDEM_bbox.contains(DEM_pix)) && 
-              (interpDEM(x,y) > minVal)     && 
-              (interpDEM(x,y) < maxVal)       ){
-            trackPts[ti][si].DEMPt[li].x = x;
-            trackPts[ti][si].DEMPt[li].y = y;
-            trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM(x, y));
+          if( (iDEM_bbox.contains(DEM_pix))                    && 
+              (interpDEM( DEM_pix.x(), DEM_pix.y() ) > minVal) && 
+              (interpDEM( DEM_pix.x(), DEM_pix.y() ) < maxVal) ){
+            trackPts[ti][si].DEMPt[li].x = DEM_pix.x();
+            trackPts[ti][si].DEMPt[li].y = DEM_pix.y();
+            trackPts[ti][si].DEMPt[li].val = 0.001*(radius + interpDEM( DEM_pix.x(), DEM_pix.y() ));
             trackPts[ti][si].DEMPt[li].valid = 1; 
           }
         }
