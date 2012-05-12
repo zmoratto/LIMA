@@ -268,74 +268,51 @@ Vector2 ComputeMinMaxValuesFromDEM(string demFilename)
   return minmax;
 }
 */
-int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
-{
-
-  vector<pointCloud> LOLAPts;
-  
+int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, const string& cubFilename ) {
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-  double nodata_value = rsrc->nodata_read();
-  cout<<"no_data_val="<<nodata_value<<endl; 
+  //double nodata_value = rsrc->nodata_read();
+  //cout<<"no_data_val="<<nodata_value<<endl; 
 
   DiskImageView<PixelGray<float> > isis_view( rsrc );
-  int width = isis_view.cols();
-  int height = isis_view.rows();
-  camera::IsisCameraModel model(cubFilename);
+  camera::IsisCameraModel model( cubFilename );
 
   //calculate the min max value of the image
-  Vector2 minmax = ComputeMinMaxValuesFromCub(cubFilename);
+  Vector2 minmax = ComputeMinMaxValuesFromCub( cubFilename );
 
-  float minTrackVal =  1000000.0;
-  float maxTrackVal = -1000000.0;
+  // float minTrackVal = std::numeric_limits<float>::max();
+  // float maxTrackVal = std::numeric_limits<float>::min();
 
   int numValidImgPts = 0;
 
   InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
     = interpolate(isis_view, BilinearInterpolation(), ConstantEdgeExtension());
-  
-  for(unsigned int k = 0; k < trackPts.size();k++){
-    for(unsigned int i = 0; i < trackPts[k].size(); i++){
+
+  BBox2i bbox = bounding_box( isis_view );  
+  for( unsigned int k = 0; k < trackPts.size(); ++k ){
+    for( unsigned int i = 0; i < trackPts[k].size(); ++i ){
+      vector<pointCloud> points = trackPts[k][i].LOLAPt;
       
       trackPts[k][i].valid = 1; 
+      trackPts[k][i].imgPt.resize( points.size() );
 
-      LOLAPts = trackPts[k][i].LOLAPt;
-  
-      trackPts[k][i].imgPt.resize(LOLAPts.size());
-
-      for (unsigned int j = 0; j < LOLAPts.size(); j++){
-          
-	    float lon = LOLAPts[j].x();
-	    float lat = LOLAPts[j].y();
-	    float rad = LOLAPts[j].z();
-            
-            Vector3 lon_lat_rad (lon,lat,rad*1000);
-            Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
-            Vector2 cub_pix = model.point_to_pixel(xyz);
-            float x = cub_pix[0];
-            float y = cub_pix[1];
-            //check that (x,y) are within the image boundaries
-	    if ((x>=0) && (y>=0) && (x<width) && (y<height)){//valid position  
-              //check for valid data as well
-              if (interpImg(x, y)>minmax(0)){//valid values
-		 trackPts[k][i].imgPt[j].val = interpImg(x, y);
-	         trackPts[k][i].imgPt[j].x = cub_pix[0];
-	         trackPts[k][i].imgPt[j].y = cub_pix[1];
-                 if (interpImg(x,y) < minTrackVal){
-		     minTrackVal = interpImg(x,y);
-                 }
-		 if (interpImg(x,y) > maxTrackVal){
-		     maxTrackVal = interpImg(x,y);
-                 }
-                 numValidImgPts++;
-	      }
-              else{//invalidate the point
-                 trackPts[k][i].valid = 0;
-              }
-	    }
-            else{ //invalidate the point  
-                 trackPts[k][i].valid = 0; 
-            }
-	
+      for( unsigned int j = 0; j < points.size(); ++j ){
+        Vector3 lon_lat_rad( points[j].x(), points[j].y(), points[j].z()*1000 );
+        Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
+        Vector2 cub_pix = model.point_to_pixel(xyz);
+        //check that (x,y) are within the image boundaries and for validity
+        if( (bbox.contains(cub_pix)) && 
+            (interpImg( cub_pix.x(), cub_pix.y() ) > minmax(0)) ){//valid values
+          trackPts[k][i].imgPt[j].val = interpImg( cub_pix.x(), cub_pix.y() );
+          trackPts[k][i].imgPt[j].x = cub_pix.x();
+          trackPts[k][i].imgPt[j].y = cub_pix.y();
+          // if( interpImg(x,y) < minTrackVal ){ minTrackVal = interpImg(x,y); }
+          // if( interpImg(x,y) > maxTrackVal ){ maxTrackVal = interpImg(x,y); }
+          numValidImgPts++;
+        }
+        else{//invalidate the point
+          trackPts[k][i].valid = 0;
+          break;
+        }
       }
       /*
       // this must go to computeReflectance function - START
@@ -350,7 +327,7 @@ int GetAllPtsFromCub(vector<vector<LOLAShot > > &trackPts, string cubFilename)
       */
     }//i  
   }//k
-  cout <<"minTrackVal="<<minTrackVal<<", maxTrackVal="<<maxTrackVal<<endl;
+  //cout <<"minTrackVal="<<minTrackVal<<", maxTrackVal="<<maxTrackVal<<endl;
   
   return numValidImgPts;
 }
