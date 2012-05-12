@@ -260,36 +260,38 @@ GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,
 
   for( unsigned int k = 0; k < trackPts.size(); ++k ){
     for( unsigned int i = 0; i < trackPts[k].size(); ++i ){
+      vector<pointCloud> points = trackPts[k][i].LOLAPt;
+      if( points.size() >5){ 
+        trackPts[k][i].valid = 0;
+        break;
+      }
 
       // Set initially valid
       trackPts[k][i].valid = 1; 
 
-      trackPts[k][i].imgPt.resize( trackPts[k][i].LOLAPt.size() );
+      trackPts[k][i].imgPt.resize( points.size() );
 
       BBox2i bbox = bounding_box( DRG );
-      for( unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); ++j ){
-	    Vector2 DEM_lonlat( trackPts[k][i].LOLAPt[j].x(), trackPts[k][i].LOLAPt[j].y() );
+      for( unsigned int j = 0; j < points.size(); ++j ){
+	    Vector2 DEM_lonlat( points[j].x(), points[j].y() );
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
 	  
-	    if( bbox.contains(DRG_pix) ){
-          //check for valid data as well
-          if( interpDRG( DRG_pix[0], DRG_pix[1] ) != 0 ){//valid values
-            trackPts[k][i].imgPt[j].val = interpDRG( DRG_pix[0], DRG_pix[1] );
-            trackPts[k][i].imgPt[j].x = DRG_pix[0];
-            trackPts[k][i].imgPt[j].y = DRG_pix[1];
-          }
-          else{// one bad point invalidates the whole set of shots
-            trackPts[k][i].valid = 0;
-          }
+	    if( (bbox.contains(DRG_pix)) && 
+            (interpDRG( DRG_pix.x(), DRG_pix.y() ) != 0) ){
+          trackPts[k][i].imgPt[j].val = interpDRG( DRG_pix.x(), DRG_pix.y() );
+          trackPts[k][i].imgPt[j].x = DRG_pix.x();
+          trackPts[k][i].imgPt[j].y = DRG_pix.y();
         }
-        else { trackPts[k][i].valid = 0; }
+        else{// one bad point invalidates the whole set of shots
+          trackPts[k][i].valid = 0;
+          break;
+        }
       }
       //check for valid shot with 3 points to compute reflectance
-      if( trackPts[k][i].LOLAPt.size() >5){ trackPts[k][i].valid = 0; }
       try { 
-        GetPointFromIndex( trackPts[k][i].LOLAPt, 3);
-        GetPointFromIndex( trackPts[k][i].LOLAPt, 2);
-        GetPointFromIndex( trackPts[k][i].LOLAPt, 1);
+        GetPointFromIndex( points, 3);
+        GetPointFromIndex( points, 2);
+        GetPointFromIndex( points, 1);
       }
       catch( const vw::ArgumentErr& error ){ trackPts[k][i].valid = 0; }
     }//i  
