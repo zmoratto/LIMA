@@ -1,10 +1,12 @@
 #include <boost/filesystem.hpp>
 
 #include "../tracks.h"
+#include "../match.h" // For FindMatches2D()
+#include "../featuresLOLA.h" // For ComputeSalientLOLAFeature()
 #include "gtest/gtest.h"
 
 // #include <asp/IsisIO.h>
-// #include <asp/IsisIO/IsisCameraModel.h>
+#include <asp/IsisIO/IsisCameraModel.h>
 
 namespace fs = boost::filesystem;
 
@@ -335,20 +337,24 @@ TEST_F( GetAllPtsFromDEM_Test, precision ){
   ASSERT_NEAR( 1735.5,  shots[4][523].DEMPt[3].val, 0.1 ) << "The elevation value is wrong.";
 }
 
-/*
 TEST( GCP, Update ){
-  // shots the usual.
-  // overlapCamCubFile is the name of a file that overlaps the shots.
-  // overlapMapCubFile is the CamCub with _map.cub ?
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+
+  vector<float> filter = MakeLidarFilter( 12 );
+
+  for( unsigned int i = 0; i < shots.size(); ++i ){
+    ComputeSalientLOLAFeature( shots[i], filter, 0.008 );
+  }
 
   vector<gcp> gcpArray;
-  for (unsigned int t=0; t<trackPts.size(); t++){
-    for (unsigned int s=0; s<trackPts[t].size(); s++){
-      if (trackPts[t][s].featurePtLOLA==1){
+  for (unsigned int t=0; t < shots.size(); t++){
+    for (unsigned int s=0; s < shots[t].size(); s++){
+      if (shots[t][s].featurePtLOLA==1){
         gcp this_gcp;
-        this_gcp.lon = trackPts[t][s].LOLAPt[2].x();
-        this_gcp.lat = trackPts[t][s].LOLAPt[2].y(); 
-        this_gcp.rad = trackPts[t][s].LOLAPt[2].z()*1000;
+        this_gcp.lon = shots[t][s].LOLAPt[2].x();
+        this_gcp.lat = shots[t][s].LOLAPt[2].y(); 
+        this_gcp.rad = shots[t][s].LOLAPt[2].z()*1000;
         this_gcp.sigma_lon = 1.0;
         this_gcp.sigma_lat = 1.0;
         this_gcp.sigma_rad = 1.0;
@@ -357,22 +363,31 @@ TEST( GCP, Update ){
     }
   }
 
-  GetAllPtsFromCub( shots, overlapMapCubFile );
+  string map( "M111578606RE.10mpp.cub" );
+  string cam( "cam_cub_filename" );
+  
+  GetAllPtsFromCub( shots, map );
+
+  camera::IsisCameraModel model( map );
+  Vector2 origin;
+  Vector3 cameraPosition = model.camera_center( origin );
+  Vector3 lightPosition = model.sun_position( origin );
   ComputeAllReflectance( shots,  cameraPosition, lightPosition); // use bogus positions?
   
-  vector<float> initMatchingErrorArray;
-  vector<Vector4> matchArray = FindMatches2D( shots, overlapMapCubFile, 
-                                              settings.matchWindowHalfSize, 80, 
-                                              initMatchingErrorArray);
+  vector<float> errors;
+  vector<Vector4> matches = FindMatches2D( shots, map, 5, 80, errors );
 
-  UpdateGCP( shots,
-             matchArray, 
-             initMatchingErrorArray,
-             overlapCamCubFile,
-             overlapMapCubFile, 
-             4.0 );
+  UpdateGCP( shots, matches, errors, cam, map, gcpArray, 4.0 ); 
+
+  ASSERT_EQ( (unsigned int)23, gcpArray.size() ) << "Array of GCPs not the right size.";
+  EXPECT_EQ( cam, gcpArray[13].filename[0] ) << "Wrong camera file name.";
+  EXPECT_NEAR( 514.972, gcpArray[14].x[0], 0.001 ) << "Wrong x value.";
+  EXPECT_NEAR( 7079.96, gcpArray[14].y[0], 0.01 ) << "Wrong y value.";
+  EXPECT_NEAR( 527.185, gcpArray[14].x_before[0], 0.001 ) << "Wrong x_before value.";
+  EXPECT_NEAR( 7075.3, gcpArray[14].y_before[0], 0.1 ) << "Wrong y_before value.";
+  EXPECT_EQ( 4, gcpArray[14].trackIndex ) << "Wrong trackIndex value.";
+  EXPECT_EQ( 747, gcpArray[14].shotIndex ) << "Wrong shotIndex value.";
 }
-*/
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
