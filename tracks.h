@@ -216,17 +216,21 @@ void SaveAltitudePoints( const std::vector<std::vector<LOLAShot> >&,
                          const int                                 detectNum,
                          const std::string&                        filename);
 
-
-void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, 
-               vector<gcp> &gcpArray, Vector2 centroid);
-
-void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
-               string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
-               float downsample_factor);
-void UpdateGCP(vector<vector<LOLAShot> > trackPts, 
-               vector<Vector4> matchArray, vector<float> errorArray,
-               string camCubFile, string mapCubFile, 
-               vector<gcp> &gcpArray, float downsample_factor);
+/* These versions aren't used.  Are they deprecated?
+* void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray,  string cubFile, 
+*                vector<gcp> &gcpArray, Vector2 centroid);
+* 
+* void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTransfArray, 
+*                string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
+*                float downsample_factor);
+*/
+void UpdateGCP( const std::vector<std::vector<LOLAShot> >&, 
+                const std::vector<vw::Vector4>&, 
+                const std::vector<float>&,
+                const std::string& camCubFile, 
+                const std::string& mapCubFile, 
+                      std::vector<gcp>&,
+                const float );
 
 void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
 

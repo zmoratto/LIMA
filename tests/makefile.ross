@@ -10,7 +10,7 @@ test: $(tests)
 Test_util: ../util.o Test_util.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
-Test_tracks: ../util.o ../coregister.o ../tracks.o Test_tracks.o
+Test_tracks: ../util.o ../coregister.o ../match.o ../featuresLOLA.o ../tracks.o Test_tracks.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
 clean:
