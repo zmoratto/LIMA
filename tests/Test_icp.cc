@@ -67,22 +67,22 @@ class ComputeDEMRotation_Test : public ::testing::Test {
     match_.push_back( Vector3( 5,6,5 ) );
     match_.push_back( Vector3( 6,5,5 ) );
 
-    truth_(0,0) =  1.0/3.0;
-    truth_(0,1) = -2.0/3.0;
-    truth_(0,2) = -2.0/3.0;
-    truth_(1,0) = -2.0/3.0;
-    truth_(1,1) =  1.0/3.0;
-    truth_(1,2) = -2.0/3.0;
-    truth_(2,0) =  2.0/3.0;
-    truth_(2,1) =  2.0/3.0;
-    truth_(2,2) = -1.0/3.0;
+    rotation_(0,0) =  1.0/3.0;
+    rotation_(0,1) = -2.0/3.0;
+    rotation_(0,2) = -2.0/3.0;
+    rotation_(1,0) = -2.0/3.0;
+    rotation_(1,1) =  1.0/3.0;
+    rotation_(1,2) = -2.0/3.0;
+    rotation_(2,0) =  2.0/3.0;
+    rotation_(2,1) =  2.0/3.0;
+    rotation_(2,2) = -1.0/3.0;
   }
 
   virtual void TearDown() {}
   
   vector<Vector3> features_;
   vector<Vector3> match_;
-  Matrix<float, 3, 3> truth_;
+  Matrix<float, 3, 3> rotation_;
 };
   
 TEST_F( ComputeDEMRotation_Test, 4arg ){
@@ -93,7 +93,7 @@ TEST_F( ComputeDEMRotation_Test, 4arg ){
 
   for( unsigned int i = 0; i < 3; ++i ){
     for( unsigned int j = 0; j < 3; ++j ){
-    EXPECT_NEAR( truth_(i,j), test(i,j), 0.0001 ) << "Rotation elements aren't correct.";
+    EXPECT_NEAR( rotation_(i,j), test(i,j), 0.0001 ) << "Rotation elements aren't correct.";
     }
   }
 }
@@ -104,10 +104,38 @@ TEST_F( ComputeDEMRotation_Test, 2arg ){
 
   for( unsigned int i = 0; i < 3; ++i ){
     for( unsigned int j = 0; j < 3; ++j ){
-    EXPECT_NEAR( truth_(i,j), test(i,j), 0.0001 ) << "Rotation elements aren't correct.";
+    EXPECT_NEAR( rotation_(i,j), test(i,j), 0.0001 ) << "Rotation elements aren't correct.";
     }
   }
 }
+
+TEST_F( ComputeDEMRotation_Test, TransformFeatures4arg ){
+  
+  Vector3 translation( 0,0,0 );
+  Vector3 f_Center = find_centroid( features_ );
+  TransformFeatures( features_, f_Center, translation, rotation_ );
+
+  for( unsigned int i = 0; i < features_.size(); ++i ){
+    Vector3 truth = match_[i] + Vector3( 0,0,0.6666 ) + translation;
+    for( unsigned int j = 0; j < 3; ++j ){
+      EXPECT_NEAR( truth(j), features_[i](j), 0.0001 ) << "Translated and rotated elements aren't correct.";
+    }
+  }
+}
+
+TEST_F( ComputeDEMRotation_Test, TransformFeatures3arg ){
+  
+  Vector3 translation( 1,2,3 );
+  TransformFeatures( features_, translation, rotation_ );
+
+  for( unsigned int i = 0; i < features_.size(); ++i ){
+    Vector3 truth = match_[i] + Vector3( 0,0,0.6666 ) + translation;
+    for( unsigned int j = 0; j < 3; ++j ){
+      EXPECT_NEAR( truth(j), features_[i](j), 0.0001 ) << "Translated and rotated elements aren't correct.";
+    }
+  }
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
