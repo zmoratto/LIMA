@@ -50,21 +50,18 @@ void PrintMatrix(Matrix<float, 3, 3> &A)
 }
 
 //compute the matching error vector in the form of a standard deviation 
-valarray<float> 
-ComputeMatchingError(const vector<Vector3>& modelArray, 
-		     const vector<Vector3>& matchArray)
-{
-  valarray<float> errorArray( modelArray.size() );
-  for (unsigned int i = 0; i < modelArray.size(); i++){
-    float overallDist=0.0;
-    float dist=0.0;
-    for (int j = 0; j < 3; j++){
-      dist = modelArray[i](j) - matchArray[i](j);
-      overallDist += dist*dist; 
-    }
-    errorArray[i]=sqrt(overallDist);
+valarray<float> ComputeMatchingError( const vector<Vector3>& model, 
+                                      const vector<Vector3>& reference ) {
+  if( model.size() != reference.size() ){
+    vw_throw( ArgumentErr() << 
+    "The vectors passed to ComputeMatchingError() have different sizes." ); 
   }
-  return errorArray;
+
+  valarray<float> errors( model.size() );
+  for( unsigned int i = 0; i < model.size(); ++i ){
+    errors[i] = norm_2( model[i] - reference[i] );
+  }
+  return errors;
 }
 
 //compute the matching error vector in the form of individual errors
