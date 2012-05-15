@@ -44,20 +44,18 @@ Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
 }
 */
 //computes the translation between the foreground and background pixels
-Vector3 ComputeDEMTranslation(const vector<Vector3>& featureArray, 
-	                      const vector<Vector3>& referenceArray)
-{
+Vector3 ComputeDEMTranslation( const vector<Vector3>& features, 
+                               const vector<Vector3>& reference ) {
   Vector3 translation(0,0,0);
   
-  int numValidMatches = 0;
-  for (unsigned int i = 0; i < featureArray.size(); i++){
-    if ((referenceArray[i][0]!=0) && (referenceArray[i][1]!=0) && (referenceArray[i][2]!=0)){
-       translation += referenceArray[i] - featureArray[i];
-       numValidMatches++;
+  unsigned int numValidMatches = 0;
+  for( unsigned int i = 0; i < features.size(); ++i ){
+    if( norm_1(reference[i]) > 0 ){
+      translation += reference[i] - features[i];
+      ++numValidMatches;
     }
   }
-
-  return translation/numValidMatches;//featureArray.size();
+  return translation/numValidMatches;
 }
 
 
