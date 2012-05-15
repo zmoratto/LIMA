@@ -20,6 +20,7 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+#include "util.h"
 #include "icp.h"
 #include "coregister.h"
 
@@ -108,32 +109,21 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
 }
 
 //applies a 3D rotation and transform to a DEM
-void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matrix<float,3,3> rotation)
-{
-
-
-  Vector3 featureCenter;
-  for (unsigned int i = 0; i < featureArray.size(); i++){  
-      featureCenter = featureCenter + featureArray[i];
-  }
-  featureCenter = featureCenter/featureArray.size();
-
-  for (unsigned int i=0; i < featureArray.size(); i++){
-    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
-  }
-
- 
+void TransformFeatures( vector<Vector3>&         featureArray, 
+                        const Vector3&           translation, 
+                        const Matrix<float,3,3>& rotation ){
+  const Vector3 featureCenter = find_centroid( featureArray );
+  TransformFeatures( featureArray, featureCenter, translation, rotation );
 }
+
 //applies a 3D rotation and transform to a DEM
-void  TransformFeatures(vector<Vector3> &featureArray, Vector3 featureCenter, Vector3 translation, Matrix<float,3,3> rotation)
-{
-
-  for (unsigned int i=0; i < featureArray.size(); i++){
-    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter+translation; 
-    //featureArray[i] = rotation*(featureArray[i]) + translation; 
+void TransformFeatures(       vector<Vector3>&   featureArray, 
+                        const Vector3&           featureCenter, 
+                        const Vector3&           translation, 
+                        const Matrix<float,3,3>& rotation) {
+  for( unsigned int i=0; i < featureArray.size(); ++i ){
+    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter + translation; 
   }
-
- 
 }
 
 

@@ -51,8 +51,14 @@ inline Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
 
 
 //applies a 3D rotation and transform to a DEM
-void  TransformFeatures(vector<Vector3> &featureArray, Vector3 translation, Matrix<float,3,3> rotation);
-void  TransformFeatures(vector<Vector3> &featureArray, Vector3 featureCenter, Vector3 translation, Matrix<float,3,3> rotation);
+void TransformFeatures(       std::vector<vw::Vector3>& featureArray, 
+                        const vw::Vector3&              translation, 
+                        const vw::Matrix<float,3,3>&    rotation );
+
+void TransformFeatures(       std::vector<vw::Vector3>& featureArray, 
+                        const vw::Vector3&              featureCenter, 
+                        const vw::Vector3&              translation, 
+                        const vw::Matrix<float,3,3>&    rotation );
 
 void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, CoregistrationParams settings,
 	    Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray);
