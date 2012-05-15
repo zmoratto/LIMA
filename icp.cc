@@ -35,6 +35,7 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& features,
       ++numValidMatches;
     }
   }
+  return translation/numValidMatches;
 }
 
 
