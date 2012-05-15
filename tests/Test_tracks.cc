@@ -387,6 +387,9 @@ TEST( GCP, Update ){
   EXPECT_NEAR( 7075.3, gcpArray[14].y_before[0], 0.1 ) << "Wrong y_before value.";
   EXPECT_EQ( 4, gcpArray[14].trackIndex ) << "Wrong trackIndex value.";
   EXPECT_EQ( 747, gcpArray[14].shotIndex ) << "Wrong shotIndex value.";
+
+  // string saveGCP( "SaveGCPoints_test.txt" );
+  // SaveGCPoints( gcpArray, saveGCP );
 }
 
 int main(int argc, char **argv) {

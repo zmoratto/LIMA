@@ -871,47 +871,35 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 }
 */
 
-void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename)
-{
+void SaveGCPoints( const vector<gcp>& gcpArray, const string& gcpFilename ) {
+  for( unsigned int i = 0; i < gcpArray.size(); ++i ){
+    //check if this GCP is valid
+    if( !gcpArray[i].filename.empty() ){
+      stringstream filename;
+      filename << gcpFilename << "_" << gcpArray[i].trackIndex 
+                              << "_" << gcpArray[i].shotIndex << ".gcp";
+      
+      ofstream file( filename.str().c_str() );
+      if( !file ) {
+        vw_throw( ArgumentErr() << "Can't open gcp output file " << filename.str() );
+      }
 
-  for (unsigned int i = 0; i < gcpArray.size(); i++){
-    
-       //check if this GCP is valid
-       int numFiles = gcpArray[i].filename.size();
-       if (numFiles > 0){
-	   stringstream ss;
-	   ss<<i;
+      file << fixed << setprecision(6)
+           << gcpArray[i].lon << " "
+           << gcpArray[i].lat << " "
+           << gcpArray[i].rad << " "
+           << gcpArray[i].sigma_lon << " "
+           << gcpArray[i].sigma_lat << " "
+           << gcpArray[i].sigma_rad << " " << endl;
 
-           stringstream featureIndexString;
-           featureIndexString<<gcpArray[i].shotIndex;
-           stringstream trackIndexString;
-	   trackIndexString<<gcpArray[i].trackIndex;
-           //string this_gcpFilename = gcpFilename+"_"+ss.str()+".gcp";
-	   
-           string this_gcpFilename = gcpFilename+"_"+trackIndexString.str()+"_"+featureIndexString.str()+".gcp";
-	   FILE *fp = fopen(this_gcpFilename.c_str(), "w");
-	 
-	   fprintf(fp, "%f %f %f %f %f %f\n", 
-		   gcpArray[i].lon, gcpArray[i].lat, gcpArray[i].rad, 
-		   gcpArray[i].sigma_lon, gcpArray[i].sigma_lat, gcpArray[i].sigma_rad);
-	 
-	   for (int j = 0; j < numFiles-1; j++){
-	     //string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[j]);
-              string imgFilenameNoPath = GetFilenameNoPath(gcpArray[i].filename[j]);
-	      fprintf(fp,"%s %f %f\n", 
-		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[j], gcpArray[i].y[j]);
-	   }
-	   if (numFiles > 0){
-	     //string imgFilenameNoPath = sufix_from_filename(gcpArray[i].filename[numFiles-1]);
-              string imgFilenameNoPath = GetFilenameNoPath(gcpArray[i].filename[numFiles-1]);
-	      fprintf(fp, "%s %f %f", 
-		      (char*)(imgFilenameNoPath.c_str()), gcpArray[i].x[numFiles-1], gcpArray[i].y[numFiles-1]);
-	   }
-	   fclose(fp);
-       }
+      for( unsigned int j = 0; j < gcpArray[i].filename.size(); ++j ){
+        boost::filesystem::path p( gcpArray[i].filename[j] );
+        file << p.filename().string() << " " 
+             << fixed << setprecision(6) << gcpArray[i].x[j] << " " << gcpArray[i].y[j] << endl;
+	  }
+	  file.close();
+    }
   }
-   
-
 }
 
 //computes the min and max lon and lat of the LOLA data

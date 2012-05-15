@@ -232,7 +232,7 @@ void UpdateGCP( const std::vector<std::vector<LOLAShot> >&,
                       std::vector<gcp>&,
                 const float );
 
-void SaveGCPoints(vector<gcp> gcpArray,  string gcpFilename);
+void SaveGCPoints( const std::vector<gcp>&, const std::string& );
 
 // These are not currently being used.
 // void ComputeAverageShotDistance(vector<vector<LOLAShot> >trackPts);
