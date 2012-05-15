@@ -60,9 +60,6 @@ void TransformFeatures(       std::vector<vw::Vector3>& featureArray,
                         const vw::Vector3&              translation, 
                         const vw::Matrix<float,3,3>&    rotation );
 
-void ICP(vector<Vector3> featureArray, vector<Vector3> modelArray, CoregistrationParams settings,
-	    Vector3 &translation, Matrix<float, 3, 3> &rotation, vector<float> &errorArray);
-
 //compute a set of features from the fore image.
 template <class ViewT>
 vector<Vector3> 
