@@ -22,27 +22,7 @@ using namespace std;
 
 #include "icp.h"
 #include "coregister.h"
-/*
-Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat)
-{ 
-  //change into USGS coords
-  float usgs_2_lonlat = 180/(3.14159265*3396190);
-  Vector2 back_lon_lat;
-  back_lon_lat(0) = fore_lon_lat(0)-180;  
-  back_lon_lat(1) = fore_lon_lat(1);  
-  back_lon_lat = back_lon_lat/usgs_2_lonlat;
-  return back_lon_lat;
-} 
 
-Vector2 back_2_fore_lonlat(Vector2 back_lon_lat)
-{
-  float usgs_2_lonlat = 180/(3.14159265*3396190);
-  Vector2 fore_lon_lat;
-  fore_lon_lat(0) = back_lon_lat(0)*usgs_2_lonlat+180;
-  fore_lon_lat(1) = back_lon_lat(1)*usgs_2_lonlat; 
-  return fore_lon_lat;
-}
-*/
 //computes the translation between the foreground and background pixels
 Vector3 ComputeDEMTranslation( const vector<Vector3>& features, 
                                const vector<Vector3>& reference ) {
@@ -55,7 +35,6 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& features,
       ++numValidMatches;
     }
   }
-  return translation/numValidMatches;
 }
 
 

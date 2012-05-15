@@ -25,11 +25,6 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
-
-Vector2 back_2_fore_lonlat(Vector2 back_lon_lat);
-Vector2 fore_2_back_lonlat(Vector2 fore_lon_lat);
-
-//computes the translation between the foreground and background pixels
 vw::Vector3 ComputeDEMTranslation( const std::vector<vw::Vector3>& features, 
                                    const std::vector<vw::Vector3>& reference );
 
