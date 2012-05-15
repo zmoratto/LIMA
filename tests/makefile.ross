@@ -3,7 +3,7 @@
 include ../makefile.ross
 #include ../makefile.obs
 
-tests = Test_util Test_tracks
+tests = Test_util Test_tracks Test_icp
 
 test: $(tests)
 
@@ -11,6 +11,9 @@ Test_util: ../util.o Test_util.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
 Test_tracks: ../util.o ../coregister.o ../match.o ../featuresLOLA.o ../tracks.o Test_tracks.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
+
+Test_icp: ../icp.o Test_icp.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
 clean:
