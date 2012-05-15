@@ -37,26 +37,16 @@ valarray<float> ComputeMatchingError( const std::vector<vw::Vector3>& model,
 float ComputeMatchingError3D( const std::vector<vw::Vector3>& model, 
                               const std::vector<vw::Vector3>& reference );
 
-Matrix<float, 3, 3>
-ComputeDEMRotation(
-	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray,
-	const Vector3&         matchCenter
-	);
-
 Matrix<float, 3, 3> ComputeDEMRotation( const std::vector<vw::Vector3>& features, 
                                         const std::vector<vw::Vector3>& matches,
                                         const vw::Vector3&              featureCenter,
                                         const vw::Vector3&              matchCenter );
 
-inline
-Matrix<float, 3, 3>
-ComputeDEMRotation(
-	const vector<Vector3>& featureArray, 
-	const vector<Vector3>& matchArray)
-{
-const Vector3 matchCenter = find_centroid( matchArray );
-return ComputeDEMRotation( featureArray, matchArray, matchCenter);
+inline Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features, 
+                                               const vector<Vector3>& matches ) {
+  const Vector3 featureCenter = find_centroid( features );
+  const Vector3 matchCenter = find_centroid( matches );
+  return ComputeDEMRotation( features, matches, featureCenter, matchCenter);
 }
 
 
