@@ -64,32 +64,12 @@ valarray<float> ComputeMatchingError( const vector<Vector3>& model,
   return errors;
 }
 
+// This used to return a Vector3 with errors in each dimension, now just returns total error.
 //compute the matching error vector in the form of individual errors
-float ComputeMatchingError3D(const vector<Vector3>& modelArray, 
-			     const vector<Vector3>& matchArray)
-{
-  float avgError;
-  Vector3 avgErrorVect;
-  Vector3 currErrorVect;
-  float currError;
-
-  avgError = 0.0;
-  
-  for (unsigned int i = 0; i < modelArray.size(); i++){
-    currError = 0.0;
-    for (int j = 0; j < 3; j++){
-       currError = currError + (modelArray[i](j) - matchArray[i](j))*(modelArray[i](j) - matchArray[i](j));  
-       avgErrorVect[j] = avgErrorVect[j] + fabs(modelArray[i](j) - matchArray[i](j));
-    }
-    avgError = avgError + sqrt(currError);
-  }
-
-  avgError = avgError/modelArray.size();
-  avgErrorVect = avgErrorVect/modelArray.size();
-
-  cout<<"avgErrorvect = "<<avgErrorVect<<endl;
-
-  return avgError;
+float ComputeMatchingError3D( const vector<Vector3>& model, 
+                              const vector<Vector3>& reference ) {
+  valarray<float> errors = ComputeMatchingError( model, reference );
+  return errors.sum()/errors.size();
 }
 
 Matrix<float, 3, 3> ComputeDEMRotation(const vector<Vector3>& featureArray, 

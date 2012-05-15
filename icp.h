@@ -31,12 +31,12 @@ vw::Vector3 ComputeDEMTranslation( const std::vector<vw::Vector3>& features,
 void PrintMatrix(Matrix<float, 3, 3> &A);
 
 //compute the matching error vector and overall average error 
-valarray<float> ComputeMatchingError( const vector<Vector3>& model, 
-                                      const vector<Vector3>& reference );
+valarray<float> ComputeMatchingError( const std::vector<vw::Vector3>& model, 
+                                      const std::vector<vw::Vector3>& reference );
 
-float
-ComputeMatchingError3D(const vector<Vector3>& modelArray, 
-                       const vector<Vector3>& matchArray);
+float ComputeMatchingError3D( const std::vector<vw::Vector3>& model, 
+                              const std::vector<vw::Vector3>& reference );
+
 Matrix<float, 3, 3>
 ComputeDEMRotation(
 	const vector<Vector3>& featureArray, 
