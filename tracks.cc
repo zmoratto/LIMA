@@ -333,6 +333,7 @@ int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, const string& cubFile
 }
 
 
+/* Deprecated?  This is commented out in the .h file.
 //computes the scale factor for all tracks at once
 float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 {
@@ -351,7 +352,8 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
         for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
           if (trackPts[k][i].LOLAPt[j].s == 1){
             //cout<< trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance<<endl;
-            nominator = nominator + (trackPts[k][i].imgPt[j].val/*-minmax(0)*/)/trackPts[k][i].reflectance;
+            nominator = nominator + (trackPts[k][i].imgPt[j].val//-minmax(0)
+                                    )/trackPts[k][i].reflectance;
             numValidPts++;
           }
         }
@@ -372,6 +374,7 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
   }
   return scaleFactor;
 }
+*/
 
 void GainBiasAccumulator( const vector<LOLAShot>& trackPts, 
                                 float&            sum_rfl, 
@@ -463,6 +466,7 @@ Vector2 ComputeGainBiasFactor( const vector<vector<LOLAShot> >& trackPts ) {
   return gain_bias;
 }
 
+/* Deprecated?  Not used anywhere
 Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
 {
   Vector3 normal;
@@ -479,6 +483,7 @@ Vector3 ComputePlaneNormalFrom3DPoints(vector<Vector3> pointArray)
   return normal;
 
 }
+*/
 
 Vector3 ComputeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3) {
   return -normalize(cross_prod(p2-p1,p3-p1));
