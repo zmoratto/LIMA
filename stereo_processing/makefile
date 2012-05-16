@@ -30,8 +30,8 @@ LDFLAGS += -arch i386
 # the apps below may not be included in the alignment (registration) library
 #stereo 
 stereo: CvStereoTest.cpp
-	g++  -arch i386 $(INCPATH) -I$(VWPREFIX)/include -O3 -g -Wall -Wextra $(LIBPATH) $(LDFLAGS_OPENCV) $(OPTIONS) $(OPTIONS_OPENCV) -L$(VWPREFIX)/lib -lvwCartography -lvwCamera -lvwStereo \
--lvwFileIO -lvwImage -lvwMath -lvwCore CvStereoTest.cpp  CvStereoProcessor.cpp ../string_util.cc-o stereo 
+	g++  $(INCPATH) -I$(VWPREFIX)/include -O3 -g -Wall -Wextra $(LIBPATH) $(LDFLAGS_OPENCV) $(OPTIONS) $(OPTIONS_OPENCV) -L$(VWPREFIX)/lib -lvwCartography -lvwCamera -lvwStereo \
+-lvwFileIO -lvwImage -lvwMath -lvwCore CvStereoTest.cpp  CvStereoProcessor.cpp ../string_util.cc -o stereo 
 
  
 clean:
