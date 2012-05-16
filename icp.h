@@ -62,45 +62,44 @@ void TransformFeatures(       std::vector<vw::Vector3>& featureArray,
 
 //compute a set of features from the fore image.
 template <class ViewT>
-vector<Vector3> 
-GetFeatures(ImageViewBase<ViewT> const& foreImg, GeoReference const &foreGeo,
-            ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            Vector2 samplingStep, Vector2 delta_lonlat, float noDataVal)
-{
- 
-  cout<<"Get Features..."<<endl;
+std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      im,
+                                      const vw::cartography::GeoReference& georef,
+                                      const vw::Vector2&                   samplingStep, 
+                                      const vw::Vector2&                   delta_lonlat,
+                                      const float                          noDataVal ) {
+  //cout<<"Get Features..."<<endl;
+  std::vector<vw::Vector3> features;
 
-  int verStep = samplingStep(0);
-  int horStep = samplingStep(1);
-  vector<Vector3> featureArray;
+  for( int j = 0; j < im.impl().rows(); j += samplingStep.y() ){
+    for( int i = 0; i < im.impl().cols(); i += samplingStep.x() ){
+      //determine the location of the corresponding background point for each valid fore point
+      if( (isnan(im.impl()(i,j))!=FP_NAN) && (im.impl()(i,j) != noDataVal) ){
+        vw::Vector2 lonlat = georef.pixel_to_lonlat( vw::Vector2(i,j) );
+        lonlat += delta_lonlat;
 
-  ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
-                                                                           ConstantEdgeExtension()),
-                                                                           BilinearInterpolation());
-  
-  for (int j = 0; j < foreImg.impl().rows(); j=j+verStep){
-     for (int i = 0; i < foreImg.impl().cols(); i=i+horStep){
-
-       //determine the location of the corresponding background point for each valid fore point
-       //if ((isnan(foreImg.impl()(i,j)[0])!=FP_NAN) && (foreImg.impl()(i,j)[0]) != -noDataVal)  { 
-       if ((isnan(foreImg.impl()(i,j))!=FP_NAN) && (foreImg.impl()(i,j)) != noDataVal)  {
-	 Vector2 forePix(i,j);
-	 Vector2 fore_lonlat = foreGeo.pixel_to_lonlat(forePix);
-         fore_lonlat(0)=fore_lonlat(0)+delta_lonlat(0);
-	 fore_lonlat(1)=fore_lonlat(1)+delta_lonlat(1);
-
-         Vector3 fore_lonlat3(fore_lonlat(0), fore_lonlat(1), (foreImg.impl())(i,j));
-         Vector3 fore_xyz = foreGeo.datum().geodetic_to_cartesian(fore_lonlat3);
+        vw::Vector3 lonlatrad( lonlat.x(), lonlat.y(), im.impl()(i,j) );
+        vw::Vector3 xyz = georef.datum().geodetic_to_cartesian( lonlatrad );
       
-         featureArray.push_back(fore_xyz);
-       }
-     }
+        features.push_back( xyz );
+      }
+    }
   }
-
-  cout<<"numFeatures="<<featureArray.size()<<endl;
-  return featureArray;
-
+  //cout<<"numFeatures="<<featureArray.size()<<endl;
+  return features;
 };
+
+template <class ViewT>
+std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      foreImg,
+                                      const vw::cartography::GeoReference& foreGeo,
+                                      const vw::ImageViewBase<ViewT>&      backImg, 
+                                      const vw::cartography::GeoReference& backGeo, 
+                                      const vw::Vector2&                   samplingStep, 
+                                      const vw::Vector2&                   delta_lonlat,
+                                      const float                          noDataVal ) {
+  // Once upon a time this function may have used the backImg, but it doesn't anymore.
+  // This interface is kept around for historic reasons.
+  return GetFeatures( foreImg, foreGeo, samplingStep, delta_lonlat, noDataVal );
+}
 
 //find the closest background points to the fore points.
 template <class ViewT>
