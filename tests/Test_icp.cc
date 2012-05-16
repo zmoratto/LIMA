@@ -136,25 +136,65 @@ TEST_F( ComputeDEMRotation_Test, TransformFeatures3arg ){
   }
 }
 
-TEST( GetFeatures, works ){
-  Vector2 sampling( 5,5 );
-  Vector2 delta( 10,10 );
+class Features_Test : public ::testing::Test {
+  protected:
+  virtual void SetUp(){
+  fives_.x() = 5;
+  fives_.y() = 5;
+  delta_.x() = 10;
+  delta_.y() = 10;
+  DEMfile_ = "USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif";
+  }
 
-  string DEMfilename("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
+  virtual void TearDown() {}
 
-  boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL( DEMfilename ) );
+  string DEMfile_;
+  Vector2 fives_;
+  Vector2 delta_;
+};
+
+
+TEST_F( Features_Test, GetFeatures ){
+  boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL( DEMfile_ ) );
   float noDataVal = fore_rsrc->nodata_read();
   DiskImageView<PixelGray<float> > foreDEM( fore_rsrc );
   GeoReference foreDEMGeo;
-  read_georeference(foreDEMGeo, DEMfilename);
+  read_georeference( foreDEMGeo, DEMfile_ );
 
   vector<Vector3> features = GetFeatures( foreDEM, foreDEMGeo, foreDEM, foreDEMGeo, 
-                                          sampling, delta, noDataVal );
+                                          fives_, delta_, noDataVal );
 
   ASSERT_EQ( (unsigned int)5428, features.size()  ) << "There is an incorrect number of features.";
   EXPECT_NEAR( 1.35555e+06, features[100].x(), 1) << "Test feature has wrong x.";
   EXPECT_NEAR( 328576,      features[100].y(), 1) << "Test feature has wrong y.";
   EXPECT_NEAR( 1.0327e+06,  features[100].z(), 5) << "Test feature has wrong z.";
+}
+
+TEST_F( Features_Test, FindMatches ){
+  boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL( DEMfile_ ) );
+  float noDataVal = fore_rsrc->nodata_read();
+  DiskImageView<PixelGray<float> > foreDEM( fore_rsrc );
+  GeoReference foreDEMGeo;
+  read_georeference( foreDEMGeo, DEMfile_ );
+
+
+  Vector2 delta( 0, 0 );
+  vector<Vector3> features = GetFeatures( foreDEM, foreDEMGeo,
+                                          fives_, delta, noDataVal );
+
+  vector<Vector3> matches( features.size() );
+ 
+  Vector2 window( 5, 5 );
+  FindMatches( features, foreDEM, foreDEMGeo, foreDEMGeo, matches, window, noDataVal );
+
+  int diff_count = 0;
+  for( unsigned int i=0; i < matches.size(); ++i ){
+    if( !(matches[i] == features[i]) ){
+      //cout << matches[i] << " " << features[i] << endl;
+      ++diff_count;
+    }
+  }
+  ASSERT_EQ( 0, diff_count ) << "Matched features differ from reference.";
 }
 
 
