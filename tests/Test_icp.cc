@@ -136,6 +136,27 @@ TEST_F( ComputeDEMRotation_Test, TransformFeatures3arg ){
   }
 }
 
+TEST( GetFeatures, works ){
+  Vector2 sampling( 5,5 );
+  Vector2 delta( 10,10 );
+
+  string DEMfilename("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
+
+  boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL( DEMfilename ) );
+  float noDataVal = fore_rsrc->nodata_read();
+  DiskImageView<PixelGray<float> > foreDEM( fore_rsrc );
+  GeoReference foreDEMGeo;
+  read_georeference(foreDEMGeo, DEMfilename);
+
+  vector<Vector3> features = GetFeatures( foreDEM, foreDEMGeo, foreDEM, foreDEMGeo, 
+                                          sampling, delta, noDataVal );
+
+  ASSERT_EQ( (unsigned int)5428, features.size()  ) << "There is an incorrect number of features.";
+  EXPECT_NEAR( 1.35555e+06, features[100].x(), 1) << "Test feature has wrong x.";
+  EXPECT_NEAR( 328576,      features[100].y(), 1) << "Test feature has wrong y.";
+  EXPECT_NEAR( 1.0327e+06,  features[100].z(), 5) << "Test feature has wrong z.";
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
