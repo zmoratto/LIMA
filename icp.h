@@ -103,76 +103,52 @@ std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      foreI
 
 //find the closest background points to the fore points.
 template <class ViewT>
-void
-FindMatches(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backImg, GeoReference const &backGeo, 
-            GeoReference const &foreGeo, vector<Vector3>& referenceArray, Vector2 matchWindowHalfSize, float noValData)
-{
- 
-  cout<<" ***FIND MATCHES..."<<endl;
+void FindMatches( const std::vector<vw::Vector3>&      features, 
+                  const vw::ImageViewBase<ViewT>&      backImg, 
+                  const vw::cartography::GeoReference& backGeo, 
+                  const vw::cartography::GeoReference& foreGeo, 
+                        std::vector<vw::Vector3>&      referenceArray, 
+                  const vw::Vector2&                   matchWindowHalfSize, 
+                  const float                          noValData) {
+  //cout<<" ***FIND MATCHES..."<<endl;
+  vw::ImageViewRef<typename ViewT::pixel_type> interpBackImg = 
+        interpolate(edge_extend(backImg.impl(), vw::ConstantEdgeExtension()), 
+                    vw::BilinearInterpolation()); 
 
- int matchWindowHalfWidth = matchWindowHalfSize(0);
- int matchWindowHalfHeight = matchWindowHalfSize(1);
+  for( unsigned int i = 0; i < features.size(); ++i ){
+    //revert fore from cartesian to spherical coordinates
+    vw::Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic( features[i] );
 
- ImageViewRef<typename ViewT::pixel_type>  interpBackImg = interpolate(edge_extend(backImg.impl(),
-                                                                           ConstantEdgeExtension()),
-                                                                           BilinearInterpolation()); 
- for (int i = 0; i < featureArray.size(); i++){
+    vw::Vector2 backPix = backGeo.lonlat_to_pixel( vw::Vector2( fore_lonlat3.x(), 
+                                                                fore_lonlat3.y() ) );
 
-     //revert fore from cartesian to spherical coordinates
-     Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic(featureArray[i]);
-     Vector2 fore_lonlat;
- 
-     fore_lonlat(0) = fore_lonlat3(0);
-     fore_lonlat(1) = fore_lonlat3(1);
+    vw::Vector3 back_xyz; //invalid point
+    float minDistance = std::numeric_limits<float>::max();
+    vw::Vector<int,2> start = backPix - matchWindowHalfSize;
+    vw::Vector<int,2> limit = backPix + matchWindowHalfSize + vw::Vector<int,2>( 1, 1 );
 
-     //Vector2 back_lonlat = fore_2_back_lonlat(fore_lonlat);
-     Vector2 back_lonlat = fore_lonlat;
+    for( int k = start.y(); k < limit.y(); ++k ){
+      for( int l = start.x(); l < limit.x(); ++l ){
+        float interpBack = interpBackImg(l,k);
+        if( interpBack == noValData ){ continue; }
 
-     Vector2 backPix = backGeo.lonlat_to_pixel(back_lonlat);	 
-     float x = backPix(0);
-     float y = backPix(1);
+        vw::Vector2 bPixel = backGeo.pixel_to_lonlat( vw::Vector2(l,k) );
+          
+        //revert to fore lon lat system
+        vw::Vector3 t_back_lonlat3( bPixel.x(), bPixel.y(), interpBack );
 
-     Vector3 back_xyz;//invalid point
-     float minDistance = 10000000000.0;
-
-     for (int k =  y-matchWindowHalfHeight; k < y + matchWindowHalfHeight+1; k++){
-        for (int l = x - matchWindowHalfWidth; l < x + matchWindowHalfWidth+1; l++){
- 
-          Vector2 backPix(l,k);
-	  Vector2 back_lonlat = backGeo.pixel_to_lonlat(backPix);
-           
-          //revert to fore lon lat system
-          Vector2 t_back_lonlat2 = back_lonlat;
-
-          Vector3 t_back_lonlat3;
-          t_back_lonlat3(0) = t_back_lonlat2(0);
-          t_back_lonlat3(1) = t_back_lonlat2(1); 
-          t_back_lonlat3(2) = interpBackImg(l,k);
+        //transform into xyz coordinates of the foregound image.
+        vw::Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);
+        float distance = norm_2( t_back_xyz - features[i] );
      
-
-          if (t_back_lonlat3(2) != noValData){
-	    //transform into xyz coordinates of the foregound image.
-	    Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);             
-      
-	    float distance1 = t_back_xyz(0) - featureArray[i](0);
-	    float distance2 = t_back_xyz(1) - featureArray[i](1);
-	    float distance3 = t_back_xyz(2) - featureArray[i](2);
-	    float distance = sqrt(distance1*distance1 + distance2*distance2 + distance3*distance3);   
-	    if (distance < minDistance){
-	      minDistance = distance;
-              back_xyz = t_back_xyz;
-	    }
-            
-	  }//endif (t_back_lonlat3(2) != noValData)
-	}
-        
-     }
-  
-     referenceArray[i]=back_xyz;
- }
-
- 
- 
+        if( distance < minDistance ){
+          minDistance = distance;
+          back_xyz = t_back_xyz;
+        }
+      }
+    }
+    referenceArray[i]=back_xyz;
+  }
 };
 
 //determines best DEM points that match to LOLA track points

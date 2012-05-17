@@ -190,7 +190,7 @@ TEST_F( Features_Test, FindMatches ){
   int diff_count = 0;
   for( unsigned int i=0; i < matches.size(); ++i ){
     if( !(matches[i] == features[i]) ){
-      //cout << matches[i] << " " << features[i] << endl;
+      cerr << matches[i] << " " << features[i] << endl;
       ++diff_count;
     }
   }
