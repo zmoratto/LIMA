@@ -157,83 +157,69 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
 //the match is done by minimizing the Euclidian distance in the 3D cartesian space.
 //TODO: add hor and ver pixel offset together with altitude
 template <class ViewT>
-void
-FindMatchesFromDEM(const vector<Vector3>&	xyzModelArray, 
-		   const vector<Vector3>&	llrModelArray,
-		   const ImageViewBase<ViewT>&	DEM, 
-		   const GeoReference&		DEMGeo, 
-		   vector<Vector3>&		xyzMatchArray, 
-		   const Vector3&		translation, 
-		   const Matrix<float,3,3>&	rotation, 
-                   const Vector3&               xyzMatchCenter,
-		   const double&		noDEMVal, 
-		   const Vector2&		matchWindowHalfSize)
-{
- ImageViewRef<float> interpDEM;
- if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
-   interpDEM = pixel_cast<float>(interpolate(edge_extend(DEM.impl(),ConstantEdgeExtension()),
-					     BilinearInterpolation()) );
-   
-   //cout << "NOT masked" <<endl;
+void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel, 
+                         const std::vector<vw::Vector3>&      llrModel,
+                         const vw::ImageViewBase<ViewT>&      DEM, 
+                         const vw::cartography::GeoReference& DEMGeo, 
+                               std::vector<vw::Vector3>&      xyzMatch, 
+                         const vw::Vector3&                   translation, 
+                         const vw::Matrix<float,3,3>&         rotation, 
+                         const vw::Vector3&                   xyzMatchCenter,
+                         const double                         noDEMVal, 
+                         const vw::Vector2&                   matchWindowHalfSize ) {
+  vw::ImageViewRef<float> interpDEM;
+  if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
+    interpDEM = pixel_cast<float>(interpolate( edge_extend(DEM.impl(),
+                                                           vw::ConstantEdgeExtension()),
+                                               vw::BilinearInterpolation()) );
+    //cout << "NOT masked" <<endl;
   }
- else{
-   interpDEM = pixel_cast<float>(interpolate(edge_extend(apply_mask(DEM.impl()),ConstantEdgeExtension()),
-					     BilinearInterpolation()) );
-   //cout << "MASKED" <<endl;
- }
+  else{
+    interpDEM = pixel_cast<float>(interpolate( edge_extend( apply_mask(DEM.impl()),
+                                                            vw::ConstantEdgeExtension()),
+                                               vw::BilinearInterpolation()) );
+    //cout << "MASKED" <<endl;
+  }
   
- //Vector3 xyzMatchCenter = find_centroid(xyzMatchArray);
- cout<<"XYZ_MATCH_CENTER="<<xyzMatchCenter<<endl;
- cout<<DEMGeo<<endl;  
+  // cout<<"XYZ_MATCH_CENTER="<<xyzMatchCenter<<endl;
+  // cout<<DEMGeo<<endl;  
 
- for (unsigned int index = 0; index < xyzModelArray.size(); index++){
-   
-   //const Vector3 lidar_lonlatrad = DEMGeo.datum().cartesian_to_geodetic(xyzModelArray[index]);
-   //const Vector3 lidar_lonlatrad = xyz_to_lon_lat_radius(xyzModelArray[index] );
-   //cout<<"lidar_alt="<<lidar_lonlatrad(2)<<endl;      
-   //cout<<"llrModelArray="<<llrModelArray[index]<<endl;
-   const Vector2 lidar_lonlat(llrModelArray[index](0), llrModelArray[index](1));
-   const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel(lidar_lonlat);
-   
-   //const Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( subvector(llrModelArray[index], 0, 2) );
-   
-   xyzMatchArray[index] = Vector3(0,0,0);
-   float minDistance = 1000000.0;
-   
-  
-   //search in a neigborhood around x,y and determine the best match to LOLA
-   for(int k = DEM_pix.y() - matchWindowHalfSize.y(); k < DEM_pix.y() + matchWindowHalfSize.y() +1; k++){
-     for(int l = DEM_pix.x() - matchWindowHalfSize.x(); l < DEM_pix.x() + matchWindowHalfSize.x() +1; l++){
-       if ((l>=0) && (k>=0) && (l<DEM.impl().cols()) && (k<DEM.impl().rows())){
-	 if (interpDEM(l,k)!=noDEMVal){
-	   //compute the distance to the lidar point
+  vw::BBox2 DEM_bbox = bounding_box( DEM );
+  for( unsigned int index = 0; index < xyzModel.size(); ++index ){
+    const vw::Vector2 DEM_pix = DEMGeo.lonlat_to_pixel( vw::Vector2( llrModel[index].x(),
+                                                                     llrModel[index].y() ) );
+    xyzMatch[index] = vw::Vector3(0,0,0);
+    float minDistance = std::numeric_limits<float>::max();
+    vw::Vector<int,2> start = DEM_pix - matchWindowHalfSize;
+    vw::Vector<int,2> limit = DEM_pix + matchWindowHalfSize + vw::Vector<int,2>( 1, 1 );
+    
+    //search in a neigborhood around x,y and determine the best match to LOLA
+    for( int k = start.y(); k < limit.y(); ++k ){
+      for( int l = start.x(); l < limit.x(); ++l){
+        if( DEM_bbox.contains(vw::Vector<int,2>( l,k )) ){
+          double interp = interpDEM(l,k);
+          if( interp == noDEMVal ){ continue; }
 
-	   const Vector2 pix(l,k);
-  
-	   const Vector2 lonlat = DEMGeo.pixel_to_lonlat( /*Vector2(l,k)*/pix );
-	   
-	   //revert to lon lat rad system
-	   Vector3 lonlatrad (lonlat.x(),lonlat.y(),interpDEM(l,k)); // This z value is in meters, since DEMGeo.datum() is.
-	   
-	   //transform into xyz coordinates of the foregound image.
-	   Vector3 xyzDEM = DEMGeo.datum().geodetic_to_cartesian(lonlatrad);
-	   xyzDEM = rotation*(xyzDEM-xyzMatchCenter) + xyzMatchCenter + translation;
-	   
-	   Vector3 distance_vector = xyzDEM - xyzModelArray[index];
-	   
-	   float distance = norm_2( distance_vector );
+          //compute the distance to the lidar point
+          const vw::Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+        
+          //transform into xyz coordinates of the foregound image.
+          vw::Vector3 xyzDEM = DEMGeo.datum().geodetic_to_cartesian(  
+                                              vw::Vector3(lonlat.x(), lonlat.y(), interp) );
+          xyzDEM = rotation*(xyzDEM-xyzMatchCenter) + xyzMatchCenter + translation;
+        
+          float distance = norm_2( xyzDEM - xyzModel[index] );
 
-	   //cout<<"distance="<<distance<<endl;
+          //cout<<"distance="<<distance<<endl;
 
-	   if (distance < minDistance){
-	     minDistance = distance;
-	     xyzMatchArray[index] = xyzDEM;
-	   }
-	 }
-       }
-     }
-   }
- }
+          if( distance < minDistance ){
+            minDistance = distance;
+            xyzMatch[index] = xyzDEM;
+          }
+        }
+      }
+    }
+  }
 }
 
 
