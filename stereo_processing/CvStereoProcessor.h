@@ -41,8 +41,10 @@ class CvStereoProcessor
     return m_points;
   }
   
-  //void printPoints(std::ostream& stream);
+
   void savePoints(std::string const& filenameNoPath);
+  cv::Mat GetRectifiedModelImage();
+  cv::Mat GetRectifiedMatchImage();
   
  protected:
   //static void iplImageFromKnImage(IplImage& ipl, Image const& img);

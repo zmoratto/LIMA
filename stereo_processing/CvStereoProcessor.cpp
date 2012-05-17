@@ -190,53 +190,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     m_imageDisparityNormalized=cvCreateMat(imageSize.height, imageSize.width, CV_8U);
   }
 
-#if 0
-  CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params,
-                                       cv::Mat const refRMap[2], 
-                                       cv::Mat const matchRMap[2], 
-                                       cv::Mat const& Q,
-                                       cv::Size const& imageSize) :
-    m_params(params),
-    m_bMState(cvCreateStereoBMState()),
-    //    m_refRMap(refRMap),
-    //   m_matchRMap(matchRMap),
-    m_Q(Q),
-    m_imageDisparity(cvCreateMat(imageSize.height, imageSize.width, CV_16S)),
-    m_imageDisparityNormalized(cvCreateMat(imageSize.height, imageSize.width, CV_8U))
-  {
-    // ???
-    m_Q.at<double>(3,2) = m_Q.at<double>(3,2)/16.0;
-    m_Q.at<double>(3,2) =-m_Q.at<double>(3,2); //fix for OpenCV 2.3.1
 
-    
-    //cv::Mat extRotationMat=cv:Matt::eye(4,4, CV_64F);
-    //for(i = 0; i < 3; i++){
-    //  for(j =0; j < 3; j++){
-    //     extRotationMat.at<double>(i,j) = rotationMat.at<double>(i,j);
-    //	}
-    //}	
-    //TODO: multiply m_Q = extRotationMatrix*m_Q;
-   
-
-    // ???
-    // dunno why this does not work as member-ctor
-
-    //the rectification maps for the reference and match images
-    m_refRMap[0] = refRMap[0];
-    m_refRMap[1] = refRMap[1];
-    m_matchRMap[0] = matchRMap[0];
-    m_matchRMap[1] = matchRMap[1];
-
-    m_bMState->preFilterSize       = m_params.preFilterSize;
-    m_bMState->preFilterCap        = m_params.preFilterCap;
-    m_bMState->SADWindowSize       = m_params.sadWindowSize;
-    m_bMState->minDisparity        = m_params.minDisparity;
-    m_bMState->numberOfDisparities = m_params.numberOfDisparities;
-    m_bMState->textureThreshold    = m_params.textureThreshold;
-    m_bMState->uniquenessRatio     = m_params.uniquenessRatio;
-
-  }
-#endif
   CvStereoProcessor::~CvStereoProcessor()
   {
     cvReleaseMat(&m_imageDisparity);
@@ -255,7 +209,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
 
     for (int y = 0; y < m_points.rows; ++y) {
       for (int x = 0; x < m_points.cols; ++x) {
-        
+       
         Vec3f const& point = m_points.at<Vec3f>(y, x);
         //if (!(fabs(point[2] - maxZ) < FLT_EPSILON || fabs(point[2]) > maxZ)) {
         if (fabs(point[2]-maxZ)> FLT_EPSILON && fabs(point[2]<maxZ) && point[2]>0){
@@ -265,55 +219,6 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     }
     ostr.close();
   }
-
-#if 0
-  void 
-  CvStereoProcessor::iplImageFromKnImage(IplImage& ipl, Image const& img)
-  {
-    ipl.ID = 0;              /* version (=0)*/
-    ipl.nChannels = 1;      /* Most of OpenCV functions support 1,2,3 or 4 channels */
-    //    ipl.alphaChannel;      /* Ignored by OpenCV */
-
-    // this could be more generic, but that's a case-statement...
-    ipl.depth = IPL_DEPTH_8U; /* Pixel depth in bits: IPL_DEPTH_8U, IPL_DEPTH_8S, IPL_DEPTH_16S,
-                               IPL_DEPTH_32S, IPL_DEPTH_32F and IPL_DEPTH_64F are supported.  */
-    //    char colorModel[4];     /* Ignored by OpenCV */
-    //    char channelSeq[4];     /* ditto */
-    ipl.dataOrder = 0;       /* 0 - interleaved color channels, 1 - separate color channels.
-                                cvCreateImage can only create interleaved images */
-    ipl.origin= 0;          /* 0 - top-left origin,
-                               1 - bottom-left origin (Windows bitmaps style).  */
-    //    int  align;             /* Alignment of image rows (4 or 8).
-    //                               OpenCV ignores it and uses widthStep instead.    */
-    ipl.width = img.width(); /* Image width in pixels.                           */
-    ipl.height = img.height();            /* Image height in pixels.                          */
-    ipl.roi = NULL;              /* Image ROI. If NULL, the whole image is selected. */
-    ipl.maskROI = NULL;      /* Must be NULL. */
-    ipl.imageId = NULL;               /* "           " */
-    ipl.tileInfo = NULL;  /* "           " */
-    ipl.imageSize = ipl.width * ipl.height;         /* Image data size in bytes
-                               (==image->height*image->widthStep
-                               in case of interleaved data)*/
-    ipl.imageData = (char *)img.data();        /* Pointer to aligned image data.         */
-    ipl.widthStep = ipl.width;         /* Size of aligned image row in bytes.    */
-    //    int  BorderMode[4];     /* Ignored by OpenCV.                     */
-    //    int  BorderConst[4];    /* Ditto.                                 */
-    ipl.imageDataOrigin = NULL;  /* Pointer to very origin of image data
-                               (not necessarily aligned) -
-                               needed for correct deallocation */
-  }
-#endif
-
-/*
-  //this function should be used but for now is not working
-  CvMat const&
-  CvStereoProcessor::normalizedDisparityImage()
-  {
-    cvNormalize(m_imageDisparity, m_imageDisparityNormalized, 0, 256, CV_MINMAX);
-    return *m_imageDisparityNormalized;
-  }
-*/
-
 
   //modifies the Q matrix with the rotation  and translation
   void CvStereoProcessor::changeCoordinates(cv::Mat const &rotationMat, cv::Mat const &vectorMat)
@@ -332,7 +237,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
 
     //multiply m_Q = extRotationMatrix*m_Q;
     int flags = 0;    
-    gemm(extRotationMat, m_QOrig, 1.0, /*NULL*/ m_Q, 0.0, m_Q, flags);
+    gemm(extRotationMat, m_QOrig, 1.0,  m_Q, 0.0, m_Q, flags);
    
   }
 
@@ -352,27 +257,16 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     matchImgRect = m_matchImgRect;
 
     cvFindStereoCorrespondenceBM(&refImgRect, &matchImgRect, m_imageDisparity, m_bMState);
-
-    // Ara's way to do the conversion
-    //Mat dispMat = &(*imageDisparity);
-
+    
+    // hack to get rid of small-scale noise
+    cvErode(m_imageDisparity, m_imageDisparity, NULL, 2);
+    cvDilate(m_imageDisparity, m_imageDisparity, NULL, 2);
+    
     Mat disMat = m_imageDisparity;
 
     reprojectImageTo3D(disMat, m_points, m_Q, 1);
   }
-/*
-  void
-  CvStereoProcessor::processImagePair(kn::Image const& refImg, kn::Image const& matchImg)
-  {
-    IplImage ref;
-    IplImage match;
 
-    iplImageFromKnImage(ref, refImg);
-    iplImageFromKnImage(match, matchImg);
-
-    processImagePair(&ref, &match);
-  }
-*/
   //save the normalized disparity for display and debug  
   void
   CvStereoProcessor::saveDisparity(string const& filenameNoPath)
@@ -382,5 +276,13 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     cvSaveImage( disparityFilename.c_str(), m_imageDisparityNormalized);
   }
   
+cv::Mat CvStereoProcessor::GetRectifiedModelImage()
+{
+   return m_refImgRect;
+}
 
+cv::Mat CvStereoProcessor::GetRectifiedMatchImage()
+{
+   return m_matchImgRect;
+}
 

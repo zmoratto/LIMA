@@ -1,7 +1,5 @@
 #include "CvStereoProcessor.h"
 #include "../string_util.h"
-//#include "StereoParameters.h"
-//#include "miro/Configuration.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -31,25 +29,6 @@ using std::endl;
 
 bool verbose = true;
 
-/*
-/// Erases a file path if one exists and returns the base string 
-std::string GetFilenameNoPath(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind("/");
-  if (index != -1)
-    result.erase(0, index+1);
-  return result;
-}
-
-/// Erases a file suffix if one exists and returns the base string
-std::string GetFilenameNoExt(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-      result.erase(index, result.size());
-  return result;
-}
-*/
 
 int ReadStereoConfigFile(string stereoConfigFilename, CvStereoProcessorParameters *thisStereoParams)
 {
@@ -237,9 +216,6 @@ int ReadCalibrationFile(string calibrationFilename, cv::Mat &camera_matrix_left,
 
 int main( int argc, char *argv[] )
 {
-  // setting global default configuration file
-  //Miro::Configuration::init(argc, argv);
-  
 
  std::string modelImageFilename;
  std::string matchImageFilename;
@@ -306,6 +282,8 @@ int main( int argc, char *argv[] )
       return 1;
   }
    
+
+  resDir = resDir + "/" + GetFilenameNoExt(GetFilenameNoPath(modelImageFilename)) + "_" + GetFilenameNoExt(GetFilenameNoPath(matchImageFilename));
   auxDir = resDir+"/aux";
   cout<<"aux_dir="<<auxDir<<endl;
   //create the results and auxiliary directories
@@ -327,8 +305,7 @@ int main( int argc, char *argv[] )
   thisStereoParams.modelImageFilename = modelImageFilename;
   thisStereoParams.resDir = resDir;
 
-
-   cv::Size imageSize;
+  cv::Size imageSize;
   imageSize.width = modelImage->width;
   imageSize.height = modelImage->height;
   
@@ -347,7 +324,6 @@ int main( int argc, char *argv[] )
   rotationMat.at<double>(2,1) = sin(xAngleRad);
   rotationMat.at<double>(2,2) = cos(xAngleRad);
   //UBER Hack be careful - START
-
  
   thisStereo->changeCoordinates(rotationMat, translationMat);
   
@@ -363,8 +339,17 @@ int main( int argc, char *argv[] )
   string pointCloudFilenameNoPath = string("/point_") + GetFilenameNoExt(GetFilenameNoPath(modelImageFilename)) + string(".txt");
   cout<<pointCloudFilenameNoPath<<endl;
   thisStereo->savePoints(pointCloudFilenameNoPath);
-
   //saves the point clouds for debug - END
+
+  //copies the input rectified images for debug - START
+  string outModelImage = resDir + "/" + GetFilenameNoExt(GetFilenameNoPath(modelImageFilename)) + string(".jpg");
+  string outMatchImage = resDir + "/" + GetFilenameNoExt(GetFilenameNoPath(matchImageFilename))  +string(".jpg");
+  IplImage rModelImage = thisStereo->GetRectifiedModelImage();
+  IplImage rMatchImage = thisStereo->GetRectifiedMatchImage();
+  cvSaveImage( outModelImage.c_str(), &rModelImage);
+  cvSaveImage( outMatchImage.c_str(), &rMatchImage);
+  //copies the input images for debug - END
+
   delete thisStereo;
 
   cvReleaseImage(&modelImage);
