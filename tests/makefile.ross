@@ -13,7 +13,7 @@ Test_util: ../util.o Test_util.o
 Test_tracks: ../util.o ../coregister.o ../match.o ../featuresLOLA.o ../tracks.o Test_tracks.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
-Test_icp: ../icp.o Test_icp.o
+Test_icp: ../tracks.o ../icp.o Test_icp.o
 	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -lgtest $^ -o $@
 
 clean:

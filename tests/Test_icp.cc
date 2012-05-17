@@ -1,5 +1,6 @@
 #include <boost/filesystem.hpp>
 
+#include "../tracks.h"
 #include "../icp.h"
 #include "gtest/gtest.h"
 
@@ -195,6 +196,52 @@ TEST_F( Features_Test, FindMatches ){
     }
   }
   ASSERT_EQ( 0, diff_count ) << "Matched features differ from reference.";
+}
+
+TEST( FindMatchesFromDEM, works ){
+  string DEMfile("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( DEMfile ) );
+  double noDataVal = rsrc->nodata_read();
+  DiskImageView<float> DEM(rsrc);
+  GeoReference DEMGeo;
+  read_georeference(DEMGeo, DEMfile);
+
+  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
+  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
+
+  GetAllPtsFromDEM( shots, DEM, DEMGeo, noDataVal );
+
+  vector<Vector3> xyz;//LOLA
+  vector<Vector3> llr;
+  for( unsigned int i = 0; i < shots.size(); ++i ){
+    for( unsigned int j = 0; j < shots[i].size(); ++j ){
+    if( shots[i][j].DEMPt[0].valid ){
+      Vector3 model;
+      model = shots[i][j].LOLAPt[2];
+	  model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
+      Vector3 xyzModel = lon_lat_radius_to_xyz(model);
+      xyz.push_back(xyzModel);
+      llr.push_back(model);
+      }
+    }
+  }
+
+  vector<Vector3> matches( xyz.size() );
+  Vector3 modelCentroid = find_centroid( xyz );
+  Matrix<float, 3,3 > rotation = identity_matrix(3);
+  Vector3 translation;
+  Vector2 window( 5, 5 );
+
+  FindMatchesFromDEM( xyz, llr, DEM, DEMGeo, matches, translation, 
+                      rotation, modelCentroid, noDataVal, window );
+
+  ASSERT_EQ( xyz.size(), matches.size() ) << "The match vector is the wrong size.";
+  EXPECT_NEAR( matches[761].x(), 1.56342e+06, 10 ) << "The x value is off.";
+  EXPECT_NEAR( matches[761].y(), 98450.7, .1 ) << "The y value is off.";
+  EXPECT_NEAR( matches[761].z(), 752184, 1 ) << "The y value is off.";
+  //for( unsigned int i = 0; i < xyz.size(); ++i ){
+  //  if( xyz[i] != matches[i] ) { cerr << i << " " << xyz[i] << " " << matches[i] << endl; }
+  //}
 }
 
 
