@@ -33,8 +33,11 @@ stereo: CvStereoTest.cpp
 	g++  $(INCPATH) -I$(VWPREFIX)/include -O3 -g -Wall -Wextra $(LIBPATH) $(LDFLAGS_OPENCV) $(OPTIONS) $(OPTIONS_OPENCV) -L$(VWPREFIX)/lib -lvwCartography -lvwCamera -lvwStereo \
 -lvwFileIO -lvwImage -lvwMath -lvwCore CvStereoTest.cpp  CvStereoProcessor.cpp ../string_util.cc -o stereo 
 
- 
+stereo_calibration: CvStereoCalibration.cpp
+	#g++ -o irg_stereo_calib irg_stereo_calib.cpp $(INCLUDE) $(LIB)
+	g++ $(INCPATH) $(LIBPATH) $(LDFLAGS_OPENCV) $(OPTIONS) $(OPTIONS_OPENCV) CvStereoCalibration.cpp -o stereo_calibration  
 clean:
 
 	rm stereo
+	rm stereo_calibration
 
