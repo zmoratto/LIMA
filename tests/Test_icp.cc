@@ -242,27 +242,35 @@ TEST( ICP_DEM_2_DEM, works ) {
   EXPECT_LE( error, settings.minConvThresh ) << "The error value is wrong.";
 }
 
+class DEM_Matching : public ::testing::Test {
+  protected:
+  virtual void SetUp(){
+    DEMfile_ = "USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif";
+    read_georeference( DEMGeo_, DEMfile_ );
+    shots_ = LOLAFileRead( "RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv" );
+  }
 
-TEST( FindMatchesFromDEM, works ){
-  string DEMfile("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
-  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( DEMfile ) );
-  double noDataVal = rsrc->nodata_read();
+  virtual void TearDown() {}
+
+  string DEMfile_;
+  GeoReference DEMGeo_;
+  vector<vector<LOLAShot> > shots_;
+};
+
+TEST_F( DEM_Matching, FindMatchesFromDEM ){
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( DEMfile_ ) );
+  double nodata = rsrc->nodata_read();
   DiskImageView<float> DEM(rsrc);
-  GeoReference DEMGeo;
-  read_georeference(DEMGeo, DEMfile);
 
-  fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
-  vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
-
-  GetAllPtsFromDEM( shots, DEM, DEMGeo, noDataVal );
+  GetAllPtsFromDEM( shots_, DEM, DEMGeo_, nodata );
 
   vector<Vector3> xyz;//LOLA
   vector<Vector3> llr;
-  for( unsigned int i = 0; i < shots.size(); ++i ){
-    for( unsigned int j = 0; j < shots[i].size(); ++j ){
-    if( shots[i][j].DEMPt[0].valid ){
+  for( unsigned int i = 0; i < shots_.size(); ++i ){
+    for( unsigned int j = 0; j < shots_[i].size(); ++j ){
+    if( shots_[i][j].DEMPt[0].valid ){
       Vector3 model;
-      model = shots[i][j].LOLAPt[2];
+      model = shots_[i][j].LOLAPt[2];
 	  model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
       Vector3 xyzModel = lon_lat_radius_to_xyz(model);
       xyz.push_back(xyzModel);
@@ -277,8 +285,8 @@ TEST( FindMatchesFromDEM, works ){
   Vector3 translation;
   Vector2 window( 5, 5 );
 
-  FindMatchesFromDEM( xyz, llr, DEM, DEMGeo, matches, translation, 
-                      rotation, modelCentroid, noDataVal, window );
+  FindMatchesFromDEM( xyz, llr, DEM, DEMGeo_, matches, translation, 
+                      rotation, modelCentroid, nodata, window );
 
   ASSERT_EQ( xyz.size(), matches.size() ) << "The match vector is the wrong size.";
   EXPECT_NEAR( matches[761].x(), 1.56342e+06, 10 ) << "The x value is off.";
@@ -289,6 +297,56 @@ TEST( FindMatchesFromDEM, works ){
   //}
 }
 
+TEST_F( DEM_Matching, ICP_LIDAR_2_DEM ){
+  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( DEMfile_ ) );
+  double nodata = rsrc->nodata_read();
+  DiskImageView<float> DEM(rsrc);
+
+  GetAllPtsFromDEM( shots_, DEM, DEMGeo_, nodata );
+
+  vector<Vector3> xyz;//LOLA
+  vector<Vector3> llr;
+  for( unsigned int i = 0; i < shots_.size(); ++i ){
+    for( unsigned int j = 0; j < shots_[i].size(); ++j ){
+    if( shots_[i][j].DEMPt[0].valid ){
+      Vector3 model;
+      model = shots_[i][j].LOLAPt[2];
+	  model.z() *= 1000; // LOLA data is in km, DEMGeo is in m (for LROC DTMs).
+      Vector3 xyzModel = lon_lat_radius_to_xyz(model);
+      xyz.push_back(xyzModel);
+      llr.push_back(model);
+      }
+    }
+  }
+
+  vector<Vector3> xyzMatchArray( xyz.size() );
+  valarray<float> xyzErrorArray( xyz.size() );
+  Matrix<float, 3,3 > rotation = identity_matrix(3);
+  Vector3 translation;
+  Vector3 modelCentroid = find_centroid( xyz );
+  struct CoregistrationParams settings;
+  settings.maxNumIter = 10;
+  settings.minConvThresh = 0.01;
+  settings.matchWindowHalfSize = Vector2( 5, 5 );
+  settings.noDataVal = nodata;
+
+  //vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
+
+  ICP_LIDAR_2_DEM( xyzMatchArray, DEM, DEMGeo_, xyz, llr, settings, 
+                   translation, rotation, modelCentroid, xyzErrorArray);
+
+  EXPECT_NEAR( translation.x(), -2.87517, 0.01 ) << "Translation in X is wrong.";
+  EXPECT_NEAR( translation.y(), -10.2501, 0.01 ) << "Translation in Y is wrong.";
+  EXPECT_NEAR( translation.z(), -0.36370, 0.01 ) << "Translation in Z is wrong.";
+  for( unsigned int i = 0; i < 3; ++i ){
+    for( unsigned int j = 0; j < 3; j++ ){
+      float truth = 0.0;
+      if( i == j ){ truth = 1.0; }
+      EXPECT_NEAR( truth, rotation(i,j), 0.01 ) << "Rotation matrix is wrong.";
+    }
+  }
+  EXPECT_LE( xyzErrorArray.sum()/xyzErrorArray.size(), 14.5 ) << "The error value is wrong.";
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
