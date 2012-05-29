@@ -198,6 +198,51 @@ TEST_F( Features_Test, FindMatches ){
   ASSERT_EQ( 0, diff_count ) << "Matched features differ from reference.";
 }
 
+TEST( ICP_DEM_2_DEM, works ) {
+  string DEMfile( "USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif" );
+  boost::shared_ptr<DiskImageResource> fore_rsrc( new DiskImageResourceGDAL( DEMfile ) );
+  float noDataVal = fore_rsrc->nodata_read();
+  DiskImageView<PixelGray<float> > foreDEM( fore_rsrc );
+  GeoReference foreDEMGeo;
+  read_georeference( foreDEMGeo, DEMfile );
+
+  Vector2 delta( 0, 0 );
+  Vector2 fives( 5, 5 );
+  vector<Vector3> features = GetFeatures( foreDEM, foreDEMGeo,
+                                          fives, delta, noDataVal );
+  for( unsigned int i = 0; i < features.size(); ++i){
+     features[i].x() += 5;
+  }
+  
+  Vector3 translation;
+  Matrix<float, 3,3 > rotation;
+  Vector3 center = find_centroid( features );
+  //vector<float> errors( features.size() );
+  float error;
+
+  struct CoregistrationParams settings;
+  settings.maxNumIter = 10;
+  settings.minConvThresh = 0.01;
+  settings.matchWindowHalfSize = fives;
+  settings.noDataVal = noDataVal;
+
+  ICP_DEM_2_DEM( features, foreDEM, foreDEMGeo, foreDEMGeo, 
+                 settings, translation, rotation, center, error );
+
+  EXPECT_NEAR( -5.0, translation.x(), 0.1 ) << "Translation in X is wrong.";
+  EXPECT_NEAR( 0.0, translation.y(), 0.1 ) << "Translation in Y is wrong.";
+  EXPECT_NEAR( 0.0, translation.z(), 0.1 ) << "Translation in Z is wrong.";
+  for( unsigned int i = 0; i < 3; ++i ){
+    for( unsigned int j = 0; j < 3; j++ ){
+      float truth = 0.0;
+      if( i == j ){ truth = 1.0; }
+      EXPECT_NEAR( truth, rotation(i,j), 0.001 ) << "Rotation matrix is wrong.";
+    }
+  }
+  EXPECT_LE( error, settings.minConvThresh ) << "The error value is wrong.";
+}
+
+
 TEST( FindMatchesFromDEM, works ){
   string DEMfile("USGS_A15_Q111_LRO_NAC_DEM_26N004E_150cmp.30mpp.tif");
   boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL( DEMfile ) );
