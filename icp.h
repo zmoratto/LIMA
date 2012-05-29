@@ -227,64 +227,64 @@ void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel,
 //used in DEM to DEM alignment
 //TODO: extract the xyz centroid position
 template <class ViewT>
-void 
-ICP_DEM_2_DEM(vector<Vector3> featureArray, ImageViewBase<ViewT> const& backDEM,  
-              GeoReference const& backDEMGeo, GeoReference const& foreDEMGeo, CoregistrationParams settings,
-              Vector3 &translation, Matrix<float, 3, 3> &rotation, Vector3 &featureCenter, /*vector<float> &errorArray*/float &matchError )
-{
-   
-    vector<Vector3> translationArray;
-    vector<Matrix<float, 3,3> > rotationArray;
-    vector<Vector3> referenceArray;
-    referenceArray.resize(featureArray.size());
+void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray, 
+                    const vw::ImageViewBase<ViewT>&      backDEM,  
+                    const vw::cartography::GeoReference& backDEMGeo, 
+                    const vw::cartography::GeoReference& foreDEMGeo, 
+                    const CoregistrationParams&          settings,
+                          vw::Vector3&                   translation, 
+                          vw::Matrix<float, 3, 3>&       rotation, 
+                          vw::Vector3&                   featureCenter, 
+                          float                          matchError ){
+  std::vector<vw::Vector3> translationArray;
+  std::vector<vw::Matrix<float, 3,3> > rotationArray;
+  std::vector<vw::Vector3> referenceArray( featureArray.size() );
     
-    int numIter = 0;
-    matchError = 100.0; 
+  int numIter = 0;
+  matchError = 100.0; 
    
-    while((numIter < settings.maxNumIter)&&(matchError > settings.minConvThresh)){
-            
-            cout<<"iteration="<<numIter<<endl;
+  while( (numIter    < settings.maxNumIter) &&
+         (matchError > settings.minConvThresh) ){
+    std::cout << " iteration=" << numIter << std::endl;
 
-	    printf("feature matching ...\n");
-	    FindMatches(featureArray, backDEM, backDEMGeo, foreDEMGeo, referenceArray, 
-                        settings.matchWindowHalfSize, settings.noDataVal);
+    std::cout << "feature matching ..." << std::endl;
+    FindMatches( featureArray, backDEM, backDEMGeo, foreDEMGeo, 
+                 referenceArray, settings.matchWindowHalfSize, settings.noDataVal);
       
-	    cout<<"computing the matching error ..."<<endl; 
-            matchError = ComputeMatchingError3D(featureArray, referenceArray);
-            cout<<"match error="<<matchError<<endl;
+    std::cout << "computing the matching error ..." << std::endl; 
+    matchError = ComputeMatchingError3D( featureArray, referenceArray );
+    std::cout << "match error=" << matchError << std::endl;
 
-	    featureCenter = find_centroid(featureArray);
-	    Vector3 referenceCenter = find_centroid(referenceArray);
+    featureCenter = find_centroid( featureArray );
+    vw::Vector3 referenceCenter = find_centroid(referenceArray);
 
-	    cout<<"computing DEM translation ..."<<endl;
-	    translation = ComputeDEMTranslation(featureArray, referenceArray);
-            cout<<"translation = "<<translation<<endl;
+    std::cout << "computing DEM translation ..." << std::endl;
+    translation = ComputeDEMTranslation( featureArray, referenceArray );
+    std::cout << "translation = " << translation << std::endl;
              
-	    cout<<"computing DEM rotation ..."<<endl;
-	    cout<<"referenceCenter="<<referenceCenter<<", featureCenter="<<featureCenter<<endl;
-	    
-	    rotation = ComputeDEMRotation(featureArray, referenceArray, featureCenter, referenceCenter);
-	    cout<<"rotation matrix = "<<endl;
-	    PrintMatrix(rotation);
+    std::cout << "computing DEM rotation ..." << std::endl;
+    std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
+    
+    rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
+    std::cout << "rotation matrix = " << std::endl;
+    PrintMatrix( rotation );
 
-	    //apply the computed rotation and translation to the featureArray  
-	    TransformFeatures(featureArray, featureCenter, translation, rotation);
+    //apply the computed rotation and translation to the featureArray  
+    TransformFeatures( featureArray, featureCenter, translation, rotation );
             
-            //save current rotation and translation
-	    translationArray.push_back(translation);
-	    rotationArray.push_back(rotation);
-	    
-	    numIter++;
-           
-    }
-    //compute the final rotation and translation
-    rotation = rotationArray[0];
-    translation = translationArray[0];
-    for (int i = 1; i < rotationArray.size(); i++){
-	 rotation = rotationArray[i]*rotation;
-	 translation = translationArray[i] + rotationArray[i]*translation;
-    }
- 
+    //save current rotation and translation
+    translationArray.push_back( translation );
+    rotationArray.push_back(    rotation    );
+    
+    ++numIter;
+  }
+  //compute the final rotation and translation
+  rotation = rotationArray[0];
+  translation = translationArray[0];
+  for( unsigned int i = 1; i < rotationArray.size(); ++i){
+    rotation = rotationArray[i]*rotation;
+    translation = translationArray[i] + rotationArray[i]*translation;
+  }
 }
 
 
