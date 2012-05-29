@@ -290,70 +290,60 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
 
 //used in DEM to Lidar alignment
 template <class ViewT>
-void 
-ICP_LIDAR_2_DEM(vector<Vector3>& 	    xyzMatchArray,  
-		const ImageViewBase<ViewT>& DEM,
-		const GeoReference& 	    DEMGeo, 
-		const vector<Vector3>& 	    xyzModelArray, 
-		const vector<Vector3>& 	    llrModelArray,
-		const CoregistrationParams  settings,
-		Vector3&		    translation, 
-		Matrix<float, 3, 3>&        rotation, 
-		const Vector3& 		    xyzModelCenter,
-		valarray<float>&	    xyzErrorArray)
-{
-   
-  vector<Vector3> translationArray;
-  vector<Matrix<float, 3,3> > rotationArray;
-  //vector<Vector3> xyz3DErrorArray;
+void ICP_LIDAR_2_DEM(       std::vector<vw::Vector3>&      xyzMatchArray,  
+                      const vw::ImageViewBase<ViewT>&      DEM,
+                      const vw::cartography::GeoReference& DEMGeo, 
+                      const std::vector<vw::Vector3>&      xyzModelArray, 
+                      const std::vector<vw::Vector3>&      llrModelArray,
+                      const CoregistrationParams           settings,
+                            vw::Vector3&                   translation, 
+                            vw::Matrix<float,3,3>&         rotation, 
+                      const vw::Vector3&                   xyzModelCenter,
+                            valarray<float>&               xyzErrorArray ){
+  std::vector<vw::Vector3> translationArray;
+  std::vector<vw::Matrix<float,3,3> > rotationArray;
   int numIter = 0;
   float avgMatchError = std::numeric_limits<float>::max();
-  //rotationArray.clear();
-  //translationArray.clear();
-  Vector3 xyzMatchCenter = xyzModelCenter;
+  vw::Vector3 xyzMatchCenter = xyzModelCenter;
 
-  while((numIter < settings.maxNumIter) && (avgMatchError > settings.minConvThresh)){
+  while( (numIter       < settings.maxNumIter) && 
+         (avgMatchError > settings.minConvThresh) ){
     vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
     
-    FindMatchesFromDEM(xyzModelArray, llrModelArray, DEM, DEMGeo, xyzMatchArray, 
-		       translation, rotation, xyzMatchCenter, settings.noDataVal, 
-		       settings.matchWindowHalfSize);
+    FindMatchesFromDEM( xyzModelArray, llrModelArray, DEM, DEMGeo, 
+                        xyzMatchArray, translation, rotation, xyzMatchCenter, 
+                        settings.noDataVal, settings.matchWindowHalfSize );
     
     vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-    //xyz3DErrorArray = ComputeMatchingError3D(xyzModelArray, xyzMatchArray);
     xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
     avgMatchError = xyzErrorArray.sum()/xyzErrorArray.size();
-    cout<<"avgMatchError="<<avgMatchError<<endl;
     vw_out(vw::InfoMessage, "icp") << avgMatchError << endl;
 
     //determine the xyzMatchCentroid
-    Vector3 xyzMatchCenter = find_centroid(xyzMatchArray);
+    vw::Vector3 xyzMatchCenter = find_centroid( xyzMatchArray );
 
     vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
     translation = ComputeDEMTranslation(xyzMatchArray, xyzModelArray);
-    cout<<"translation="<<translation<<endl;
     vw_out(vw::InfoMessage, "icp") << translation << endl;
 
     vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-    rotation = ComputeDEMRotation(xyzMatchArray, xyzModelArray, /*xyzModelCenter*/xyzMatchCenter, xyzModelCenter);
+    rotation = ComputeDEMRotation( xyzMatchArray, xyzModelArray, xyzMatchCenter, xyzModelCenter );
     vw_out(vw::InfoMessage, "icp") << rotation << endl;
     
     //apply the computed rotation and translation to the featureArray  
     //TransformFeatures(xyzMatchArray, translation, rotation);
     
-    translationArray.push_back(translation);
-    rotationArray.push_back(rotation);
+    translationArray.push_back( translation );
+    rotationArray.push_back( rotation );
     
     rotation = rotationArray[0];
     translation = translationArray[0];
-    for (unsigned int i = 1; i < rotationArray.size(); i++){
+    for( unsigned int i = 1; i < rotationArray.size(); ++i ){
       rotation = rotation*rotationArray[i];
       translation += translationArray[i];
     }
-    
-    numIter++;
+    ++numIter;
   }
- 
 }
 
 #endif
