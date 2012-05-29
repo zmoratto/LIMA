@@ -43,13 +43,8 @@ using namespace vw::cartography;
 int main( int argc, char *argv[] )
 {
  int verbose;
- //std::string inputCSVFilename; 
- std::string configFilename;
- //std::string errorFilename;
  std::vector<std::string> inputDEMFiles;
  std::string precDEMDir="NO_DIR";
- //std::string resDir;
- //std::string auxDir;
 
  po::options_description general_options("Options");
  general_options.add_options()
@@ -62,7 +57,7 @@ int main( int argc, char *argv[] )
 		po::value<std::string>()->default_value("./results"), 
 		"results directory.") 
     ("settings-filename,s", 
-		po::value<std::string>(&configFilename)->default_value("lidar2dem_settings.txt"), 
+		po::value<std::string>()->default_value("lidar2dem_settings.txt"), 
 		"settings filename.")
     ("errors,e", 
 		po::value<bool>()->zero_tokens(), 
@@ -124,11 +119,11 @@ int main( int argc, char *argv[] )
 
  
   struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) && verbose > 0 ){
-   cout << "Config file " << configFilename << " found." << endl;
+  if( ReadConfigFile( vm["settings-filename"].as<string>(), &settings) && verbose > 0 ){
+   cout << "Config file " << vm["settings-filename"].as<string>() << " found." << endl;
   } 
   else if( verbose > 0 ){
-   cout << "Config file " << configFilename << " not found, using defaults." << endl;
+   cout << "Config file " << vm["settings-filename"].as<string>() << " not found, using defaults." << endl;
   }
 
   if( verbose > 0 ){ 
