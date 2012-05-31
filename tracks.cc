@@ -94,7 +94,7 @@ LOLAShot::LOLAShot( const pointCloud& pt )
   LOLAShot::init( pcv );
   }
 
-bool isTimeDiff( pointCloud p, pointCloud c, float timeThresh){
+bool isTimeDiff( const pointCloud& p, const pointCloud& c, const float timeThresh){
   using namespace boost::posix_time;
   using namespace boost::gregorian;
   float intpart;

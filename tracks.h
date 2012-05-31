@@ -43,7 +43,24 @@ class pointCloud : public vw::Vector<double,3> {
               const int          = 0              // s
               );
   
-  ~pointCloud(){}; 
+  ~pointCloud(){};
+
+  inline std::string time(){
+    ostringstream os;
+    os << this->year
+       << "-"
+       << setw(2) << setfill('0') << this->month
+       << "-"
+       << setw(2) << setfill('0') << this->day
+       << "T"
+       << setw(2) << setfill('0') << this->hour
+       << ":"
+       << setw(2) << setfill('0') << this->min
+       << ":";
+    if( this->sec < 10 ){ os << "0"; }
+    os << this->sec;
+    return os.str();
+  }
   
   int year;
   int month;
@@ -58,17 +75,7 @@ class pointCloud : public vw::Vector<double,3> {
   std::ostream& operator<< ( std::ostream& stream, pointCloud p )
     {
     stream 
-      << p.year
-      << "-"
-      << p.month
-      << "-"
-      << p.day
-      << "T"
-      << p.hour
-      << ":"
-      << p.min
-      << ":"
-      << p.sec
+      << p.time()
       << " S: "
       << p.s
       << "  Vector( " << p.x() << ", " << p.y() << ", " << p.z() << " )" ;
@@ -92,6 +99,7 @@ struct DEMPoint
   double val;
 };
 
+bool isTimeDiff( const pointCloud&, const pointCloud&, const float);
 
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int );
