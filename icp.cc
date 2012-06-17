@@ -24,6 +24,21 @@ using namespace std;
 #include "icp.h"
 #include "coregister.h"
 
+//computes the translation T = avg(reference-match)
+Vector3 ComputeDEMTranslation( const vector<Vector3>& match, 
+                               const vector<Vector3>& reference ) {
+  Vector3 translation(0,0,0);
+  
+  unsigned int numValidMatches = 0;
+  for( unsigned int i = 0; i < match.size(); ++i ){
+    if( norm_1(reference[i]) > 0 ){
+      translation += reference[i] - match[i];
+      ++numValidMatches;
+    }
+  }
+  return translation/numValidMatches;
+}
+/*
 //computes the translation between the foreground and background pixels
 Vector3 ComputeDEMTranslation( const vector<Vector3>& features, 
                                const vector<Vector3>& reference ) {
@@ -31,15 +46,14 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& features,
   
   unsigned int numValidMatches = 0;
   for( unsigned int i = 0; i < features.size(); ++i ){
-    if( norm_1(reference[i]) > 0 ){
+    //if( norm_1(reference[i]) > 0 ){
       translation += reference[i] - features[i];
       ++numValidMatches;
-    }
+      //}
   }
   return translation/numValidMatches;
 }
-
-
+*/
 void PrintMatrix(Matrix<float, 3, 3> &A)
 {
   for (int i = 0; i < 3; i++){
@@ -60,7 +74,12 @@ valarray<float> ComputeMatchingError( const vector<Vector3>& model,
 
   valarray<float> errors( model.size() );
   for( unsigned int i = 0; i < model.size(); ++i ){
-    errors[i] = norm_2( model[i] - reference[i] );
+    if (reference[i]==vw::Vector3(0,0,0)){//invalid matched point
+       errors[i] =std::numeric_limits<float>::max();
+    }
+    else{
+      errors[i] = norm_2( model[i] - reference[i] );
+    }
   }
   return errors;
 }
@@ -108,6 +127,41 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
   return rotation;
 }
 
+
+Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match, 
+                                        const vector<Vector3>& reference,
+                                        const Vector3&         translation) {
+  Matrix<float, 3, 3> rotation;
+ 
+  Matrix<float,3,3> A;
+  Matrix<float,3,3> U;
+  Vector<float,3>   s;
+  Matrix<float,3,3> V;
+  
+  A.set_zero();
+  
+  vw_out(vw::InfoMessage, "icp") << "  translation: " << translation << endl;
+
+  
+  for( unsigned int i = 0; i < match.size(); ++i ){
+    if( norm_1(reference[i]) > 0 ){ //ignore invalid matches
+      A += outer_prod( reference[i], match[i] + translation);
+    }
+  }
+  
+  svd(A, U, s, V);
+
+  // use Kabsch Algorithm to form the rotation matrix
+  if( det(A) < 0 ){
+    Matrix3x3 sign_id = identity_matrix(3);
+    sign_id(2,2) = -1;
+    rotation = U*sign_id*V;
+  } 
+  else { rotation = U*V; }
+ 
+  return rotation;
+}
+
 //applies a 3D rotation and transform to a DEM
 void TransformFeatures( vector<Vector3>&         featureArray, 
                         const Vector3&           translation, 
@@ -122,11 +176,44 @@ void TransformFeatures(       vector<Vector3>&   featureArray,
                         const Vector3&           translation, 
                         const Matrix<float,3,3>& rotation) {
   for( unsigned int i=0; i < featureArray.size(); ++i ){
-    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter + translation; 
+    featureArray[i] = rotation*(featureArray[i]-featureCenter) + featureCenter + translation;      
   }
 }
 
-
+//used to check the quality of matches for debug purposes
+void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray, 
+		std::vector<vw::Vector3>       featureXYZArray, 
+		std::vector<vw::Vector3>       referenceXYZArray, 
+		const vw::cartography::GeoReference& backDEMGeo, 
+		const vw::cartography::GeoReference& foreDEMGeo,
+		vw::Vector3&                   center, 
+		vw::Vector3&                   translation, 
+		vw::Matrix<float, 3, 3>&       rotation)
+{
+ 
+    //print the feature and reference arrays for debug - START 
+    for (int index = 0; index<featureXYZArray.size(); index++){
+    
+      Vector3 transfFeatureXYZ = rotation*(origFeatureXYZArray[index]/*-center*/) /*+ center */+ translation; 
+      Vector3 origFeatureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(origFeatureXYZArray[index]);
+      Vector3 featureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(featureXYZArray[index]);
+      Vector3 transFeatureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(transfFeatureXYZ);
+      Vector3 referenceLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(referenceXYZArray[index]);
+      
+      cout<<"ICP report: origFeature_xyz: "<<origFeatureXYZArray[index]<<endl;
+      cout<<"ICP report: transfFeature_xyz: "<<transfFeatureXYZ<<endl;
+      cout<<"ICP report: feature_xyz: "<<featureXYZArray[index]<<endl;
+      cout<<"ICP report:reference_xyz: "<<referenceXYZArray[index]<<endl;
+      //Vector3 featureLonLatRad = backDEMGeo.datum().cartesian_to_geodetic(featureXYZArray[index]);
+      //Vector3 referenceLonLatRad = backDEMGeo.datum().cartesian_to_geodetic(referenceXYZArray[index]);
+      cout<<"ICP report:origFeature_llr: "<<origFeatureLonLatRad<<endl;
+      cout<<"ICP report:transfFeature_llr: "<<transFeatureLonLatRad<<endl;
+      cout<<"ICP report:feature_llr: "<<featureLonLatRad<<endl;
+      cout<<"ICP report:reference_llr: "<<referenceLonLatRad<<endl;
+      cout<<"-----------------------------------------------------"<<endl;
+    }
+    //print the feature and reference arrays for debug - END
+}
 
 
 
