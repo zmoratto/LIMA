@@ -49,6 +49,9 @@ inline Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
   return ComputeDEMRotation( features, matches, featureCenter, matchCenter);
 }
 
+Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match, 
+                                        const vector<Vector3>& reference,
+                                        const Vector3&         translation);
 
 //applies a 3D rotation and transform to a DEM
 void TransformFeatures(       std::vector<vw::Vector3>& featureArray, 
@@ -69,18 +72,26 @@ std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      im,
                                       const float                          noDataVal ) {
   //cout<<"Get Features..."<<endl;
   std::vector<vw::Vector3> features;
-
+  
   for( int j = 0; j < im.impl().rows(); j += samplingStep.y() ){
     for( int i = 0; i < im.impl().cols(); i += samplingStep.x() ){
       //determine the location of the corresponding background point for each valid fore point
       if( (isnan(im.impl()(i,j))!=FP_NAN) && (im.impl()(i,j) != noDataVal) ){
         vw::Vector2 lonlat = georef.pixel_to_lonlat( vw::Vector2(i,j) );
         lonlat += delta_lonlat;
-
-        vw::Vector3 lonlatrad( lonlat.x(), lonlat.y(), im.impl()(i,j) );
-        vw::Vector3 xyz = georef.datum().geodetic_to_cartesian( lonlatrad );
-      
-        features.push_back( xyz );
+        
+        if (lonlat(0) < -180){
+	  lonlat(0)=360+lonlat(0);
+        }
+	
+        if (lonlat(0) > 180){
+	  lonlat(0)=360-lonlat(0);
+        }
+	
+	vw::Vector3 lonlatrad( lonlat.x(), lonlat.y(), im.impl()(i,j) );
+	vw::Vector3 xyz = georef.datum().geodetic_to_cartesian( lonlatrad );
+	
+	features.push_back( xyz );
       }
     }
   }
@@ -102,6 +113,7 @@ std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      foreI
 }
 
 //find the closest background points to the fore points.
+//used in ICP_DEM_2_DEM
 template <class ViewT>
 void FindMatches( const std::vector<vw::Vector3>&      features, 
                   const vw::ImageViewBase<ViewT>&      backImg, 
@@ -110,7 +122,8 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
                         std::vector<vw::Vector3>&      referenceArray, 
                   const vw::Vector2&                   matchWindowHalfSize, 
                   const float                          noValData) {
-  //cout<<" ***FIND MATCHES..."<<endl;
+ 
+  
   vw::ImageViewRef<typename ViewT::pixel_type> interpBackImg = 
         interpolate(edge_extend(backImg.impl(), vw::ConstantEdgeExtension()), 
                     vw::BilinearInterpolation()); 
@@ -118,11 +131,16 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
   for( unsigned int i = 0; i < features.size(); ++i ){
     //revert fore from cartesian to spherical coordinates
     vw::Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic( features[i] );
+   
 
     vw::Vector2 backPix = backGeo.lonlat_to_pixel( vw::Vector2( fore_lonlat3.x(), 
                                                                 fore_lonlat3.y() ) );
 
     vw::Vector3 back_xyz; //invalid point
+    back_xyz[0]=0.0;
+    back_xyz[1]=0.0;
+    back_xyz[2]=0.0;
+
     float minDistance = std::numeric_limits<float>::max();
     vw::Vector<int,2> start = backPix - matchWindowHalfSize;
     vw::Vector<int,2> limit = backPix + matchWindowHalfSize + vw::Vector<int,2>( 1, 1 );
@@ -130,23 +148,34 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
     for( int k = start.y(); k < limit.y(); ++k ){
       for( int l = start.x(); l < limit.x(); ++l ){
         float interpBack = interpBackImg(l,k);
-        if( interpBack == noValData ){ continue; }
+        if( interpBack == noValData ){
+           continue; 
+        }
 
-        vw::Vector2 bPixel = backGeo.pixel_to_lonlat( vw::Vector2(l,k) );
-          
+	//cout<<"fore="<<features[i][0]<<", "<<features[i][1]<<", "<<features[i][2]<<", back="<<interpBack<<endl;
+        //vw::Vector2 bPixel = backGeo.pixel_to_lonlat( vw::Vector2(l,k) );
+	vw::Vector2 back_lonlat = backGeo.pixel_to_lonlat( vw::Vector2(l,k) );
+	//std::cout<<bPixel(0)<<", "<<bPixel(1)<<std::endl;  
+
         //revert to fore lon lat system
-        vw::Vector3 t_back_lonlat3( bPixel.x(), bPixel.y(), interpBack );
-
+        vw::Vector3 t_back_lonlat3( back_lonlat.x(), back_lonlat.y(), interpBack );
+        //cout<<"fore_lonlat3="<<fore_lonlat3<<endl;
+        //cout<<"back_lonlat3"<<t_back_lonlat3<<endl;
+     
         //transform into xyz coordinates of the foregound image.
         vw::Vector3 t_back_xyz= foreGeo.datum().geodetic_to_cartesian(t_back_lonlat3);
+        //cout<<"fore_xyz="<<features[i]<<endl;
+        //cout<<"back_xyz="<<t_back_xyz<<endl; 
+       
         float distance = norm_2( t_back_xyz - features[i] );
-     
+	
         if( distance < minDistance ){
           minDistance = distance;
           back_xyz = t_back_xyz;
         }
       }
     }
+
     referenceArray[i]=back_xyz;
   }
 };
@@ -198,8 +227,10 @@ void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel,
       for( int l = start.x(); l < limit.x(); ++l){
         if( DEM_bbox.contains(vw::Vector<int,2>( l,k )) ){
           double interp = interpDEM(l,k);
+
           if( interp == noDEMVal ){ continue; }
 
+          cout<<"interp="<<interp<<endl;
           //compute the distance to the lidar point
           const vw::Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
         
@@ -222,10 +253,18 @@ void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel,
   }
 }
 
+//used to check the quality of matches for debug purposes
+void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray, 
+		std::vector<vw::Vector3>       featureXYZArray, 
+		std::vector<vw::Vector3>       referenceXYZArray, 
+		const vw::cartography::GeoReference& backDEMGeo, 
+		const vw::cartography::GeoReference& foreDEMGeo,
+		vw::Vector3&                   center, 
+		vw::Vector3&                   translation, 
+		vw::Matrix<float, 3, 3>&       rotation);
 
 
 //used in DEM to DEM alignment
-//TODO: extract the xyz centroid position
 template <class ViewT>
 void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray, 
                     const vw::ImageViewBase<ViewT>&      backDEM,  
@@ -235,11 +274,20 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
                           vw::Vector3&                   translation, 
                           vw::Matrix<float, 3, 3>&       rotation, 
                           vw::Vector3&                   featureCenter, 
-                          float                          matchError ){
+                          float&                         matchError ){
+
   std::vector<vw::Vector3> translationArray;
   std::vector<vw::Matrix<float, 3,3> > rotationArray;
   std::vector<vw::Vector3> referenceArray( featureArray.size() );
-    
+  vw::Vector3 referenceCenter;
+  vw::Vector3 origFeatureCenter;
+
+  std::vector<vw::Vector3> origFeatureArray( featureArray.size() );   
+  for (int i = 0; i < featureArray.size(); i++){
+    origFeatureArray[i] = featureArray[i];
+  }
+  origFeatureCenter = find_centroid( origFeatureArray );
+
   int numIter = 0;
   matchError = 100.0; 
    
@@ -250,42 +298,57 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
     std::cout << "feature matching ..." << std::endl;
     FindMatches( featureArray, backDEM, backDEMGeo, foreDEMGeo, 
                  referenceArray, settings.matchWindowHalfSize, settings.noDataVal);
-      
+    
     std::cout << "computing the matching error ..." << std::endl; 
     matchError = ComputeMatchingError3D( featureArray, referenceArray );
     std::cout << "match error=" << matchError << std::endl;
 
-    featureCenter = find_centroid( featureArray );
-    vw::Vector3 referenceCenter = find_centroid(referenceArray);
+    if (matchError >= std::numeric_limits<float>::max()){
+      std::cout<< "Features cannot be matched. Exiting ICP_DEM_2_DEM..."<<std::endl;
+      return;
+    }
 
+    featureCenter = find_centroid( featureArray );
+    referenceCenter = find_centroid(referenceArray);
+    
     std::cout << "computing DEM translation ..." << std::endl;
     translation = ComputeDEMTranslation( featureArray, referenceArray );
     std::cout << "translation = " << translation << std::endl;
-             
+           
     std::cout << "computing DEM rotation ..." << std::endl;
-    std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
+    //std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
+    //rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
     
-    rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
+    //compute the rotation matrix with the origin of the referenceArray
+    rotation = ComputeDEMRotation( featureArray, referenceArray, translation);
     std::cout << "rotation matrix = " << std::endl;
     PrintMatrix( rotation );
 
     //apply the computed rotation and translation to the featureArray  
-    TransformFeatures( featureArray, featureCenter, translation, rotation );
-            
+    TransformFeatures( featureArray, referenceCenter, translation, rotation );     
+       
     //save current rotation and translation
     translationArray.push_back( translation );
     rotationArray.push_back(    rotation    );
     
     ++numIter;
   }
-  //compute the final rotation and translation
+
+
+  //compute the final rotation and translation - START
   rotation = rotationArray[0];
   translation = translationArray[0];
   for( unsigned int i = 1; i < rotationArray.size(); ++i){
     rotation = rotationArray[i]*rotation;
-    translation = translationArray[i] + rotationArray[i]*translation;
+    translation =  rotationArray[i]*translation + translationArray[i];
   }
+  //compute the final rotation and translation - END
+
+  //for debug - START
+  ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter, translation, rotation);
+  //for debug - END
 }
+
 
 
 //used in DEM to Lidar alignment
