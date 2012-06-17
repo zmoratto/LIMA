@@ -290,7 +290,7 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 		    minDist = dist;
 		    bestMatch(0) = l;
 		    bestMatch(1) = k;
-		  }      
+		  }     
 		}
 	      }
 	    }
