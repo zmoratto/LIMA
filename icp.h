@@ -230,7 +230,6 @@ void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel,
 
           if( interp == noDEMVal ){ continue; }
 
-          cout<<"interp="<<interp<<endl;
           //compute the distance to the lidar point
           const vw::Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
         

@@ -301,7 +301,7 @@ vector<Vector4> FindMatches2D(vector<vector<AlignedLOLAShot> > &trackPts, string
     for (unsigned int ti = 0; ti < trackPts.size(); ti++){//for each track
       Vector2 gain_bias = ComputeGainBiasFactor(trackPts[ti]);
       for (unsigned int si = 0; si < trackPts[ti].size(); si++){//for each shot
-	if ((trackPts[ti][si].shot.reflectance != 0) && (trackPts[ti][si].shot.reflectance != -1) && (trackPts[ti][si].shot.featurePtLOLA == 1)){
+	if ((trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){
           //valid track, reflectance and featurePt
 	  
           float minDist = 10000000.0;
@@ -327,13 +327,13 @@ vector<Vector4> FindMatches2D(vector<vector<AlignedLOLAShot> > &trackPts, string
 
 	      for (unsigned int i = firstSample; i< lastSample; i++){
 
-		int x = (int)floor(trackPts[ti][i].shot.imgPt[0].x); 
-		int y = (int)floor(trackPts[ti][i].shot.imgPt[0].y); 
+		int x = (int)floor(trackPts[ti][i].imgPt[0].x); 
+		int y = (int)floor(trackPts[ti][i].imgPt[0].y); 
 		 
 		if ((x+l > 0) && (y+k > 0) && (x+l < width) && (y+k < height)){
 		  if ((img(x+l,y+k)!=noDataValue) && (gain_bias(0)!= 0) && (gain_bias(1)!=0)){
 		
-		    dist = dist + fabs(img(x+l,y+k) - gain_bias(1) - gain_bias(0)*trackPts[ti][i].shot.reflectance);
+		    dist = dist + fabs(img(x+l,y+k) - gain_bias(1) - gain_bias(0)*trackPts[ti][i].reflectance);
 		    //dist = dist + fabs(img(x+l,y+k) - trackPts[ti][i].reflectance);
                     numValidSamples++;
 		  }
@@ -357,8 +357,8 @@ vector<Vector4> FindMatches2D(vector<vector<AlignedLOLAShot> > &trackPts, string
 	  }//l
 	    
           Vector4 feature_match;
-	  feature_match(0) = trackPts[ti][si].shot.imgPt[0].x;
-	  feature_match(1) = trackPts[ti][si].shot.imgPt[0].y;
+	  feature_match(0) = trackPts[ti][si].imgPt[0].x;
+	  feature_match(1) = trackPts[ti][si].imgPt[0].y;
 	  feature_match(2) = feature_match(0) + bestMatch(0);
 	  feature_match(3) = feature_match(1) + bestMatch(1);
 	  matchArray.push_back(feature_match);

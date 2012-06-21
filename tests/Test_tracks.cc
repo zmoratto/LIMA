@@ -184,7 +184,7 @@ TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
   ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
 }
 
-/*TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
+TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
   vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
 
   fs::path im("M111578606RE.10mpp.tif");
@@ -194,13 +194,15 @@ TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
   read_georeference(DRGGeo, im.string() );
   GetAllPtsFromImage( shots, DRG, DRGGeo );
 
+  ComputeAllReflectance( shots, camera_pos_, light_pos_);
+  vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(shots);
   Vector2 test = ComputeGainBiasFactor( aligned[4] );
 
-  ASSERT_NEAR( -8.32765, test[0], 0.00001 ) << "Gain is different.";
-  ASSERT_NEAR( 15.7134, test[1], 0.0001 ) << "Bias is different.";
-}*/
+  ASSERT_NEAR( 11.08288, test[0], 0.00001 ) << "Gain is different.";
+  ASSERT_NEAR( 0.0, test[1], 0.0001 ) << "Bias is different.";
+}
 
-/*TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
+TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
   vector<vector<LOLAShot> > shots = LOLAFileRead( p_.string() );
   ComputeAllReflectance( shots,  camera_pos_, light_pos_ );
 
@@ -218,13 +220,14 @@ TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
     shots[2][j].reflectance = 0.3;
   }
 
-  Vector2 test = ComputeGainBiasFactor( shots );
+  vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(shots);
+  Vector2 test = ComputeGainBiasFactor( aligned );
 
-  EXPECT_NEAR( 16.8979,  test[0], 0.0001 ) << "Gain is different.";
-  EXPECT_NEAR( -4.98357, test[1], 0.0001 ) << "Bias is different.";
+  EXPECT_NEAR( 4.24705,  test[0], 0.0001 ) << "Gain is different.";
+  EXPECT_NEAR( 0.0, test[1], 0.0001 ) << "Bias is different.";
 
   //SaveReflectancePoints( shots, test, "SaveReflectancePoints_Test.txt");
-}*/
+}
 
 TEST( ComputeMinMaxValuesFromCub, works ){
   Vector2 test = ComputeMinMaxValuesFromCub( "AS15-M-2327.lev1.500.cub" );
@@ -336,7 +339,7 @@ TEST_F( GetAllPtsFromDEM_Test, precision ){
   ASSERT_NEAR( 1735.5,  shots[4][523].DEMPt[3].val, 0.1 ) << "The elevation value is wrong.";
 }
 
-/*TEST( GCP, Update ){
+TEST( GCP, Update ){
   fs::path p("RDR_3E4E_24N27NPointPerRow_csv_table-truncated.csv");
   vector<vector<LOLAShot> > shots = LOLAFileRead( p.string() );
 
@@ -374,14 +377,15 @@ TEST_F( GetAllPtsFromDEM_Test, precision ){
   ComputeAllReflectance( shots,  cameraPosition, lightPosition); // use bogus positions?
   
   vector<float> errors;
-  vector<Vector4> matches = FindMatches2D( shots, map, 5, 80, errors );
+  vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(shots);
+  vector<Vector4> matches = FindMatches2D( aligned, map, 5, 80, errors );
 
-  UpdateGCP( shots, matches, errors, cam, map, gcpArray, 4.0 ); 
+  UpdateGCP( shots, matches, cam, map, gcpArray, 4.0 ); 
 
   ASSERT_EQ( (unsigned int)23, gcpArray.size() ) << "Array of GCPs not the right size.";
   EXPECT_EQ( cam, gcpArray[13].filename[0] ) << "Wrong camera file name.";
-  EXPECT_NEAR( 514.972, gcpArray[14].x[0], 0.001 ) << "Wrong x value.";
-  EXPECT_NEAR( 7079.96, gcpArray[14].y[0], 0.01 ) << "Wrong y value.";
+  EXPECT_NEAR( 538.923, gcpArray[14].x[0], 0.001 ) << "Wrong x value.";
+  EXPECT_NEAR( 7080.323, gcpArray[14].y[0], 0.01 ) << "Wrong y value.";
   EXPECT_NEAR( 527.185, gcpArray[14].x_before[0], 0.001 ) << "Wrong x_before value.";
   EXPECT_NEAR( 7075.3, gcpArray[14].y_before[0], 0.1 ) << "Wrong y_before value.";
   EXPECT_EQ( 4, gcpArray[14].trackIndex ) << "Wrong trackIndex value.";
@@ -389,7 +393,7 @@ TEST_F( GetAllPtsFromDEM_Test, precision ){
 
   // string saveGCP( "SaveGCPoints_test.txt" );
   // SaveGCPoints( gcpArray, saveGCP );
-}*/
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
