@@ -47,19 +47,33 @@ using namespace std;
 #include "weights.h"
 #include "featuresLOLA.h"
 	
-// command line options
-string inputCSVFilename; 
-std::string configFilename="lidar2img_settings.txt";
-
-std::vector<std::string> camCubFiles;
-std::string resDir = "../results";
-std::string mapCubDir = "../data/map";
-std::string drgDir = "../data/drg";
-std::vector<std::string> inputCubFiles;
-struct CoregistrationParams settings;
-
-int parse_options(int argc, char* argv[])
+std::vector<int> determine_overlapping(vector<vector<LOLAShot> > trackPts, std::vector<std::string> camCubFiles)
 {
+	std::vector<int> overlapIndices;
+	Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
+	Vector4 lon_lat_bb;
+	lon_lat_bb[0]=lat_lon_bb[2];
+	lon_lat_bb[1]=lat_lon_bb[3];
+	lon_lat_bb[2]=lat_lon_bb[0];
+	lon_lat_bb[3]=lat_lon_bb[1];
+	overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
+
+	return overlapIndices;
+}
+
+int main( int argc, char *argv[] )
+{
+	// command line options
+	string inputCSVFilename; 
+	std::string configFilename="lidar2img_settings.txt";
+	
+	std::vector<std::string> camCubFiles;
+	std::string resDir = "../results";
+	std::string mapCubDir = "../data/map";
+	std::string drgDir = "../data/drg";
+	std::vector<std::string> inputCubFiles;
+	struct CoregistrationParams settings;
+
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
@@ -107,7 +121,7 @@ int parse_options(int argc, char* argv[])
 	if( ReadConfigFile(configFilename, &settings) )
 		std::cerr << "Config file " << configFilename << " found." << endl;
 	else
-	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+		std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
 	//PrintGlobalParams(&settings);
 	//std::cerr << settings << endl;
 
@@ -121,31 +135,10 @@ int parse_options(int argc, char* argv[])
 
 	string makeResDirCmd = "mkdir -p " + resDir;
 	int ret = system(makeResDirCmd.c_str()); 
-
-	return ret;
-}
-
-std::vector<int> determine_overlapping(vector<vector<LOLAShot> > trackPts)
-{
-	std::vector<int> overlapIndices;
-	Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
-	Vector4 lon_lat_bb;
-	lon_lat_bb[0]=lat_lon_bb[2];
-	lon_lat_bb[1]=lat_lon_bb[3];
-	lon_lat_bb[2]=lat_lon_bb[0];
-	lon_lat_bb[3]=lat_lon_bb[1];
-	overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
-
-	return overlapIndices;
-}
-
-int main( int argc, char *argv[] )
-{
-	if (parse_options(argc, argv))
-		return 1;
+	if (ret) exit(1);
 
 	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
-	std::vector<int> overlapIndices = determine_overlapping(trackPts);
+	std::vector<int> overlapIndices = determine_overlapping(trackPts, camCubFiles);
 	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
 	
 	//Save3DImage(trackPts, resDir + "/3d_moon.obj");
