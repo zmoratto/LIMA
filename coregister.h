@@ -31,7 +31,7 @@ using namespace std;
 #define LIMA 1
 #define LIDEM 2
 
-typedef struct CoregistrationParams{
+struct CoregistrationParams{
   int matchingMode; //LIMA, LIDEM
   int reflectanceType;//NO, LAMBERT, LUNAR-LAMBERT
   int analyseFlag; 
@@ -73,7 +73,7 @@ inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& 
 	return os;
 	};
 
-typedef struct gcp{
+struct gcp{
   float lon;
   float lat;
   float rad;

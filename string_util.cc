@@ -34,7 +34,6 @@ void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplac
       uPos += uReplaceLen;
     }
   }
-  cout<<"uPos="<<uPos<<endl;
 
 }
 

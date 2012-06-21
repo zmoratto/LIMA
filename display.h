@@ -21,5 +21,10 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
 
 void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename);
 void SaveGCPImages(struct gcp this_gcp,  string assembledImgFilename);
+void SaveBigGCPImages(vector<gcp> gcps, string cubFile, string assembledImgFilename);
+void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& trackPts,  string cubFile, string imgFilename, bool cub);
+void SaveAdjustedReflectanceImages(vector<gcp> gcps, vector<vector<LOLAShot> > tracks,  string cubFile, string filename, int image, bool is_cub);
+
+void Save3DImage(vector<vector<LOLAShot> >& trackPts, string filename);
 
 #endif /* DISPLAY_H */

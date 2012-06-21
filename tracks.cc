@@ -376,26 +376,22 @@ float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
 }
 */
 
-void GainBiasAccumulator( const vector<LOLAShot>& trackPts, 
+void GainBiasAccumulator( const vector<AlignedLOLAShot>& trackPts, 
                                 float&            sum_rfl, 
                                 float&            sum_img, 
                                 float&            sum_rfl_2, 
                                 float&            sum_rfl_img, 
                                 int&              numValidPts ){
   for (unsigned int i = 0; i < trackPts.size(); ++i){
-    if ((trackPts[i].valid == 1) && (trackPts[i].reflectance > 0)){
+    if ((trackPts[i].shot.reflectance >= 0) && trackPts[i].image >= 0){
       //update the nominator for the center point
-      for( unsigned int j = 0; j < trackPts[i].LOLAPt.size(); ++j ){
-	    if( trackPts[i].LOLAPt[j].s == 1 ){
-	      sum_rfl     += trackPts[i].reflectance;
-	      sum_rfl_2   += trackPts[i].reflectance*trackPts[i].reflectance;
-	      sum_rfl_img += trackPts[i].reflectance*(trackPts[i].imgPt[j].val);
-	      sum_img     += trackPts[i].imgPt[j].val;
+	      sum_rfl     += trackPts[i].shot.reflectance;
+	      sum_rfl_2   += trackPts[i].shot.reflectance*trackPts[i].shot.reflectance;
+	      sum_rfl_img += trackPts[i].shot.reflectance*(trackPts[i].image);
+	      sum_img     += trackPts[i].image;
 	      ++numValidPts;
-	    }
       }
     }
-  }
 }
 
 Vector2 GainBiasSolver( const float& sum_rfl, 
@@ -403,7 +399,7 @@ Vector2 GainBiasSolver( const float& sum_rfl,
                         const float& sum_rfl_2, 
                         const float& sum_rfl_img, 
                         const int&   numValidPts ){
-  Matrix<float,2,2> rhs;
+  /*Matrix<float,2,2> rhs;
   Vector<float,2> lhs;
 
   rhs(0,0) = sum_rfl_2;
@@ -413,12 +409,16 @@ Vector2 GainBiasSolver( const float& sum_rfl,
   lhs(0) = sum_rfl_img;
   lhs(1) = sum_img;
   solve_symmetric_nocopy(rhs,lhs);
-  return lhs;
+  return lhs;*/
+  Vector<float,2> result;
+  result(0) = sum_img / sum_rfl;
+  result(1) = 0;
+  return result;
 }
 
 
 //computes the gain and bias factor for each track
-Vector2 ComputeGainBiasFactor( const vector<LOLAShot>& trackPts ) {
+Vector2 ComputeGainBiasFactor( const vector<AlignedLOLAShot>& trackPts ) {
   int numValidPts = 0;
   float sum_rfl = 0.0; 
   float sum_img = 0.0;
@@ -442,7 +442,7 @@ Vector2 ComputeGainBiasFactor( const vector<LOLAShot>& trackPts ) {
 }
 
 //computes the gain and bias factor for all tracks at once
-Vector2 ComputeGainBiasFactor( const vector<vector<LOLAShot> >& trackPts ) {
+Vector2 ComputeGainBiasFactor( const vector<vector<AlignedLOLAShot> >& trackPts ) {
   int numValidPts = 0;
   float sum_rfl = 0.0; 
   float sum_img = 0.0;
@@ -750,54 +750,47 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 }
 */
 
+// update ground control points
 void UpdateGCP( const vector<vector<LOLAShot> >& trackPts, 
                 const vector<Vector4>&           matchArray, 
-                const vector<float>&             errorArray, 
                 const string&                    camCubFile, 
-                const string&                    mapCubFile, 
-                      vector<gcp>&               gcpArray, 
-                const float                      downsample_factor) {
-  Isis::Pvl label( mapCubFile);
-  Isis::Camera* camera = Isis::CameraFactory::Create( label );
-  // Note that ISIS is different from C. They start their index at 1.
-  
+                vector<gcp>&                     gcpArray) {
   int featureIndex = 0;
   int validFeatureIndex = 0;
 
   for( unsigned int t = 0; t < trackPts.size(); ++t ){
     for( unsigned int s = 0; s < trackPts[t].size(); ++s ){
       if( trackPts[t][s].featurePtLOLA == 1 ){
+        gcpArray[featureIndex].filename.push_back(camCubFile);
         if( (trackPts[t][s].valid == 1) && 
             (trackPts[t][s].reflectance != 0) && 
             (trackPts[t][s].reflectance != -1)  ){
-          gcpArray[featureIndex].filename.push_back(camCubFile);
 
           // convert a map projected pixel location to the
           // original image coordinate system.
-          camera->SetImage( matchArray[validFeatureIndex](2), 
-                            matchArray[validFeatureIndex](3) );
-          gcpArray[featureIndex].x.push_back( 
-                                 ( camera->DetectorMap()->ParentSample() )/downsample_factor );
-          gcpArray[featureIndex].y.push_back( 
-                                 ( camera->DetectorMap()->ParentLine() )/downsample_factor );
-
-          camera->SetImage( trackPts[t][s].imgPt[2].x, trackPts[t][s].imgPt[2].y );
-          gcpArray[featureIndex].x_before.push_back(
-                                 ( camera->DetectorMap()->ParentSample() )/downsample_factor );
-          gcpArray[featureIndex].y_before.push_back(
-                                 ( camera->DetectorMap()->ParentLine() )/downsample_factor );
+          gcpArray[featureIndex].x.push_back(matchArray[validFeatureIndex](2));
+          gcpArray[featureIndex].y.push_back(matchArray[validFeatureIndex](3));
+          gcpArray[featureIndex].x_before.push_back( trackPts[t][s].imgPt[2].x);
+          gcpArray[featureIndex].y_before.push_back( trackPts[t][s].imgPt[2].y);
 
           gcpArray[featureIndex].trackIndex = t;
           gcpArray[featureIndex].shotIndex = s;
 
           validFeatureIndex++;
         }//valid==1
+	else
+	{
+          	gcpArray[featureIndex].x.push_back(-1);
+          	gcpArray[featureIndex].y.push_back(-1);
+          	gcpArray[featureIndex].x_before.push_back(-1);
+          	gcpArray[featureIndex].y_before.push_back(-1);
+		//gcpArray[featureIndex].trackIndex = -1;
+		//gcpArray[featureIndex].shotIndex = -1;
+	}
         featureIndex++;
       }
     }
   }
-   // delete remaining ISIS objects
-   delete camera;
 }
 
 /* Deprecated?
@@ -1049,3 +1042,148 @@ void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts)
  
 }
 */
+
+void apply_gain_bias(vector<vector<AlignedLOLAShot> >& tracks)
+{
+	Vector2 gain_bias = ComputeGainBiasFactor( tracks );
+	for (unsigned int i = 0; i < tracks.size(); i++)
+		for (unsigned int j = 0; j < tracks.size(); j++)
+			tracks[i][j].synth_image = tracks[i][j].shot.reflectance * gain_bias(0) + gain_bias(1);
+}
+
+void apply_gain_bias(vector<AlignedLOLAShot>& track)
+{
+	Vector2 gain_bias = ComputeGainBiasFactor( track );
+	for (unsigned int i = 0; i < track.size(); i++)
+		track[i].synth_image = track[i].shot.reflectance * gain_bias(0) + gain_bias(1);
+}
+
+void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
+{
+	for (unsigned int i = 0; i < track.size(); i++)
+	{
+		if (track[i].shot.reflectance == -1 || track[i].shot.imgPt.size() <= 2)
+		{
+			track[i].image = -1;
+			continue;
+		}
+		Vector3 r = transform * Vector3(track[i].shot.imgPt[2].x, track[i].shot.imgPt[2].y, 1);
+		int x = (int)r(0), y = (int)r(1);
+		track[i].image_x = x;
+		track[i].image_y = y;
+		if (x < 0 || y < 0 || x >= cub.cols() || y >= cub.rows())
+		{
+			track[i].image = -1;
+			continue;
+		}
+		track[i].image = cub(x, y)[0];
+	}
+	
+	apply_gain_bias(track);
+}
+
+
+void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
+{
+	for (unsigned int i = 0; i < tracks.size(); i++)
+		transform_track(tracks[i], transform, cub);
+
+	apply_gain_bias(tracks);
+}
+
+void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, string cubFile)
+{
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
+	assembledImg = normalize(cub);
+	transform_tracks(tracks, transform, assembledImg);
+}
+
+void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >& tracks, const std::string& filename)
+{
+	FILE* f = fopen(filename.c_str(), "w");
+	if (f == NULL)
+	{
+		fprintf(stderr, "Could not open track data file %s for writing.\n", filename.c_str());
+		return;
+	}
+	for (unsigned int i = 0; i < tracks.size(); i++)
+	{
+		int num_valid = 0;
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image < 0 || tracks[i][j].image < 0)
+				continue;
+			num_valid++;
+		}
+		// ignore small tracks
+		if (num_valid < 25)
+			continue;
+		// first print altitude, then distance, then synthetic image, then corresponding image pixel
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image < 0 || tracks[i][j].image < 0)
+				continue;
+			fprintf(f, "%g", tracks[i][j].shot.LOLAPt[2][2]);
+			if (j != tracks[i].size() - 1)
+				fprintf(f, " ");
+		}
+		fprintf(f, "\n");
+		float last_x = 0.0, last_y = 0.0;
+		float total_distance = 0.0;
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image < 0 || tracks[i][j].image < 0)
+				continue;
+        		Vector3 lon_lat_rad( tracks[i][j].shot.LOLAPt[2].x(), tracks[i][j].shot.LOLAPt[2].y(), tracks[i][j].shot.LOLAPt[2].z()*1000 );
+        		Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
+			if (j != 0)
+				total_distance += sqrt(pow(xyz.x() - last_x, 2) + pow(xyz.y() - last_y, 2));
+			fprintf(f, "%g", total_distance);
+			if (j != tracks[i].size() - 1)
+				fprintf(f, " ");
+			last_x = xyz.x();
+			last_y = xyz.y();
+		}
+		fprintf(f, "\n");
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image < 0 || tracks[i][j].image < 0)
+				continue;
+			fprintf(f, "%g", tracks[i][j].synth_image);
+			if (j != tracks[i].size() - 1)
+				fprintf(f, " ");
+		}
+		fprintf(f, "\n");
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image < 0 || tracks[i][j].image < 0)
+				continue;
+			fprintf(f, "%g", tracks[i][j].image);
+			if (j != tracks[i].size() - 1)
+				fprintf(f, " ");
+		}
+		fprintf(f, "\n");
+	}
+	fclose(f);
+}
+
+std::vector<std::vector< AlignedLOLAShot> > initialize_aligned_lola_shots(std::vector<std::vector<LOLAShot> >& trackPts)
+{
+	std::vector<std::vector< AlignedLOLAShot> > tracks;
+	for (unsigned int i = 0; i < trackPts.size(); i++)
+	{
+		std::vector< AlignedLOLAShot> t;
+		for (unsigned int j = 0; j < trackPts[i].size(); j++)
+		{
+			if (!trackPts[i][j].valid)
+				continue;
+			AlignedLOLAShot s(trackPts[i][j]);
+			t.push_back(s);
+		}
+		if (t.size() > 10)
+			tracks.push_back(t);
+	}
+	return tracks;
+}

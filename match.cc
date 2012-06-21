@@ -35,7 +35,128 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+#define SEARCH_TRANS_WINDOW 20
+#define SEARCH_TRANS_STEP 5.0
+#define SEARCH_THETA_WINDOW (M_PI / 10)
+#define SEARCH_THETA_STEP (M_PI / 40)
 
+float compute_transform_error(vector<AlignedLOLAShot> & track)
+{
+	float err = 0.0;
+	int num_points = 0;
+	for (unsigned int j = 0; j < track.size(); j++)
+	{
+		if (track[j].synth_image == -1 || track[j].image == -1)
+			continue;
+		err += pow(track[j].synth_image - track[j].image, 2);
+		num_points++;
+	}
+
+	return err / num_points;
+}
+
+void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile)
+{
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
+	assembledImg = normalize(cub);
+
+	float mid_x = cub.cols() / 2;
+	float mid_y = cub.rows() / 2;
+	Matrix3x3 center(1, 0, -mid_x, 0, 1, -mid_y, 0, 0, 1);
+	Matrix3x3 uncenter(1, 0, mid_x, 0, 1, mid_y, 0, 0, 1);
+
+	for (unsigned int i = 0; i < tracks.size(); i++)
+	{
+		Matrix3x3 best;
+		float best_score = INFINITY;
+
+		for (float tt = -SEARCH_THETA_WINDOW; tt <= SEARCH_THETA_WINDOW; tt += SEARCH_THETA_STEP)
+		{
+			Matrix3x3 purerot(cos(tt), -sin(tt), 0, sin(tt), cos(tt), 0, 0, 0, 1);
+			Matrix3x3 rot = uncenter * purerot * center;
+			for (int xt = -SEARCH_TRANS_WINDOW; xt <= SEARCH_TRANS_WINDOW; xt += SEARCH_TRANS_STEP)
+				for (int yt = -SEARCH_TRANS_WINDOW; yt <= SEARCH_TRANS_WINDOW; yt += SEARCH_TRANS_STEP)
+				{
+					Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
+					transform_track(tracks[i], trans * rot, assembledImg);
+
+					float score = compute_transform_error(tracks[i]);
+					if (score < best_score)
+					{
+						best_score = score;
+						best = trans * rot;
+					}
+				}
+		}
+		printf("%d/%d\n", (int)i, (int)tracks.size());
+		transform_track(tracks[i], best, assembledImg);
+	}
+}
+
+float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks)
+{
+	float err = 0.0;
+	int num_points = 0;
+	for (unsigned int i = 0; i < tracks.size(); i++)
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
+			if (tracks[i][j].synth_image == -1 || tracks[i][j].image== -1)
+				continue;
+			err += pow(tracks[i][j].synth_image - tracks[i][j].image, 2);
+			num_points++;
+		}
+
+	return err / num_points;
+}
+
+Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile)
+{
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
+	assembledImg = normalize(cub);
+
+
+	float mid_x = cub.cols() / 2;
+	float mid_y = cub.rows() / 2;
+	Matrix3x3 center(1, 0, -mid_x, 0, 1, -mid_y, 0, 0, 1);
+	Matrix3x3 uncenter(1, 0, mid_x, 0, 1, mid_y, 0, 0, 1);
+
+	Matrix3x3 best;
+	float best_trans_x, best_trans_y, best_rot;
+	float best_score = INFINITY;
+
+
+	for (float tt = -SEARCH_THETA_WINDOW; tt <= SEARCH_THETA_WINDOW; tt += SEARCH_THETA_STEP)
+	{
+		Matrix3x3 purerot(cos(tt), -sin(tt), 0, sin(tt), cos(tt), 0, 0, 0, 1);
+		Matrix3x3 rot = uncenter * purerot * center;
+		for (int xt = -SEARCH_TRANS_WINDOW; xt <= SEARCH_TRANS_WINDOW; xt += SEARCH_TRANS_STEP)
+			for (int yt = -SEARCH_TRANS_WINDOW; yt <= SEARCH_TRANS_WINDOW; yt += SEARCH_TRANS_STEP)
+			{
+				Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
+				transform_tracks(tracks, trans * rot, assembledImg);
+				float score = compute_transform_error(tracks);
+				if (score < best_score)
+				{
+					printf("%g %d %d %g\n", tt, xt, yt, score);
+					best_score = score;
+					best = trans * rot;
+					best_trans_x = xt;
+					best_trans_y = yt;
+					best_rot = tt;
+				}
+			}
+		printf("%g\n", tt);
+	}
+	printf("Best x: %g y: %g theta: %g\n", best_trans_x, best_trans_y, best_rot);
+	
+	transform_tracks(tracks, best, assembledImg);
+
+	return best;
+}
 
 #define CHUNKSIZE   1
 
@@ -158,7 +279,7 @@ void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, Coregis
 //matchWindowHalfSize is half the size of the search window in image domain (pixels).
 //numSamples is the number of LOLA points considered in matching (one point is unreliable due to image noise, 
 //all points will violate the orthoprojection assumption).
-vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, 
+vector<Vector4> FindMatches2D(vector<vector<AlignedLOLAShot> > &trackPts, string cubFilename, 
                               Vector2 matchWindowHalfSize, int numSamples, vector<float> &errorArray)
 {
     vector<Vector4> matchArray;
@@ -177,10 +298,10 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
     int matchWindowHalfWidth = matchWindowHalfSize(0);
     int matchWindowHalfHeight = matchWindowHalfSize(1);
 
-    for (int ti = 0; ti < trackPts.size(); ti++){//for each track
+    for (unsigned int ti = 0; ti < trackPts.size(); ti++){//for each track
       Vector2 gain_bias = ComputeGainBiasFactor(trackPts[ti]);
-      for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
-	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) && (trackPts[ti][si].reflectance != -1) && (trackPts[ti][si].featurePtLOLA == 1)){
+      for (unsigned int si = 0; si < trackPts[ti].size(); si++){//for each shot
+	if ((trackPts[ti][si].shot.reflectance != 0) && (trackPts[ti][si].shot.reflectance != -1) && (trackPts[ti][si].shot.featurePtLOLA == 1)){
           //valid track, reflectance and featurePt
 	  
           float minDist = 10000000.0;
@@ -192,7 +313,7 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	  if (firstSample < 0){
 	    firstSample = 0;
 	  }
-	  int lastSample = si+numSamples/2;
+	  unsigned int lastSample = si+numSamples/2;
 	  if (lastSample > trackPts[ti].size()-1){
 	    lastSample = trackPts[ti].size()-1;
 	  }
@@ -204,15 +325,15 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
               float dist = 0.0;   
               int numValidSamples = 0;
 
-	      for (int i = firstSample; i< lastSample; i++){
+	      for (unsigned int i = firstSample; i< lastSample; i++){
 
-		int x = (int)floor(trackPts[ti][i].imgPt[0].x); 
-		int y = (int)floor(trackPts[ti][i].imgPt[0].y); 
+		int x = (int)floor(trackPts[ti][i].shot.imgPt[0].x); 
+		int y = (int)floor(trackPts[ti][i].shot.imgPt[0].y); 
 		 
 		if ((x+l > 0) && (y+k > 0) && (x+l < width) && (y+k < height)){
 		  if ((img(x+l,y+k)!=noDataValue) && (gain_bias(0)!= 0) && (gain_bias(1)!=0)){
 		
-		    dist = dist + fabs(img(x+l,y+k) - gain_bias(1) - gain_bias(0)*trackPts[ti][i].reflectance);
+		    dist = dist + fabs(img(x+l,y+k) - gain_bias(1) - gain_bias(0)*trackPts[ti][i].shot.reflectance);
 		    //dist = dist + fabs(img(x+l,y+k) - trackPts[ti][i].reflectance);
                     numValidSamples++;
 		  }
@@ -236,8 +357,8 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
 	  }//l
 	    
           Vector4 feature_match;
-	  feature_match(0) = trackPts[ti][si].imgPt[0].x;
-	  feature_match(1) = trackPts[ti][si].imgPt[0].y;
+	  feature_match(0) = trackPts[ti][si].shot.imgPt[0].x;
+	  feature_match(1) = trackPts[ti][si].shot.imgPt[0].y;
 	  feature_match(2) = feature_match(0) + bestMatch(0);
 	  feature_match(3) = feature_match(1) + bestMatch(1);
 	  matchArray.push_back(feature_match);
@@ -252,7 +373,8 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
     return matchArray;
 }
 
-vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize)
+// trackPts is vector of tracks
+/*vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFilename, Vector2 matchWindowHalfSize)
 {
     vector<Vector4> matchArray;
    
@@ -263,13 +385,13 @@ vector<Vector4> FindMatches2D(vector<vector<LOLAShot> > &trackPts, string cubFil
     int width = img.cols();
     int height = img.rows();
 
-    Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+    //Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
     
     int matchWindowHalfWidth = matchWindowHalfSize(0);
     int matchWindowHalfHeight = matchWindowHalfSize(1);
 
-    for (int ti = 0; ti < trackPts.size(); ti++){//for each track
-      for (int si = 0; si < trackPts[ti].size(); si++){//for each shot
+    for (unsigned int ti = 0; ti < trackPts.size(); ti++){//for each track
+      for (unsigned int si = 0; si < trackPts[ti].size(); si++){//for each shot
 	if ((trackPts[ti][si].valid == 1) && (trackPts[ti][si].reflectance != 0) &&(trackPts[ti][si].reflectance != -1)){//valid track and non-zero reflectance
 	  
 	  int x = (int)floor(trackPts[ti][si].imgPt[0].x); 
@@ -320,13 +442,10 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  
 
  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
- double noDataValue = rsrc->nodata_read();
 
  DiskImageView<PixelGray<float> > img( rsrc );
- int width = img.cols();
- int height = img.rows();
 
- Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
+ //Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
 
  cout<<"Computing LOLA centroid ..."<<endl;
  float i_C = 0.0;
@@ -349,8 +468,6 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  i_C = i_C/numPts;
  j_C = j_C/numPts;
 
- int matchWindowHalfWidth = matchWindowHalfSize(0);
- int matchWindowHalfHeight = matchWindowHalfSize(1);
  float sum_x2 = 0.0;
  float sum_xy = 0.0;
  float sum_x  = 0.0;
@@ -371,7 +488,7 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  cout<<"num_matches="<<matchArray.size()<<endl;
 
 
- for (int i = 0; i < matchArray.size(); i++){
+ for (unsigned int i = 0; i < matchArray.size(); i++){
 
        Vector2 bestMatch;
        float x, y;
@@ -427,7 +544,7 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
         initTransfArray[0][0] = lhs(0); 
 	initTransfArray[0][1] = lhs(1);
 	initTransfArray[0][2] = lhs(2);
-      } catch (ArgumentErr &/*e*/) {
+      } catch (ArgumentErr &) {
         //             std::cout << "Error @ " << x << " " << y << "\n";
         //             std::cout << "Exception caught: " << e.what() << "\n";
         //             std::cout << "PRERHS: " << pre_rhs << "\n";
@@ -459,7 +576,7 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
    initTransfArray[0][3] = lhs(0); 
    initTransfArray[0][4] = lhs(1);
    initTransfArray[0][5] = lhs(2);
- } catch (ArgumentErr &/*e*/) {
+ } catch (ArgumentErr &e) {
         //             std::cout << "Error @ " << x << " " << y << "\n";
         //             std::cout << "Exception caught: " << e.what() << "\n";
         //             std::cout << "PRERHS: " << pre_rhs << "\n";
@@ -477,7 +594,7 @@ void EstimateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string c
  matchingErrorArray[0] = 1000000.0;
  matchArray.clear();
 
-};
+};*/
 
 void EstimateAffineTransform(vector<Vector<float, 6> > &initTransfArray, vector<vector<LOLAShot> > &trackPts, 
                              vector<Vector4> matchArray, vector<float> errorArray)
@@ -540,7 +657,7 @@ void EstimateAffineTransform(vector<Vector<float, 6> > &initTransfArray, vector<
  cout<<"num_matches="<<matchArray.size()<<endl;
 
 
- for (int i = 0; i < matchArray.size(); i++){
+ for (unsigned int i = 0; i < matchArray.size(); i++){
 
        Vector2 bestMatch;
        float x, y;
@@ -770,8 +887,8 @@ void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float
 //determines the best finalTransfArray from all initTransfArrays
 //it assumes that each image is transformed by one affine transform
 //in the future we can investigate the use of one affine transform per track. 
-void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			       /*ModelParams modelParams,*/ CoregistrationParams coregistrationParams,  
+/*void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
+			       CoregistrationParams coregistrationParams,  
 			       vector<Vector<float, 6> >initTransfArray, vector<Vector<float, 6> > &finalTransfArray, 
 			       vector<float> &matchingErrorArray)
 {
@@ -788,7 +905,6 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     numValidPts.resize(initTransfArray.size());    
 
     boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-    double nodata_value = rsrc->nodata_read();
   
     DiskImageView<PixelGray<float> > isis_view( rsrc );
     int width = isis_view.cols();
@@ -910,11 +1026,11 @@ void InitMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFi
     errorArray.clear();
     numValidPts.clear();  
     
-}
+}*/
 
 //image to lidar coregistration
-void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
-			         /*ModelParams modelParams,*/  int numMaxIter, 
+/*void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cubFilename,  
+			         int numMaxIter, 
 			         vector<Vector<float, 6> >initTransfArray, vector<float> &initErrorArray, 
                                  vector<Vector<float, 6> >&finalTransfArray, vector<float> &errorArray, Vector2 &centroid)
 {
@@ -937,7 +1053,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   cout<<"done."<<endl;
 
   cout << "Computing the gain and bias...";
-  Vector2 gain_bias = ComputeGainBiasFactor(trackPts/*, minmax*/);
+  Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
   cout<<"done."<<endl;
 
   cout<<"width="<<width<<" height="<<height<<" gain="<<gain_bias(0)<<", bias="<<gain_bias(1)<<endl;
@@ -950,8 +1066,8 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
   //std::string temp = sufix_from_filename(cubFilename);
   std::string temp = GetFilenameNoPath(cubFilename);
 
-  std::string xDerivFilename = "../aux/" + /*prefix_less3_from_filename(temp)*/GetFilenameNoExt(temp) + "_x_deriv.tif";
-  std::string yDerivFilename = "../aux/" + /*prefix_less3_from_filename(temp)*/GetFilenameNoExt(temp) + "_y_deriv.tif";
+  std::string xDerivFilename = "../aux/" + GetFilenameNoExt(temp) + "_x_deriv.tif";
+  std::string yDerivFilename = "../aux/" + GetFilenameNoExt(temp) + "_y_deriv.tif";
 
   cout<<xDerivFilename<<endl;
   cout<<yDerivFilename<<endl;
@@ -1099,22 +1215,6 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
 		    jj = jA - j_C;
 		    
 		    I_e_val = (float)interpImg(jA,iA) - gain_bias(1) - gain_bias(0)*trackPts[ti][si].reflectance;
-                    /*
-                    float robustWeight;
-                    float b_sqr = 10;//0.01;
-                    if (I_e_val == 0){
-		       float tmp = 0.001;
-                       robustWeight = sqrt(b_sqr*log(1+(tmp*tmp)/b_sqr))/tmp;
-                    }
-		    else{
-                        robustWeight = sqrt(b_sqr*log(1+(I_e_val*I_e_val)/b_sqr))/fabs(I_e_val);
-                    }
-                                
-                    // We combine the error value with the derivative and
-                    // add this to the update equation.
-			      	      
-		    float weight = robustWeight*trackPts[ti][si].weightRefl;
-		    */
                      
                     //cout<<I_e_val<<endl;
                     //start here
@@ -1200,7 +1300,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
      
       try {
         solve_symmetric_nocopy(rhs,lhs);
-      } catch (ArgumentErr &/*e*/) {
+      } catch (ArgumentErr &) {
         //             std::cout << "Error @ " << x << " " << y << "\n";
         //             std::cout << "Exception caught: " << e.what() << "\n";
         //             std::cout << "PRERHS: " << pre_rhs << "\n";
@@ -1227,37 +1327,7 @@ void UpdateMatchingParamsFromCub(vector<vector<LOLAShot> > &trackPts, string cub
     }
   }//index loop ends here
 
-} 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} */
 
 
 

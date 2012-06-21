@@ -15,11 +15,12 @@
 
 #include <boost/operators.hpp>
 #include <boost/program_options.hpp>
-namespace po = boost::program_options;
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
+
+namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <vw/Core.h>
@@ -45,416 +46,173 @@ using namespace std;
 #include "display.h"
 #include "weights.h"
 #include "featuresLOLA.h"
-
-
-int main( int argc, char *argv[] ) {
-
-  string inputCSVFilename; 
-  std::string configFilename="lidar2img_settings.txt";
- 
-  std::vector<std::string> camCubFiles;
-  std::string resDir = "../results";
-  std:: string auxDir = "../aux";
-  std::string mapCubDir = "../data/map";
-  std::string drgDir = "../data/drg";
-  std::vector<std::string> inputCubFiles;
-
-  po::options_description general_options("Options");
-  general_options.add_options()
-    ("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-    ("inputCubFiles,i", po::value<std::vector<std::string> >(&inputCubFiles))
-    ("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
-    ("drg-directory,d", po::value<std::string>(&drgDir)->default_value("../data/drg"), "drg directory.")
-    ("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
-    ("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
-    ("help,h", "Display this help message");
-  
-  po::options_description options("Allowed Options");
-  options.add(general_options);
-
-  po::positional_options_description p;
-  //p.add("camCubFileList", -1);
-  p.add("inputCubFiles", -1);
-
-  std::ostringstream usage;
-  usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
-  usage << general_options << std::endl;
-
-  po::variables_map vm;
-  try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
-  } catch ( po::error &e ) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if( vm.count("help") ) {
-    std::cerr << usage.str() << std::endl;
-    return 1;
-  }
-
-  //if(( vm.count("camCubFileList") < 1 )) {
-  if(( vm.count("inputCubFiles") < 1 )) {
-    std::cerr << "Error: Must specify at least one cub image file!" << std::endl << std::endl;
-    std::cerr << usage.str();
-    return 1;
-  }
-
-
-  //#if 0
-  struct CoregistrationParams settings;
-  if( ReadConfigFile(configFilename, &settings) ){
-      std::cerr << "Config file " << configFilename << " found." << endl;
-  }
-  else{
-    std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
-  }
-  //PrintGlobalParams(&settings);
-  std::cerr << settings << endl;
-
-  
-  //determine if inputCubFiles is a text file containing a list of .cub files, one .cub file or a set of .cub files
-  //by reading the file extension. A text file containing the DEM list *must* have extension .txt 
-  camCubFiles = AccessDataFilesFromInput(inputCubFiles);
-  
-  int numCubFiles = camCubFiles.size();
-  printf("numCubFiles = %d\n", numCubFiles);
-
-  //create the results directory and prepare the output filenames - START
-
-  auxDir = resDir+"/aux";
-  cout<<"aux_dir="<<auxDir<<endl;
-  //create the results and auxiliary directories
-  string makeResDirCmd = "mkdir " + resDir;
-  string makeAuxDirCmd = "mkdir " + auxDir;
-  system(makeResDirCmd.c_str()); 
-  system(makeAuxDirCmd.c_str());
-
-  vector<vector<LOLAShot> > trackPts =  CSVFileRead(inputCSVFilename);
-
-  //select the overlapping images - START
- 
-  cout<<"Selecting the overlapping images ..."<<endl;
-
-  std::vector<int> overlapIndices;
-  string overlapListFilename = auxDir+string("/")+GetFilenameNoPath(inputCSVFilename);//sufix_from_filename(inputCSVFilename);
-  FindAndReplace(overlapListFilename, ".csv", "_overlap_list.txt"); 
-  int fileFound = ReadOverlapList(overlapListFilename, overlapIndices);
-
-  if (fileFound == 0){
-    Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
-    Vector4 lon_lat_bb;
-    lon_lat_bb[0]=lat_lon_bb[2];
-    lon_lat_bb[1]=lat_lon_bb[3];
-    lon_lat_bb[2]=lat_lon_bb[0];
-    lon_lat_bb[3]=lat_lon_bb[1];
-    printf("lidar corners: %f %f %f %f\n", lon_lat_bb[0], lon_lat_bb[1], lon_lat_bb[2], lon_lat_bb[3]);
-    overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
-    SaveOverlapList(overlapListFilename, overlapIndices);
-  }
-
-  PrintOverlapList(overlapIndices);
-  int numOverlappingImages;
-  if ((overlapIndices.size() == 1) && (overlapIndices[0] == -1)){
-    numOverlappingImages = 0;
-  }
-  else{
-     numOverlappingImages = (int)overlapIndices.size();
-  }
-  cout<<"numOverlapImages="<<numOverlappingImages<<endl;
-  cout<<"done."<<endl;
-
-  //select the overlapping images - END
-  
-  //ComputeAverageShotDistance(trackPts);
-  //ComputeAverageIntraShotDistance(trackPts);
- 
-  //compute LOLA features - START
-  int windowSize = 12;//16
-  float salientFeatureThresh = 0.008;//0.015;
-
-  vector<float> filter;
-  filter =  MakeLidarFilter(windowSize);
-  for (int ti = 0; ti < (int)trackPts.size(); ti++){
-    cout<<"trackIndex="<<ti<<" of "<<trackPts.size()<<endl;
-    ComputeSalientLOLAFeature(trackPts[ti], filter, salientFeatureThresh);
-  }
-  //compute LOLA features - END
-
-
-  cout<<"create the GCPs ..."<<endl;
-  //this should be returned by ComputeSalientLOLAFeature
-  vector<gcp> gcpArray;
-  for (unsigned int t=0; t<trackPts.size(); t++){
-    for (unsigned int s=0; s<trackPts[t].size(); s++){
-      if (trackPts[t][s].featurePtLOLA==1){
-        gcp this_gcp;
-	this_gcp.lon = trackPts[t][s].LOLAPt[2].x();
-	this_gcp.lat = trackPts[t][s].LOLAPt[2].y(); 
-	this_gcp.rad = trackPts[t][s].LOLAPt[2].z()*1000;
-        this_gcp.sigma_lon = 1.0;
-        this_gcp.sigma_lat = 1.0;
-        this_gcp.sigma_rad = 1.0;
-        gcpArray.push_back(this_gcp);
-      }
-    }
-  }
-  cout<<"done."<<endl;
-
- //allocate memory for all final transforms, one per image
-  vector<Vector<float, 6> > optimalTransfArray;
-  vector<float> optimalErrorArray;
-  optimalTransfArray.resize(numOverlappingImages);
-  optimalErrorArray.resize(numOverlappingImages);
-
-  cout<<"generating the initTransforms ..."<<endl;
-  vector<Vector<float, 6> >initTransfArray;
-  GenerateInitTransforms(initTransfArray, settings);
-  cout<<"done."<<endl;  
-
-  vector<Vector<float, 6> > bestInitTransfArray; 
-  vector<Vector<float, 6> > finalTransfArray;
-  vector<float> initMatchingErrorArray;
-  vector<float> finalMatchingErrorArray;
-  Vector2 transfCentroid;
- 
-  for (int k = 0; k < numOverlappingImages; k++){
-    
-    string overlapCamCubFile;
-    string overlapMapCubFile;
-
-    overlapCamCubFile = camCubFiles[overlapIndices[k]];
-    overlapMapCubFile = GetFilenameNoPath(overlapCamCubFile); 
-    overlapMapCubFile = mapCubDir+string("/")+overlapMapCubFile;
-    FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
-
-    cout<<"camCubFile="<<overlapCamCubFile<<", mapCubFile="<<overlapMapCubFile<<endl;
-
-    camera::IsisCameraModel model(overlapCamCubFile);
-    Vector3 center_of_moon(0,0,0);
-    Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-    Vector3 cameraPosition = model.camera_center( pixel_location );
-    Vector3 lightPosition = model.sun_position( pixel_location );
-
-    //initialization step for LIMA - START  
-    cout<<"GetAllPtsFromCub "<<endl; 
-    int numValidImgPts = GetAllPtsFromCub(trackPts, overlapMapCubFile);
-    cout<<"numValidImgPts="<<numValidImgPts<<endl;
-    cout<<"done."<<endl; 
-  
-    cout << "ComputeTrackReflectance..." << endl;
-    int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition);
-    cout<<"numValidReflPts="<<numValidReflPts<<endl;
-    cout<<"done."<<endl;
-    //initialization step for LIMA - END 
-
-  
-    if (numValidReflPts > 100){
-      //param init LIMA - START 
-
-
-      vector<Vector4> matchArray = FindMatches2D(trackPts, overlapMapCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
-      
-      /*  
-      EstimateAffineTransform(bestInitTransfArray, trackPts, matchArray, initMatchingErrorArray);
-     
-      //EstimateMatchingParamsFromCub(trackPts, overlapMapCubFile, settings.matchWindowHalfSize, bestInitTransfArray, initMatchingErrorArray);
-      
-      // cout<<"Initializing the affine tranformation ..."<<endl;
-      //InitMatchingParamsFromCub(trackPts, overlapMapCubFile,  settings,  
-      //			  initTransfArray, bestInitTransfArray, initMatchingErrorArray);
-    
-
-      //param init LIMA - END
-      
-      //iterative matching step for LIMA - START
-      int refinedMatching = 0;//1;
-      
-      if (refinedMatching == 1){
-	cout<<"Computing the affine tranformation ..."<<endl;
-        
-	UpdateMatchingParamsFromCub(trackPts, overlapMapCubFile,  settings.maxNumIter,  
-				    bestInitTransfArray, initMatchingErrorArray,
-				    finalTransfArray, finalMatchingErrorArray, transfCentroid);
 	
-        cout<<"done."<<endl;
-      }
-      else{
-	finalTransfArray = bestInitTransfArray;
-	finalMatchingErrorArray = initMatchingErrorArray;
-      }
-      
-      GetBestTransform(finalTransfArray, finalMatchingErrorArray, optimalTransfArray[k], optimalErrorArray[k]);
-      //iterative matching step for LIMA - END
-      */
-      
-      //save to GCP structure. 
-      //UpdateGCP(trackPts, optimalTransfArray[k], overlapCamCubFile, overlapMapCubFile, gcpArray, transfCentroid, 4.0);
-      UpdateGCP(trackPts, matchArray, initMatchingErrorArray, overlapCamCubFile, overlapMapCubFile, gcpArray, 4.0);
-      
-      matchArray.clear();
-    }
-  }  
-  //end matching
- 
-  //save the GCP
-  string gcpFilenameRoot = resDir+"/"+GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
+// command line options
+string inputCSVFilename; 
+std::string configFilename="lidar2img_settings.txt";
 
+std::vector<std::string> camCubFiles;
+std::string resDir = "../results";
+std::string mapCubDir = "../data/map";
+std::string drgDir = "../data/drg";
+std::vector<std::string> inputCubFiles;
+struct CoregistrationParams settings;
 
-  cout<<"writting the GCP file..."<<endl;
-  SaveGCPoints(gcpArray,  gcpFilenameRoot);
-  cout<<"done"<<endl;
+int parse_options(int argc, char* argv[])
+{
+	po::options_description general_options("Options");
+	general_options.add_options()
+	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
+	("inputCubFiles,i", po::value<std::vector<std::string> >(&inputCubFiles))
+	("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
+	("drg-directory,d", po::value<std::string>(&drgDir)->default_value("../data/drg"), "drg directory.")
+	("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
+	("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
+	("help,h", "Display this help message");
+	
+	po::options_description options("Allowed Options");
+	options.add(general_options);
 
-  //these are the display functions
-  if (settings.analyseFlag){
- 
-    for (int k = 0; k < numOverlappingImages; k++){
-      
-      string overlapCamCubFile = camCubFiles[overlapIndices[k]];
-      string overlapCamCubFileNoPath = GetFilenameNoPath(overlapCamCubFile); 
- 
-      string overlapMapCubFile = mapCubDir+string("/")+overlapCamCubFileNoPath;
-      FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
-     
-      string overlapDRGFilename = drgDir+string("/")+overlapCamCubFileNoPath;
-      FindAndReplace(overlapDRGFilename, ".cub", "_drg.tif");
- 
-      string thisResDir = resDir+string("/")+overlapCamCubFileNoPath;
-      FindAndReplace(thisResDir, ".cub", "");
-      string command = string("mkdir ")+thisResDir;
-      system(command.c_str()); 
+	po::positional_options_description p;
+	//p.add("camCubFileList", -1);
+	p.add("inputCubFiles", -1);
 
-      //camera::IsisCameraModel model(overlapCamCubFile);
-      camera::IsisCameraModel model(overlapMapCubFile);
-      Vector3 center_of_moon(0,0,0);
-      Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-      Vector3 cameraPosition = model.camera_center( pixel_location );
-      Vector3 lightPosition = model.sun_position( pixel_location );
-     
-      string overlapCamCubFileNoPathNoExt = GetFilenameNoExt(overlapCamCubFileNoPath);
-      string LOLAFilenameNoPathNoExt = GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
-  
-      string altitudePtsFilename = thisResDir + "/" + LOLAFilenameNoPathNoExt + "_alt.txt";  
-      string imgPtsFilename = thisResDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapCamCubFileNoPathNoExt + "_img.txt";  
-      string drgPtsFilename = thisResDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapCamCubFileNoPathNoExt + "_drg.txt";  
-      string reflectancePtsFilename = thisResDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapCamCubFileNoPathNoExt + "_refl.txt";  
-      string syntImgPtsFilename = thisResDir + "/" + LOLAFilenameNoPathNoExt + "_" + overlapCamCubFileNoPathNoExt + "_synth.txt";  
-       
-      //initialization step for LIMA - START  
-      //cout<<"GetAllPtsFromCub "<<endl; 
-      //int numValidImgPts = GetAllPtsFromCub(trackPts, overlapMapCubFile);
-      //cout<<"numValidImgPts="<<numValidImgPts<<endl;
-      //cout<<"done."<<endl; 
-
-      cout<<"GetAllPtsFromImage "<<endl; 
-      cout<<"overlapDRGFilename="<<overlapDRGFilename<<endl;
-      boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(overlapDRGFilename) );
-      DiskImageView<PixelGray<uint8> > DRG( rsrc );
-      GeoReference DRGGeo;
-      read_georeference(DRGGeo, overlapDRGFilename);
-      GetAllPtsFromImage(trackPts, DRG, DRGGeo);
-      cout<<"done."<<endl; 
-
- 
-  
-      cout << "ComputeTrackReflectance..." << endl;
-      cout<<cameraPosition<<endl;
-      cout<<lightPosition<<endl;
-      int  numValidReflPts = ComputeAllReflectance(trackPts,  cameraPosition, lightPosition);
-      cout<<"numValidReflPts="<<numValidReflPts<<endl;
-      cout<<"done."<<endl;
-      //initialization step for LIMA - END 
-      
-      Vector2 gain_bias = ComputeGainBiasFactor(trackPts);
-      //SaveImagePoints(trackPts, 1, imgPtsFilename);
-      SaveImagePoints(trackPts, 1, drgPtsFilename);
-      SaveAltitudePoints(trackPts, 1, altitudePtsFilename);
-      SaveReflectancePoints(trackPts, 1.0, reflectancePtsFilename);
-      SaveReflectancePoints(trackPts, gain_bias, syntImgPtsFilename);
-     
-      /*
-      string lolaInitTracksFilename = resDir + prefix_less3_from_filename(overlapCamCubFileNoPath) + "init_lola.tif";  
-      string lolaInitTracksOnImageFilename = resDir + prefix_less3_from_filename(overlapCamCubFileNoPath) + "init_img_lola.tif";  
-      string lolaFinalTracksOnImageFilename = resDir + prefix_less3_from_filename(overlapCamCubFileNoPath) + "final_img_lola.tif"; 
-      vector<int> trackIndices;
-      trackIndices.resize(trackPts.size());
-      for (unsigned int i = 0; i < trackPts.size(); i++){
-	   trackIndices[i] = i;
-      }
-
-      Vector<float, 6> unitTransfArray;
-      unitTransfArray[0]=1;
-      unitTransfArray[1]=0;
-      unitTransfArray[2]=0;
-      unitTransfArray[3]=0;
-      unitTransfArray[4]=1;
-      unitTransfArray[5]=0;
-      ShowFinalTrackPtsOnImage(trackPts, unitTransfArray, 
-			       trackIndices, overlapMapCubFile, lolaInitTracksOnImageFilename);
-      
-
-      //write results to image outside matching
-      //ShowFinalTrackPtsOnImage(trackPts, optimalTransfArray[k], 
-      //			 trackIndices, mapCubFiles[k], lolaFinalTracksOnImageFilename);
-      */
-    }
-
-    //TO DO: this should become all one function - START  
-    cout<<"saving the GCP images..."<<endl;
-    int gc_index = 0;
- 
-    for (unsigned int t=0; t<trackPts.size(); t++){
-      int featureIndex = 0;
-      for (unsigned int s=0; s<trackPts[t].size(); s++){
-	if (trackPts[t][s].featurePtLOLA==1){ 
-	  if (gcpArray[gc_index].filename.size() > 0){ //non-empty GCP
-	    
-            stringstream trackIndexString;
-            trackIndexString<<gcpArray[gc_index].trackIndex;            
-
-            stringstream featureIndexString;
-            featureIndexString<<gcpArray[gc_index].shotIndex;
-
-	    string gcpFilename = gcpFilenameRoot+"_"+trackIndexString.str()+"_"+featureIndexString.str()+".gcp";
-	    string assembledImgFilename = gcpFilenameRoot+"_img_"+trackIndexString.str()+"_"+featureIndexString.str()+".tif";
-	    cout<<"gcpFilename="<<gcpFilename<<endl;
-	    cout<<"assembledImgFilename="<<assembledImgFilename<<endl;
-	    SaveGCPImages(gcpArray[gc_index], assembledImgFilename);
-	    
-	  }
-	  featureIndex++;
-          gc_index++;
+	std::ostringstream usage;
+	usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
+	usage << general_options << std::endl;
+	
+	po::variables_map vm;
+	try {
+	po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+	po::notify( vm );
+	} catch ( po::error &e ) {
+	std::cout << "An error occured while parsing command line arguments.\n";
+	std::cout << "\t" << e.what() << "\n\n";
+	std::cout << usage.str();
+	return 1;
 	}
-      }
-    }
 
-    cout<<"done."<<endl;
-    //TO DO: this should become all one function - END  
+	if( vm.count("help") ) {
+	std::cerr << usage.str() << std::endl;
+	return 1;
+	}
 
-  }
-  //#endif
- 
-  return 0;
+	if(( vm.count("inputCubFiles") < 1 )) {
+	std::cerr << "Error: Must specify at least one cub image file!" << std::endl << std::endl;
+	std::cerr << usage.str();
+	return 1;
+	}
+	
+	//#if 0
+	if( ReadConfigFile(configFilename, &settings) )
+		std::cerr << "Config file " << configFilename << " found." << endl;
+	else
+	std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
+	//PrintGlobalParams(&settings);
+	//std::cerr << settings << endl;
 
+	
+	//determine if inputCubFiles is a text file containing a list of .cub files, one .cub file or a set of .cub files
+	//by reading the file extension. A text file containing the DEM list *must* have extension .txt 
+	camCubFiles = AccessDataFilesFromInput(inputCubFiles);
+	
+
+	//create the results directory and prepare the output filenames - START
+
+	string makeResDirCmd = "mkdir -p " + resDir;
+	int ret = system(makeResDirCmd.c_str()); 
+
+	return ret;
 }
 
+std::vector<int> determine_overlapping(vector<vector<LOLAShot> > trackPts)
+{
+	std::vector<int> overlapIndices;
+	Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
+	Vector4 lon_lat_bb;
+	lon_lat_bb[0]=lat_lon_bb[2];
+	lon_lat_bb[1]=lat_lon_bb[3];
+	lon_lat_bb[2]=lat_lon_bb[0];
+	lon_lat_bb[3]=lat_lon_bb[1];
+	overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
 
+	return overlapIndices;
+}
 
+int main( int argc, char *argv[] )
+{
+	if (parse_options(argc, argv))
+		return 1;
 
+	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
+	std::vector<int> overlapIndices = determine_overlapping(trackPts);
+	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
+	
+	//Save3DImage(trackPts, resDir + "/3d_moon.obj");
+	
+	//save the GCP
+	string gcpFilenameRoot = resDir+"/"+GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
+ 
+	for (unsigned int k = 0; k < overlapIndices.size(); k++)
+	{
+		string overlapCamCubFile = camCubFiles[overlapIndices[k]];
+		string overlapMapCubFile = GetFilenameNoPath(overlapCamCubFile); 
+		overlapMapCubFile = mapCubDir+string("/")+overlapMapCubFile;
+		FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
+		string overlapDRGFilename = drgDir+string("/")+GetFilenameNoPath(overlapCamCubFile);
+		FindAndReplace(overlapDRGFilename, ".cub", "_drg.tif");
+	
+		camera::IsisCameraModel model(overlapCamCubFile);
+		//camera::IsisCameraModel model(overlapMapCubFile); // for DRG
+		Vector3 center_of_moon(0,0,0);
+		Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+		Vector3 cameraPosition = model.camera_center( pixel_location );
+		Vector3 lightPosition = model.sun_position( pixel_location );
+	
+		//initialization step for LIMA - START	
+		GetAllPtsFromCub(trackPts, overlapCamCubFile);
+		/*boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(overlapDRGFilename) );
+		DiskImageView<PixelGray<uint8> > DRG( rsrc );
+		GeoReference DRGGeo;
+		read_georeference(DRGGeo, overlapDRGFilename);
+		GetAllPtsFromImage(trackPts, DRG, DRGGeo);*/
+		
+		int	numValidReflPts = ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+		vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
 
+		transform_tracks(aligned, Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1), overlapCamCubFile);
+		//initialization step for LIMA - END 
+	
+		
+		if (numValidReflPts < 100)
+			fprintf(stderr, "Not enough reflectance points, aborting.\n");
 
+		//find_track_transforms(aligned, overlapCamCubFile);
+		Matrix3x3 trans = find_tracks_transform(aligned, overlapCamCubFile);
+		printf("Best transform:\n");
+		for (int i = 0; i < 3; i++)
+			printf("%g %g %g\n", trans(i, 0), trans(i, 1), trans(i, 2));
+		//vector<float> initMatchingErrorArray;
+		//vector<Vector4> matchArray = FindMatches2D(trackPts, overlapCamCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
+		std::stringstream out2;
+		out2 << resDir << "/reflectance_" << k << ".tif";
+		SaveReflectanceImages(aligned, overlapCamCubFile, out2.str(), true);
+		std::stringstream out4;
+		out4 << resDir << "/track_data_" << k << ".txt";
+		save_track_data(aligned, out4.str());
+		//SaveReflectanceImages(aligned, overlapDRGFilename, out2.str(), false);
+	
+		//save to GCP structure. 
+		//UpdateGCP(trackPts, matchArray, overlapCamCubFile, gcpArray);
+		
+		std::stringstream out3;
+		out3 << gcpFilenameRoot << "_match_" << k << ".tif";
+		//SaveAdjustedReflectanceImages(gcpArray, aligned, overlapCamCubFile, out3.str(), k, false);
+	}	
+ 
+	//SaveGCPoints(gcpArray,	gcpFilenameRoot);
+ 
+	return 0;
 
-
-
-
-
-
-
-
-
-
-
+}
 

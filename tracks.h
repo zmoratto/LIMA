@@ -30,6 +30,7 @@ using namespace std;
 #include <math.h>
 #include "coregister.h"
 
+// from a lidar track, 3D points and time of capture
 class pointCloud : public vw::Vector<double,3> {
   public:
   
@@ -91,9 +92,10 @@ struct imgPoint
   double val;
 };
 
+// regular points on a surface mesh
 struct DEMPoint
 {
-  int valid;
+  int valid;// map may have holes in the terrain
   double x;
   double y;
   double val;
@@ -101,6 +103,7 @@ struct DEMPoint
 
 bool isTimeDiff( const pointCloud&, const pointCloud&, const float);
 
+// vector of point clouds, 5 points (but sometimes more or less)
 // prototype for GetPointFromIndex
 pointCloud GetPointFromIndex( const std::vector<pointCloud>&, const int );
 
@@ -115,7 +118,6 @@ class LOLAShot {
   int valid;
   // int centerPtIndex;  Not used?
   float reflectance;
-  // float synthImage;   Not used?
 
   //following variables are for LOLA feature and weight computation
   int   calc_acp;             //is the filter valid here?
@@ -125,10 +127,11 @@ class LOLAShot {
 
 
   float featurePtLOLA;
-  float filresLOLA;           
+  float filresLOLA;
         
   std::vector<pointCloud> LOLAPt;
-  std::vector<imgPoint>   imgPt;
+  // points on image and DEM corresponding to point cloud
+  std::vector<imgPoint>   imgPt; // original locations of each shot in the original image
   std::vector<DEMPoint>   DEMPt; 
 
   private:
@@ -148,6 +151,21 @@ class LOLAShot {
     float            = 0, // featurePtLOLA
     float            = 0  // filresLOLA
     );
+};
+
+class AlignedLOLAShot
+{
+public:
+  explicit AlignedLOLAShot( LOLAShot& s) : shot(s), image_x(-1), image_y(-1), image(-1), synth_image(-1) {};
+  AlignedLOLAShot & operator=(const AlignedLOLAShot & s) {
+	  this->shot = s.shot; this->image_x = s.image_x; this->image_y = s.image_y; this->image = s.image; this->synth_image = s.synth_image; return *this;};
+  ~AlignedLOLAShot(){};
+  LOLAShot & shot;
+
+  int image_x, image_y; // adjusted position in the image
+  float image; // color in the original image
+  float synth_image; // predicted color after applying gain
+
 };
 
 inline
@@ -204,8 +222,8 @@ vw::Vector4 FindMinMaxLat( const std::vector<std::vector<LOLAShot> >& );
 
 
 //float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
-vw::Vector2 ComputeGainBiasFactor( const std::vector<LOLAShot>& );
-vw::Vector2 ComputeGainBiasFactor( const std::vector<std::vector<LOLAShot> >& );
+vw::Vector2 ComputeGainBiasFactor( const std::vector<AlignedLOLAShot>& );
+vw::Vector2 ComputeGainBiasFactor( const std::vector<std::vector<AlignedLOLAShot> >& );
 int GetAllPtsFromCub( std::vector<std::vector<LOLAShot> >&, const std::string& );
 int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          cameraPosition,
@@ -232,13 +250,10 @@ void SaveAltitudePoints( const std::vector<std::vector<LOLAShot> >&,
 *                string camCubFile, string mapCubFile, vector<gcp> &gcpArray, Vector2 centroid, 
 *                float downsample_factor);
 */
-void UpdateGCP( const std::vector<std::vector<LOLAShot> >&, 
-                const std::vector<vw::Vector4>&, 
-                const std::vector<float>&,
+void UpdateGCP( const std::vector<std::vector<LOLAShot> >& trackPts, 
+                const std::vector<vw::Vector4>& matchArray, 
                 const std::string& camCubFile, 
-                const std::string& mapCubFile, 
-                      std::vector<gcp>&,
-                const float );
+                      std::vector<gcp>& gcps);
 
 void SaveGCPoints( const std::vector<gcp>&, const std::string& );
 
@@ -288,8 +303,8 @@ GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,
 	    Vector2 DEM_lonlat( points[j].x(), points[j].y() );
 	    Vector2 DRG_pix = DRGGeo.lonlat_to_pixel(DEM_lonlat);
 	  
-	    if( (bbox.contains(DRG_pix)) && 
-            (interpDRG( DRG_pix.x(), DRG_pix.y() ) != 0) ){
+	    if( (bbox.contains(DRG_pix))
+            && (interpDRG( DRG_pix.x(), DRG_pix.y() ) != 0 )){ // this doesn't seem to work
           trackPts[k][i].imgPt[j].val = interpDRG( DRG_pix.x(), DRG_pix.y() );
           trackPts[k][i].imgPt[j].x = DRG_pix.x();
           trackPts[k][i].imgPt[j].y = DRG_pix.y();
@@ -300,12 +315,12 @@ GetAllPtsFromImage(       std::vector<std::vector<LOLAShot> >& trackPts,
         }
       }
       //check for valid shot with 3 points to compute reflectance
-      try { 
+      /*try { // NOTE: don't think it matters
         GetPointFromIndex( points, 3);
         GetPointFromIndex( points, 2);
         GetPointFromIndex( points, 1);
       }
-      catch( const vw::ArgumentErr& error ){ trackPts[k][i].valid = 0; }
+      catch( const vw::ArgumentErr& error ){ trackPts[k][i].valid = 0; printf("too few\n");}*/
     }//i  
   }//k
 
@@ -433,6 +448,14 @@ void GetAllPtsFromDEM_Prec(       std::vector<std::vector<LOLAShot> >& trackPts,
     }
   }
 }
+
+void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub);
+void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, ImageView<PixelGray<float> >& cub);
+void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, string cubFile);
+
+void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >&, const std::string& filename);
+
+std::vector<std::vector< AlignedLOLAShot> > initialize_aligned_lola_shots(std::vector<std::vector<LOLAShot> >& tracks);
 
 #endif /* TRACKS_H */
 
