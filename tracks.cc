@@ -1047,7 +1047,7 @@ void apply_gain_bias(vector<vector<AlignedLOLAShot> >& tracks)
 {
 	Vector2 gain_bias = ComputeGainBiasFactor( tracks );
 	for (unsigned int i = 0; i < tracks.size(); i++)
-		for (unsigned int j = 0; j < tracks.size(); j++)
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
 			tracks[i][j].synth_image = tracks[i][j].shot.reflectance * gain_bias(0) + gain_bias(1);
 }
 
