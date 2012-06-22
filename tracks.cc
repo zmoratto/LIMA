@@ -1057,14 +1057,22 @@ void apply_gain_bias(vector<vector<AlignedLOLAShot> >& tracks)
 	Vector2 gain_bias = ComputeGainBiasFactor( tracks );
 	for (unsigned int i = 0; i < tracks.size(); i++)
 		for (unsigned int j = 0; j < tracks[i].size(); j++)
+		{
 			tracks[i][j].synth_image = tracks[i][j].reflectance * gain_bias(0) + gain_bias(1);
+			if (tracks[i][j].synth_image > 1.0)
+				tracks[i][j].synth_image = 1.0;
+		}
 }
 
 void apply_gain_bias(vector<AlignedLOLAShot>& track)
 {
 	Vector2 gain_bias = ComputeGainBiasFactor( track );
 	for (unsigned int i = 0; i < track.size(); i++)
+	{
 		track[i].synth_image = track[i].reflectance * gain_bias(0) + gain_bias(1);
+		if (track[i].synth_image > 1.0)
+			track[i].synth_image = 1.0;
+	}
 }
 
 void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
