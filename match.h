@@ -35,8 +35,17 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+#define DEFAULT_SEARCH_TRANS_WINDOW 20
+#define DEFAULT_SEARCH_TRANS_STEP 5.0
+#define DEFAULT_SEARCH_THETA_WINDOW (M_PI / 10)
+#define DEFAULT_SEARCH_THETA_STEP (M_PI / 40)
+
+
 void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
-Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
+Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile,
+		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1),
+		int transSearchWindow=DEFAULT_SEARCH_TRANS_WINDOW, int transSearchStep=DEFAULT_SEARCH_TRANS_STEP, 
+		float thetaSearchWindow=DEFAULT_SEARCH_THETA_WINDOW, float thetaSearchStep=DEFAULT_SEARCH_THETA_STEP);
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);

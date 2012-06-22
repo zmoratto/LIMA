@@ -47,22 +47,30 @@ using namespace std;
 #include "weights.h"
 #include "featuresLOLA.h"
 	
-// command line options
-string inputCSVFilename; 
-
-std::string resDir = "../results";
-std::string inputCubFile;
-std::string outputFile, dataFile, imageFile;
-
-int parse_options(int argc, char* argv[])
+int main( int argc, char *argv[] )
 {
+	// command line options
+	string inputCSVFilename; 
+	
+	std::string resDir = "../results";
+	std::string inputCubFile;
+	std::string outputFile, dataFile, imageFile, startMatrix;
+	Matrix3x3 matrix(1, 0, 0, 0, 1, 0, 0, 0, 1);
+	int transSearchWindow = 20, transSearchStep = 5;
+	float thetaSearchWindow = (M_PI / 10), thetaSearchStep = (M_PI / 40);
+
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
 	("inputCubFile,i", po::value<std::string>(&inputCubFile))
 	("outputFile,o", po::value<std::string>(&outputFile))
 	("dataFile,d", po::value<std::string>(&dataFile))
-	("imageFile,d", po::value<std::string>(&dataFile))
+	("outputImage", po::value<std::string>(&imageFile))
+	("startMatrix,m", po::value<std::string>(&startMatrix))
+	("transSearchWindow", po::value<int>(&transSearchWindow))
+	("transSearchStep", po::value<int>(&transSearchStep))
+	("thetaSearchWindow", po::value<float>(&thetaSearchWindow))
+	("thetaSearchStep", po::value<float>(&thetaSearchStep))
 	("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
 	("help,h", "Display this help message");
 	
@@ -90,6 +98,19 @@ int parse_options(int argc, char* argv[])
 		return 1;
 	}
 
+	if (vm.count("startMatrix"))
+	{
+		int ret = sscanf(startMatrix.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", 
+			&matrix[0][0], &matrix[0][1], &matrix[0][2], 
+			&matrix[1][0], &matrix[1][1], &matrix[1][2], 
+			&matrix[2][0], &matrix[2][1], &matrix[2][2]);
+		if (ret != 9)
+		{
+			fprintf(stderr, "Failed to read startMatrix argument.\n");
+			return 1;
+		}
+	}
+
 	if( vm.count("help") )
 	{
 		std::cerr << usage.str() << std::endl;
@@ -107,20 +128,17 @@ int parse_options(int argc, char* argv[])
 	string makeResDirCmd = "mkdir -p " + resDir;
 	int ret = system(makeResDirCmd.c_str()); 
 
-	return ret;
-}
-
-int main( int argc, char *argv[] )
-{
-	if (parse_options(argc, argv))
+	if (ret)
+	{
+		fprintf(stderr, "Failed to create directory.\n");
 		return 1;
+	}
+
+
+	// done parsing arguments
 
 	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
 	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
-	
-	//save the GCP
-	string root = resDir+"/"+GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
- 
 	
 	camera::IsisCameraModel model(inputCubFile);
 	Vector3 center_of_moon(0,0,0);
@@ -133,10 +151,11 @@ int main( int argc, char *argv[] )
 	
 	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
 	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
-	transform_tracks(aligned, Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1), inputCubFile);
+	transform_tracks(aligned, matrix, inputCubFile);
 	
 	//find_track_transforms(aligned, inputCubFile);
-	Matrix3x3 trans = find_tracks_transform(aligned, inputCubFile);
+	Matrix3x3 trans = find_tracks_transform(aligned, inputCubFile, matrix, 
+			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 
 	FILE* output = stdout;
 	if (outputFile.length() > 0)

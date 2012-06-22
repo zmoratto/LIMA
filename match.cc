@@ -35,11 +35,6 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
-#define SEARCH_TRANS_WINDOW 20
-#define SEARCH_TRANS_STEP 5.0
-#define SEARCH_THETA_WINDOW (M_PI / 10)
-#define SEARCH_THETA_STEP (M_PI / 40)
-
 float compute_transform_error(vector<AlignedLOLAShot> & track)
 {
 	float err = 0.0;
@@ -53,46 +48,6 @@ float compute_transform_error(vector<AlignedLOLAShot> & track)
 	}
 
 	return err / num_points;
-}
-
-void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile)
-{
-	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
-	assembledImg = normalize(cub);
-
-	float mid_x = cub.cols() / 2;
-	float mid_y = cub.rows() / 2;
-	Matrix3x3 center(1, 0, -mid_x, 0, 1, -mid_y, 0, 0, 1);
-	Matrix3x3 uncenter(1, 0, mid_x, 0, 1, mid_y, 0, 0, 1);
-
-	for (unsigned int i = 0; i < tracks.size(); i++)
-	{
-		Matrix3x3 best;
-		float best_score = INFINITY;
-
-		for (float tt = -SEARCH_THETA_WINDOW; tt <= SEARCH_THETA_WINDOW; tt += SEARCH_THETA_STEP)
-		{
-			Matrix3x3 purerot(cos(tt), -sin(tt), 0, sin(tt), cos(tt), 0, 0, 0, 1);
-			Matrix3x3 rot = uncenter * purerot * center;
-			for (int xt = -SEARCH_TRANS_WINDOW; xt <= SEARCH_TRANS_WINDOW; xt += SEARCH_TRANS_STEP)
-				for (int yt = -SEARCH_TRANS_WINDOW; yt <= SEARCH_TRANS_WINDOW; yt += SEARCH_TRANS_STEP)
-				{
-					Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
-					transform_track(tracks[i], trans * rot, assembledImg);
-
-					float score = compute_transform_error(tracks[i]);
-					if (score < best_score)
-					{
-						best_score = score;
-						best = trans * rot;
-					}
-				}
-		}
-		printf("%d/%d\n", (int)i, (int)tracks.size());
-		transform_track(tracks[i], best, assembledImg);
-	}
 }
 
 float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks)
@@ -111,7 +66,8 @@ float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks)
 	return err / num_points;
 }
 
-Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile)
+Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile, Matrix3x3 matrix,
+		int transSearchWindow, int transSearchStep, float thetaSearchWindow, float thetaSearchStep)
 {
 	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
 	DiskImageView<PixelGray<float> > cub(rsrc);
@@ -129,29 +85,29 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 	float best_score = INFINITY;
 
 
-	for (float tt = -SEARCH_THETA_WINDOW; tt <= SEARCH_THETA_WINDOW; tt += SEARCH_THETA_STEP)
+	for (float tt = -thetaSearchWindow; tt <= thetaSearchWindow; tt += thetaSearchStep)
 	{
 		Matrix3x3 purerot(cos(tt), -sin(tt), 0, sin(tt), cos(tt), 0, 0, 0, 1);
 		Matrix3x3 rot = uncenter * purerot * center;
-		for (int xt = -SEARCH_TRANS_WINDOW; xt <= SEARCH_TRANS_WINDOW; xt += SEARCH_TRANS_STEP)
-			for (int yt = -SEARCH_TRANS_WINDOW; yt <= SEARCH_TRANS_WINDOW; yt += SEARCH_TRANS_STEP)
+		for (int xt = -transSearchWindow; xt <= transSearchWindow; xt += transSearchStep)
+			for (int yt = -transSearchWindow; yt <= transSearchWindow; yt += transSearchStep)
 			{
 				Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
-				transform_tracks(tracks, trans * rot, assembledImg);
+				transform_tracks(tracks, trans * rot * matrix, assembledImg);
 				float score = compute_transform_error(tracks);
 				if (score < best_score)
 				{
-					printf("%g %d %d %g\n", tt, xt, yt, score);
+					//printf("%g %d %d %g\n", tt, xt, yt, score);
 					best_score = score;
-					best = trans * rot;
+					best = trans * rot * matrix;
 					best_trans_x = xt;
 					best_trans_y = yt;
 					best_rot = tt;
 				}
 			}
-		printf("%g\n", tt);
+		//printf("%g\n", tt);
 	}
-	printf("Best x: %g y: %g theta: %g\n", best_trans_x, best_trans_y, best_rot);
+	//printf("Best x: %g y: %g theta: %g\n", best_trans_x, best_trans_y, best_rot);
 	
 	transform_tracks(tracks, best, assembledImg);
 
