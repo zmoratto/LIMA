@@ -47,6 +47,9 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 		int transSearchWindow=DEFAULT_SEARCH_TRANS_WINDOW, int transSearchStep=DEFAULT_SEARCH_TRANS_STEP, 
 		float thetaSearchWindow=DEFAULT_SEARCH_THETA_WINDOW, float thetaSearchStep=DEFAULT_SEARCH_THETA_STEP);
 
+Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
+		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1));
+
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
 float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
 

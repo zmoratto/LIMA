@@ -21,7 +21,9 @@
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Math.h>
+#include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/LinearAlgebra.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
@@ -35,7 +37,7 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
-float compute_transform_error(vector<AlignedLOLAShot> & track)
+float compute_transform_error(vector<AlignedLOLAShot> & track, int* numpoints=NULL)
 {
 	float err = 0.0;
 	int num_points = 0;
@@ -46,11 +48,15 @@ float compute_transform_error(vector<AlignedLOLAShot> & track)
 		err += pow(track[j].synth_image - track[j].image, 2);
 		num_points++;
 	}
+	if (numpoints != NULL)
+		*numpoints = num_points;
+	if (num_points == 0)
+		return -1;
 
 	return err / num_points;
 }
 
-float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks)
+float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL)
 {
 	float err = 0.0;
 	int num_points = 0;
@@ -62,6 +68,10 @@ float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks)
 			err += pow(tracks[i][j].synth_image - tracks[i][j].image, 2);
 			num_points++;
 		}
+	if (numpoints != NULL)
+		*numpoints = num_points;
+	if (num_points == 0)
+		return -1;
 
 	return err / num_points;
 }
@@ -81,7 +91,6 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 	Matrix3x3 uncenter(1, 0, mid_x, 0, 1, mid_y, 0, 0, 1);
 
 	Matrix3x3 best;
-	float best_trans_x, best_trans_y, best_rot;
 	float best_score = INFINITY;
 
 
@@ -100,9 +109,6 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 					//printf("%g %d %d %g\n", tt, xt, yt, score);
 					best_score = score;
 					best = trans * rot * matrix;
-					best_trans_x = xt;
-					best_trans_y = yt;
-					best_rot = tt;
 				}
 			}
 		//printf("%g\n", tt);
@@ -113,6 +119,112 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 
 	return best;
 }
+
+// J_f(B)_{ij} = dF_i / dB_j
+// transform may be marked as invalid if points have left the image window
+Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, ImageView<PixelGray<float> > img, int num_points)
+{
+	Matrix<double> J(num_points, 6);
+	int index = 0;
+	for (unsigned int i = 0; i < track.size(); i++)
+	{
+		if (track[i].image == -1 || track[i].synth_image == -1)
+			continue;
+		int x = track[i].image_x;
+		int y = track[i].image_y;
+		double dx = (img(x + 1, y) - img(x - 1, y));
+		double dy = (img(x, y + 1) - img(x, y - 1));
+		
+		// compute the derivatives
+		J(index, 0) = dx / (2.0 / track[i].imgPt[2].x);
+		J(index, 1) = dx / (2.0 / track[i].imgPt[2].y);
+		J(index, 2) = dx / 2.0;
+		J(index, 3) = dy / (2.0 / track[i].imgPt[2].x);
+		J(index, 4) = dy / (2.0 / track[i].imgPt[2].y);
+		J(index, 5) = dy / 2.0;
+		index++;
+	}
+
+	return J;
+}
+
+Matrix<double> generate_error_vector(vector<AlignedLOLAShot> & track, int num_points)
+{
+	Matrix<double> r(num_points, 1);
+	int index = 0;
+	for (unsigned int i = 0; i < track.size(); i++)
+		if (track[i].image != -1 && track[i].synth_image != -1)
+		{
+			r(index, 0) = track[i].image - track[i].synth_image;
+			index++;
+		}
+	return r;
+}
+
+/**
+ * B = transformation matrix
+ * f_i(B) = synthetic image at track point i given B
+ * r_i(B) = error at track point i given B
+ * B_{s+1} = B_s + \delta
+ * (J_f^T J_f) \delta = J_f^T r
+ * Must compute J_f(B)
+ * J_f(B)_{ij} = dF_i / dB_j
+ **/
+// assumes we have already called transform_track to set image and synth_image
+Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
+		Matrix3x3 matrix)
+{
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
+	assembledImg = normalize(cub);
+	
+	Matrix3x3 B = matrix;
+
+	int num_points = 0;
+	float err, last_err = compute_transform_error(track, &num_points);
+	if (num_points <= 0) // no points
+		return matrix;
+	while (true)
+	{
+		Matrix<double> J = compute_jacobian(track, B, assembledImg, num_points);
+		Matrix<double> trans = transpose(J);
+		Matrix<double> r = generate_error_vector(track, num_points);
+		Matrix<double> U(num_points, num_points), S(num_points, num_points), VT(num_points, num_points);
+		Vector<double> s(num_points);
+		svd(trans * J, U, s, VT);
+		for (int i = 0; i < num_points; i++)
+			if (s(i) > 0.0) // don't divide by 0
+				S(i, i) = 1.0 / s(i);
+		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
+		Matrix<double> delta = pseudoinverse * trans * r;
+		Matrix3x3 last_matrix = B;
+		delta = 0.005 * delta;
+		printf("%g %g %g\n%g %g %g\n", delta(0, 0), delta(1, 0), delta(2, 0), delta(3, 0), delta(4, 0), delta(5, 0));
+		B(0, 0) += delta(0, 0);
+		B(0, 1) += delta(1, 0);
+		B(0, 2) += delta(2, 0);
+		B(1, 0) += delta(3, 0);
+		B(1, 1) += delta(4, 0);
+		B(1, 2) += delta(5, 0);
+		transform_track(track, B, assembledImg);
+		err = compute_transform_error(track);
+		if (err == -1)
+		{
+			fprintf(stderr, "Matrix jumped too far, giving up.\n");
+			return last_matrix;
+		}
+		printf("Error: %g Old Error: %g\n", err, last_err);
+		if (err > last_err)
+		{
+			B = last_matrix;
+			break;
+		}
+		last_err = err;
+	}
+	return B;
+}
+
 
 #define CHUNKSIZE   1
 

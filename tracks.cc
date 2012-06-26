@@ -430,7 +430,7 @@ Vector2 ComputeGainBiasFactor( const vector<AlignedLOLAShot>& trackPts ) {
 
   //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
   //if (numValidPts != 0){
-  if( numValidPts > 20 ){ 
+  if( numValidPts > 1 ){ 
     gain_bias = GainBiasSolver( sum_rfl, sum_img, sum_rfl_2, sum_rfl_img, numValidPts );
   }
   else{
