@@ -133,9 +133,13 @@ int main( int argc, char *argv[] )
 		fprintf(stderr, "Failed to create directory.\n");
 		return 1;
 	}
-
-
+	
 	// done parsing arguments
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(inputCubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
+	double nodataVal = rsrc->nodata_read();
+	cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
 
 	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
 	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
@@ -147,14 +151,14 @@ int main( int argc, char *argv[] )
 	Vector3 lightPosition = model.sun_position( pixel_location );
 	
 	//initialization step for LIMA - START	
-	GetAllPtsFromCub(trackPts, inputCubFile);
+	GetAllPtsFromCub(trackPts, model, cubImage);
 	
 	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
 	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
-	transform_tracks(aligned, matrix, inputCubFile);
+	transform_tracks(aligned, matrix, cubImage);
 	
 	//find_track_transforms(aligned, inputCubFile);
-	Matrix3x3 trans = find_tracks_transform(aligned, inputCubFile, matrix, 
+	Matrix3x3 trans = find_tracks_transform(aligned, cubImage, matrix, 
 			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 
 	FILE* output = stdout;
@@ -174,7 +178,7 @@ int main( int argc, char *argv[] )
 	if (dataFile.length() > 0)
 		save_track_data(aligned, dataFile);
 	if (imageFile.length() > 0)
-		SaveReflectanceImages(aligned, inputCubFile, imageFile, true);
+		SaveReflectanceImages(aligned, cubImage, imageFile);
  
 	return 0;
 

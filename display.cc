@@ -512,27 +512,13 @@ DiskImageResource* get_image(string file, bool is_cub)
 	write_image(filename, assembledImg);
 }*/
 
-void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& tracks,  string cubFile, string filename, bool is_cub)
+void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& tracks,  ImageView<PixelGray<float> > cub, string filename)
 {
-	DiskImageResource* image =  get_image(cubFile, is_cub);
-	boost::shared_ptr<DiskImageResource> rsrc((DiskImageResource*)(image));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	
 	int width = cub.cols();
 	int height = cub.rows();
 	ImageView<PixelRGB<uint8> > assembledImg(width, height);
 	
-	if (is_cub)
-	{
-		double nodataVal = rsrc->nodata_read();
-		assembledImg = apply_mask(normalize(create_mask(cub,nodataVal))*255,0);
-	}
-	// calibrated image
-	else
-	{
-		assembledImg = apply_mask(normalize(cub) * 255, 0);
-	}
-	
+	assembledImg = apply_mask(normalize(cub) * 255, 0);
 
 	int xl, yt;
 	
@@ -540,7 +526,7 @@ void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& tracks,  string cub
 		for (unsigned int j = 0; j < tracks[i].size(); j++)
 		{
 			AlignedLOLAShot* s = &tracks[i][j];
-			if (s->synth_image < 0)
+			if (s->synth_image < 0 || s->image < 0)
 				continue;
 			xl = s->image_x;
 			yt = s->image_y;

@@ -116,7 +116,13 @@ TEST( GetAllPtsFromCub, works ){
   unsigned int num_shots = shots.size();
   fs::path cub("M111578606RE.10mpp.cub");
 
-  GetAllPtsFromCub( shots, cub.string());
+  boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cub.string()));
+  DiskImageView<PixelGray<float> > cubView(rsrc);
+  ImageView<PixelGray<float> > cubImage(cubView.cols(), cubView.rows());
+  cubImage = cubView;
+  camera::IsisCameraModel model(cub.string());
+
+  GetAllPtsFromCub( shots, model, cubImage);
   ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
 
   int valid_counter = 0;
@@ -230,7 +236,11 @@ TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
 }
 
 TEST( ComputeMinMaxValuesFromCub, works ){
-  Vector2 test = ComputeMinMaxValuesFromCub( "AS15-M-2327.lev1.500.cub" );
+  boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis("AS15-M-2327.lev1.500.cub"));
+  DiskImageView<PixelGray<float> > cubView(rsrc);
+  ImageView<PixelGray<float> > cubImage(cubView.cols(), cubView.rows());
+  cubImage = cubView;
+  Vector2 test = ComputeMinMaxValuesFromCub(cubImage );
 
   // The output from the ISIS stats program is:
   // Minimum                 = -1.29148247651756e-09
@@ -368,9 +378,16 @@ TEST( GCP, Update ){
   string map( "M111578606RE.10mpp.cub" );
   string cam( "cam_cub_filename" );
   
-  GetAllPtsFromCub( shots, map );
+  boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(map));
+  DiskImageView<PixelGray<float> > cubView(rsrc);
+  ImageView<PixelGray<float> > cubImage(cubView.cols(), cubView.rows());
+  cubImage = cubView;
+  camera::IsisCameraModel model(map);
 
-  camera::IsisCameraModel model( map );
+
+  
+  GetAllPtsFromCub( shots, model, cubImage);
+
   Vector2 origin;
   Vector3 cameraPosition = model.camera_center( origin );
   Vector3 lightPosition = model.sun_position( origin );

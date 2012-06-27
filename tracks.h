@@ -22,6 +22,8 @@
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 
+#include <asp/IsisIO/IsisCameraModel.h>
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -222,7 +224,7 @@ vw::Vector4 FindMinMaxLat( const std::vector<std::vector<LOLAShot> >& );
 //float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
 vw::Vector2 ComputeGainBiasFactor( const std::vector<AlignedLOLAShot>& );
 vw::Vector2 ComputeGainBiasFactor( const std::vector<std::vector<AlignedLOLAShot> >& );
-int GetAllPtsFromCub( std::vector<std::vector<LOLAShot> >&, const std::string& );
+int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, camera::IsisCameraModel & model, ImageView<PixelGray<float> > & cubImage);
 int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          cameraPosition,
                            const vw::Vector3&                          lightPosition);
@@ -262,7 +264,7 @@ void SaveGCPoints( const std::vector<gcp>&, const std::string& );
 // void ComputeAverageIntraShotDistance(vector<vector<LOLAShot> >trackPts);
 
 //this function does not belong here
-vw::Vector2 ComputeMinMaxValuesFromCub( const std::string& );
+vw::Vector2 ComputeMinMaxValuesFromCub( ImageView<PixelGray<float> > &  image );
 //Vector2 ComputeMinMaxValuesFromDEM(string demFilename);
 
 

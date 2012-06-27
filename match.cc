@@ -76,15 +76,9 @@ float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* nu
 	return err / num_points;
 }
 
-Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, string cubFile, Matrix3x3 matrix,
+Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub, Matrix3x3 matrix,
 		int transSearchWindow, int transSearchStep, float thetaSearchWindow, float thetaSearchStep)
 {
-	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
-	assembledImg = normalize(cub);
-
-
 	float mid_x = cub.cols() / 2;
 	float mid_y = cub.rows() / 2;
 	Matrix3x3 center(1, 0, -mid_x, 0, 1, -mid_y, 0, 0, 1);
@@ -102,7 +96,7 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 			for (int yt = -transSearchWindow; yt <= transSearchWindow; yt += transSearchStep)
 			{
 				Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
-				transform_tracks(tracks, trans * rot * matrix, assembledImg);
+				transform_tracks(tracks, trans * rot * matrix, cub);
 				float score = compute_transform_error(tracks);
 				if (score < best_score)
 				{
@@ -115,7 +109,7 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, strin
 	}
 	//printf("Best x: %g y: %g theta: %g\n", best_trans_x, best_trans_y, best_rot);
 	
-	transform_tracks(tracks, best, assembledImg);
+	transform_tracks(tracks, best, cub);
 
 	return best;
 }
@@ -171,14 +165,9 @@ Matrix<double> generate_error_vector(vector<AlignedLOLAShot> & track, int num_po
  * J_f(B)_{ij} = dF_i / dB_j
  **/
 // assumes we have already called transform_track to set image and synth_image
-Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
+Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 matrix)
 {
-	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(cubFile));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	ImageView<PixelGray<float> > assembledImg(cub.cols(), cub.rows());
-	assembledImg = normalize(cub);
-	
 	Matrix3x3 B = matrix;
 
 	int num_points = 0;
@@ -187,15 +176,17 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
 		return matrix;
 	while (true)
 	{
-		Matrix<double> J = compute_jacobian(track, B, assembledImg, num_points);
+		Matrix<double> J = compute_jacobian(track, B, cubImage, num_points);
 		Matrix<double> trans = transpose(J);
 		Matrix<double> r = generate_error_vector(track, num_points);
-		Matrix<double> U(num_points, num_points), S(num_points, num_points), VT(num_points, num_points);
-		Vector<double> s(num_points);
+		Matrix<double> U(6, 6), S(6, 6), VT(6, 6);
+		Vector<double> s(6);
 		svd(trans * J, U, s, VT);
-		for (int i = 0; i < num_points; i++)
-			if (s(i) > 0.0) // don't divide by 0
+		for (int i = 0; i < 6; i++)
+		{
+			if (s(i) > 10e-15) // don't divide by 0
 				S(i, i) = 1.0 / s(i);
+		}
 		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
 		Matrix<double> delta = pseudoinverse * trans * r;
 		Matrix3x3 last_matrix = B;
@@ -207,7 +198,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
 		B(1, 0) += delta(3, 0);
 		B(1, 1) += delta(4, 0);
 		B(1, 2) += delta(5, 0);
-		transform_track(track, B, assembledImg);
+		transform_track(track, B, cubImage);
 		err = compute_transform_error(track);
 		if (err == -1)
 		{
@@ -217,6 +208,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, string cubFile,
 		printf("Error: %g Old Error: %g\n", err, last_err);
 		if (err > last_err)
 		{
+			printf("done\n");
 			B = last_matrix;
 			break;
 		}

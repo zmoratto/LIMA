@@ -155,6 +155,13 @@ int main( int argc, char *argv[] )
 		string overlapDRGFilename = drgDir+string("/")+GetFilenameNoPath(overlapCamCubFile);
 		FindAndReplace(overlapDRGFilename, ".cub", "_drg.tif");
 	
+		boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(overlapCamCubFile));
+		DiskImageView<PixelGray<float> > cub(rsrc);
+		ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
+		double nodataVal = rsrc->nodata_read();
+		cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
+	
+	
 		camera::IsisCameraModel model(overlapCamCubFile);
 		//camera::IsisCameraModel model(overlapMapCubFile); // for DRG
 		Vector3 center_of_moon(0,0,0);
@@ -163,7 +170,7 @@ int main( int argc, char *argv[] )
 		Vector3 lightPosition = model.sun_position( pixel_location );
 	
 		//initialization step for LIMA - START	
-		GetAllPtsFromCub(trackPts, overlapCamCubFile);
+		GetAllPtsFromCub(trackPts, model, cubImage);
 		/*boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(overlapDRGFilename) );
 		DiskImageView<PixelGray<uint8> > DRG( rsrc );
 		GeoReference DRGGeo;
@@ -173,7 +180,7 @@ int main( int argc, char *argv[] )
 		int	numValidReflPts = ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
 		vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
 
-		transform_tracks(aligned, Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1), overlapCamCubFile);
+		transform_tracks(aligned, Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1), cubImage);
 		//initialization step for LIMA - END 
 	
 		
@@ -183,19 +190,19 @@ int main( int argc, char *argv[] )
 		//find_track_transforms(aligned, overlapCamCubFile);
 		//Matrix3x3 trans = find_tracks_transform(aligned, overlapCamCubFile);
 		Matrix3x3 trans(1, 0, 10, 0, 1, -15, 0, 0, 1);
-		transform_tracks(aligned, trans, overlapCamCubFile);
+		transform_tracks(aligned, trans, cubImage);
 		printf("Best transform:\n");
 		for (int i = 0; i < 3; i++)
 			printf("%g %g %g\n", trans(i, 0), trans(i, 1), trans(i, 2));
 		//gauss_newton_track(aligned[2], overlapCamCubFile, trans);
 		//return 0;
 		for (unsigned int i = 0; i < aligned.size(); i++)
-			gauss_newton_track(aligned[i], overlapCamCubFile, trans);
+			gauss_newton_track(aligned[i], cubImage, trans);
 		//vector<float> initMatchingErrorArray;
 		//vector<Vector4> matchArray = FindMatches2D(trackPts, overlapCamCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
 		std::stringstream out2;
 		out2 << resDir << "/reflectance_" << k << ".tif";
-		SaveReflectanceImages(aligned, overlapCamCubFile, out2.str(), true);
+		SaveReflectanceImages(aligned, cubImage, out2.str());
 		std::stringstream out4;
 		out4 << resDir << "/track_data_" << k << ".txt";
 		save_track_data(aligned, out4.str());

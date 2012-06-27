@@ -223,15 +223,12 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   return trackPts; 
 }
 
-Vector2 ComputeMinMaxValuesFromCub( const string& cubFilename)
+Vector2 ComputeMinMaxValuesFromCub( ImageView<PixelGray<float> > & isis_view)
 {
   Vector2 minmax;
-  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-  double nodataVal = rsrc->nodata_read();
-  DiskImageView<PixelGray<float> > isis_view( rsrc );
   PixelGray<float> minVal = std::numeric_limits<float>::max();
   PixelGray<float> maxVal = std::numeric_limits<float>::min();
-  min_max_pixel_values( create_mask(isis_view,nodataVal), minVal, maxVal );
+  min_max_pixel_values( isis_view, minVal, maxVal );
   minmax(0) = minVal;
   minmax(1) = maxVal;
   //cout<<"min="<<minVal<<", max="<<maxVal<<endl;
@@ -268,26 +265,20 @@ Vector2 ComputeMinMaxValuesFromDEM(string demFilename)
   return minmax;
 }
 */
-int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, const string& cubFilename ) {
-  boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceIsis(cubFilename) );
-  //double nodata_value = rsrc->nodata_read();
-  //cout<<"no_data_val="<<nodata_value<<endl; 
-
-  DiskImageView<PixelGray<float> > isis_view( rsrc );
-  camera::IsisCameraModel model( cubFilename );
-
+int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, camera::IsisCameraModel & model, ImageView<PixelGray<float> > & cubImage)
+{
   //calculate the min max value of the image
-  Vector2 minmax = ComputeMinMaxValuesFromCub( cubFilename );
+  Vector2 minmax = ComputeMinMaxValuesFromCub( cubImage );
 
   // float minTrackVal = std::numeric_limits<float>::max();
   // float maxTrackVal = std::numeric_limits<float>::min();
 
   int numValidImgPts = 0;
 
-  InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
-    = interpolate(isis_view, BilinearInterpolation(), ConstantEdgeExtension());
+  InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> interpImg
+    = interpolate(cubImage, BilinearInterpolation(), ConstantEdgeExtension());
 
-  BBox2i bbox = bounding_box( isis_view );  
+  BBox2i bbox = bounding_box( cubImage );  
   for( unsigned int k = 0; k < trackPts.size(); ++k ){
     for( unsigned int i = 0; i < trackPts[k].size(); ++i ){
       vector<pointCloud> points = trackPts[k][i].LOLAPt;
