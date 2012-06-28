@@ -124,19 +124,39 @@ Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, Im
 	{
 		if (track[i].image == -1 || track[i].synth_image == -1)
 			continue;
+
 		int x = track[i].image_x;
 		int y = track[i].image_y;
-		double dx = (img(x + 1, y) - img(x - 1, y));
-		double dy = (img(x, y + 1) - img(x, y - 1));
+
+		// finite difference with two points
+		//double dx = -0.5 * (img(x + 1, y) - img(x - 1, y));
+		//double dy = -0.5 * (img(x, y + 1) - img(x, y - 1));
+		double h = 1.0;
+		
+		// fininte difference with three points to right and left
+		double dx, dy;
+		if (x >= img.rows() - 3 || x <= 3 || y >= img.cols() - 3 || y <= 3)
+			dx = 0.0, dy = 0.0; // TODO: something better
+		else
+		{
+			dx = (-1.0/60) * img(x-3, y) + (3.0/20) * img(x-2, y) - (3.0 / 4) * img(x-1, y) +
+				(3.0/4) * img(x+1, y) - (3.0 / 20) * img(x+2, y) + (1.0 / 60) * img(x+3, y);
+			dy = (-1.0/60) * img(x, y-3) + (3.0/20) * img(x, y-2) - (3.0 / 4) * img(x, y-1) +
+				(3.0/4) * img(x, y+1) - (3.0 / 20) * img(x, y+2) + (1.0 / 60) * img(x, y+3);
+			dx = -dx;
+			dy = -dy;
+		}
 		
 		// compute the derivatives
-		J(index, 0) = dx / (2.0 / track[i].imgPt[2].x);
-		J(index, 1) = dx / (2.0 / track[i].imgPt[2].y);
-		J(index, 2) = dx / 2.0;
-		J(index, 3) = dy / (2.0 / track[i].imgPt[2].x);
-		J(index, 4) = dy / (2.0 / track[i].imgPt[2].y);
-		J(index, 5) = dy / 2.0;
+		J(index, 0) = dx / (h / track[i].imgPt[2].x);
+		J(index, 1) = dx / (h / track[i].imgPt[2].y);
+		J(index, 2) = dx / h;
+		J(index, 3) = dy / (h / track[i].imgPt[2].x);
+		J(index, 4) = dy / (h / track[i].imgPt[2].y);
+		J(index, 5) = dy / h;
 		index++;
+
+		//printf("%g %g %g\n", track[i].image - track[i].synth_image, dx / h, dy / h);
 	}
 
 	return J;
@@ -190,7 +210,6 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
 		Matrix<double> delta = pseudoinverse * trans * r;
 		Matrix3x3 last_matrix = B;
-		delta = 0.005 * delta;
 		printf("%g %g %g\n%g %g %g\n", delta(0, 0), delta(1, 0), delta(2, 0), delta(3, 0), delta(4, 0), delta(5, 0));
 		B(0, 0) += delta(0, 0);
 		B(0, 1) += delta(1, 0);
@@ -205,10 +224,9 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 			fprintf(stderr, "Matrix jumped too far, giving up.\n");
 			return last_matrix;
 		}
-		printf("Error: %g Old Error: %g\n", err, last_err);
+		//printf("Error: %g Old Error: %g\n", err, last_err);
 		if (err > last_err)
 		{
-			printf("done\n");
 			B = last_matrix;
 			break;
 		}

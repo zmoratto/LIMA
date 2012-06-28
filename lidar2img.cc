@@ -194,10 +194,10 @@ int main( int argc, char *argv[] )
 		printf("Best transform:\n");
 		for (int i = 0; i < 3; i++)
 			printf("%g %g %g\n", trans(i, 0), trans(i, 1), trans(i, 2));
-		//gauss_newton_track(aligned[2], overlapCamCubFile, trans);
-		//return 0;
+		float error = compute_transform_error(aligned);
 		for (unsigned int i = 0; i < aligned.size(); i++)
 			gauss_newton_track(aligned[i], cubImage, trans);
+		printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
 		//vector<float> initMatchingErrorArray;
 		//vector<Vector4> matchArray = FindMatches2D(trackPts, overlapCamCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
 		std::stringstream out2;

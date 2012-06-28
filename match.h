@@ -41,6 +41,7 @@ using namespace std;
 #define DEFAULT_SEARCH_THETA_STEP (M_PI / 40)
 
 
+float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL);
 void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
 Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,
 		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1),
