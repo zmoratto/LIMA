@@ -8,6 +8,7 @@ import subprocess
 import argparse
 import tempfile
 import math
+import time
 
 import numpy
 
@@ -112,9 +113,32 @@ def get_image_dimensions(image_file):
 	os.remove(out_file)
 	return (int(s[4]), int(s[5]))
 
+def get_point_projection(image_file, lon, lat):
+	tfile = tempfile.NamedTemporaryFile(delete=False)
+	out_file = tfile.name
+	tfile.close()
+	if lon < 0.0:
+		lon = lon + 360.0
+	ret = os.system(ISISBIN + '/campt from=%s to=%s format=flat type=ground latitude=%g longitude=%g > /dev/null' % (image_file, out_file, lat, lon))
+	os.remove('print.prt')
+	if ret != 0:
+		return (None, None)
+	f = open(out_file, 'r')
+	s = f.readline().split(',')
+	os.remove(out_file)
+	return (int(float(s[1])), int(float(s[2])))
+
 # create bounds for a trimmed image including as many of the LOLA points as possible,
 # with some wiggle room around the edges for alignment
-def get_trimmed_bbox(lolabbox, imagebbox, width, height):
+def get_bounding_box(tracks_file, image_file):
+	lolabbox = get_tracks_bbox(tracks_file)
+	imagebbox = get_image_bbox(image_file)
+	if lolabbox == None or imagebbox == None:
+		return None
+	(width, height) = get_image_dimensions(image_file)
+	if width == None or height == None:
+		return None
+
 	bbout = [0, 0, 0, 0]
 	bbout[0] = max(lolabbox[0], imagebbox[0])
 	bbout[1] = max(lolabbox[1], imagebbox[1])
@@ -125,21 +149,21 @@ def get_trimmed_bbox(lolabbox, imagebbox, width, height):
 		print >> sys.stderr, "No overlap between LOLA points and the image."
 		return None
 
-	horiz_expand = (bbout[2] - bbout[0]) * 0.05
+	horiz_expand = (bbout[2] - bbout[0]) * 0.2
 	bbout[0] = max(bbout[0] - horiz_expand, imagebbox[0])
 	bbout[2] = min(bbout[2] + horiz_expand, imagebbox[2])
 	
-	vert_expand = (bbout[3] - bbout[1]) * 0.05
+	vert_expand = (bbout[3] - bbout[1]) * 0.2
 	bbout[1] = max(bbout[1] - horiz_expand, imagebbox[1])
 	bbout[3] = min(bbout[3] + horiz_expand, imagebbox[3])
 
-	bbout[0] = int((width / (imagebbox[2] - imagebbox[0])) * (bbout[0] - imagebbox[0]))
-	bbout[2] = int((width / (imagebbox[2] - imagebbox[0])) * (bbout[2] - imagebbox[0]))
-	temp = bbout[1]
-	bbout[1] = int((height / (imagebbox[3] - imagebbox[1])) * (imagebbox[3] - bbout[3]))
-	bbout[3] = int((height / (imagebbox[3] - imagebbox[1])) * (imagebbox[3] - temp))
-
-	return bbout
+	(x1, y1) = get_point_projection(image_file, bbout[0], bbout[1])
+	(x2, y2) = get_point_projection(image_file, bbout[2], bbout[3])
+	x1 = min(max(x1, 1), width)
+	x2 = min(max(x2, 1), width)
+	y1 = min(max(y1, 1), height)
+	y2 = min(max(y2, 1), height)
+	return [min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2)]
 
 def crop_image(image_file, view_bbox):
 	tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.cub')
@@ -167,12 +191,18 @@ def reduce_image(in_file, scale_factor):
 		return None
 	return reduced_file
 
-def align_image(tracks, image, matrix, window, output_image=None):
-	matrix_string = ""
-	for r in matrix:
-		for v in r:
-			matrix_string += str(v) + ','
-	matrix_string = matrix_string[:-1]
+# if alignments is specified, use those as starting track alignments
+# if window is specified, do brute force search over a window
+def align_image(tracks, image, alignments=None, window=None, output_image=None):
+	if alignments != None:
+		tfile = tempfile.NamedTemporaryFile(delete=False)
+		alignment_file = tfile.name
+		tfile.close()
+		f = open(alignment_file, "w")
+		for m in alignments:
+			f.write('%g %g %g %g %g %g\n' % (m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2]))
+		f.close()
+	
 	if output_image != None:
 		output_image = '--outputImage ' + output_image
 	else:
@@ -183,40 +213,35 @@ def align_image(tracks, image, matrix, window, output_image=None):
 	tfile.close()
 	command = '../bin/bruteforcealign -l %s -i %s -o %s %s ' % \
 		(tracks, image, output_file, output_image)
-	command += '-m ' + matrix_string + ' '
-	command += '--transSearchWindow %d --transSearchStep %d --thetaSearchWindow %g --thetaSearchStep %g' % \
-		(window[0], window[1], window[2], window[3])
+	if alignments != None:
+		command += '--startMatrices ' + alignment_file + ' '
+	if window != None:
+		command += '--transSearchWindow %d --transSearchStep %d --thetaSearchWindow %g --thetaSearchStep %g' % \
+			(window[0], window[1], window[2], window[3])
 	ret = os.system(command)
+	if alignments != None:
+		os.remove(alignment_file)
 	if ret != 0:
 		print >> sys.stderr, "Failed to align image."
 		return None
 
-	out = numpy.array(matrix)
+	out = []
 	f = open(output_file, 'r')
-	row = 0
 	for l in f:
 		if l == "":
 			continue
+		temp = numpy.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 		s = map(float, l.split())
-		out[row][0] = s[0]
-		out[row][1] = s[1]
-		out[row][2] = s[2]
-		row = row + 1
-	print out
+		temp[0] = s[0:3]
+		temp[1] = s[3:6]
+		out.append(temp)
 	f.close()
 	os.remove(output_file)
 	return out
 
 def brute_force_pyramid_align(image_file, tracks_file):
 	print "Computing bounding box..."
-	lola_bbox = get_tracks_bbox(tracks_file)
-	image_bbox = get_image_bbox(image_file)
-	if lola_bbox == None or image_bbox == None:
-		return None
-	(width, height) = get_image_dimensions(image_file)
-	if width == None or height == None:
-		return None
-	view_bbox = get_trimmed_bbox(lola_bbox, image_bbox, width, height)
+	view_bbox = get_bounding_box(tracks_file, image_file)
 	if view_bbox == None:
 		return None
 	
@@ -225,22 +250,23 @@ def brute_force_pyramid_align(image_file, tracks_file):
 	if trimmed_image_file == None:
 		return None
 
-	align = numpy.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-
 	# first do a big search over the smallest image
-	old_factor = 16
+	old_factor = 8
 	print 'Downscaling image by scale factor %d...' % (old_factor)
 	reduced = reduce_image(trimmed_image_file, old_factor)
 	print 'Aligning image...'
-	align = align_image(tracks_file, reduced, align, [10, 2, math.pi / 20, math.pi / 40], output_image="reflectance.tif")
+	alignments = align_image(tracks_file, reduced, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
 	
 	# now do smaller searches over more detailed images, using previous alignment as starting point
-	scale_reductions = [8, 4, 2, 1]
+	scale_reductions = [4, 2, 1]
 	search_window = [2, 1, math.pi / 40, math.pi / 80]
 	for factor in scale_reductions:
 		# scale matrix for new resolution
-		align[0][2] *= old_factor / factor
-		align[1][2] *= old_factor / factor
+		for i in range(len(alignments)):
+			r = float(old_factor) / factor
+			t1 = numpy.array([[r, 0, 0], [0, r, 0], [0, 0, 1]])
+			t2 = numpy.array([[1.0/r, 0, 0], [0, 1.0/r, 0], [0, 0, 1]])
+			alignments[i] = t1.dot(alignments[i]).dot(t2)
 		old_factor = factor
 		if factor == 1:
 			reduced = trimmed_image_file
@@ -248,11 +274,11 @@ def brute_force_pyramid_align(image_file, tracks_file):
 			print "Reducing image by scale factor %d." % (factor)
 			reduced = reduce_image(trimmed_image_file, factor)
 		print 'Aligning image...'
-		align = align_image(tracks_file, reduced, align, search_window, output_image='reflectance.tif')
+		alignments = align_image(tracks_file, reduced, alignments=alignments, output_image='reflectance.tif')
 		# also use finer theta search window
 		search_window[2] = search_window[2] / 2
 		search_window[3] = search_window[3] / 2
-	return align
+	return alignments
 
 parser = argparse.ArgumentParser(description='Align LOLA tracks to an image.')
 parser.add_argument('-t', '--tracks', type=argparse.FileType('r'), required=True, metavar='tracks', help='A CSV file of LOLA tracks.')
@@ -266,5 +292,7 @@ image = res.image
 image_file = image.name
 image.close()
 
-print brute_force_pyramid_align(image_file, tracks_file)
+start = time.time()
+brute_force_pyramid_align(image_file, tracks_file)
+print 'Time taken: ' + str(time.time() - start)
 
