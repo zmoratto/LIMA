@@ -1108,6 +1108,22 @@ void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 trans
 	transform_tracks(tracks, transform, assembledImg);
 }
 
+// this shifts the *original* image points
+void transform_tracks_by_matrices(vector<vector<LOLAShot> > & tracks, vector<Matrix3x3> matrices)
+{
+	for (unsigned int i = 0; i < tracks.size(); i++)
+	{
+		Matrix3x3 M = matrices[i];
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+			for (unsigned int k = 0; k < tracks[i][j].imgPt.size(); k++)
+			{
+				Vector3 r = M * Vector3(tracks[i][j].imgPt[k].x, tracks[i][j].imgPt[k].y, 1);
+				tracks[i][j].imgPt[k].x = r(0);
+				tracks[i][j].imgPt[k].y = r(1);
+			}
+	}
+}
+
 void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >& tracks, const std::string& filename)
 {
 	FILE* f = fopen(filename.c_str(), "w");
@@ -1175,6 +1191,26 @@ void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >& tracks, 
 		fprintf(f, "\n");
 	}
 	fclose(f);
+}
+
+vector<Matrix3x3> load_track_transforms(const std::string& filename)
+{
+	vector<Matrix3x3> l;
+	FILE* f = fopen(filename.c_str(), "r");
+
+	while (true)
+	{
+		Matrix3x3 m((double)1.0, 0, 0, 0, 1, 0, 0, 0, 1);
+		float t[6];
+		int ret = fscanf(f, "%g %g %g %g %g %g\n", &t[0], &t[1], &t[2], &t[3], &t[4], &t[5]);
+		if (ret != 6)
+			return l;
+		m(0, 0) = t[0]; m(0, 1) = t[1]; m(0, 2) = t[2];
+		m(1, 0) = t[3]; m(1, 1) = t[4]; m(1, 2) = t[5];
+		l.push_back(m);
+	}
+
+	return l;
 }
 
 std::vector<std::vector< AlignedLOLAShot> > initialize_aligned_lola_shots(std::vector<std::vector<LOLAShot> >& trackPts)

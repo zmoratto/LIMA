@@ -54,7 +54,7 @@ int main( int argc, char *argv[] )
 	
 	std::string resDir = "../results";
 	std::string inputCubFile;
-	std::string outputFile, dataFile, imageFile, startMatrix;
+	std::string outputFile, dataFile, imageFile, startMatrix, startMatricesFilename;
 	Matrix3x3 matrix(1, 0, 0, 0, 1, 0, 0, 0, 1);
 	int transSearchWindow = 20, transSearchStep = 5;
 	float thetaSearchWindow = (M_PI / 10), thetaSearchStep = (M_PI / 40);
@@ -67,6 +67,7 @@ int main( int argc, char *argv[] )
 	("dataFile,d", po::value<std::string>(&dataFile))
 	("outputImage", po::value<std::string>(&imageFile))
 	("startMatrix,m", po::value<std::string>(&startMatrix))
+	("startMatrices,s", po::value<std::string>(&startMatricesFilename))
 	("transSearchWindow", po::value<int>(&transSearchWindow))
 	("transSearchStep", po::value<int>(&transSearchStep))
 	("thetaSearchWindow", po::value<float>(&thetaSearchWindow))
@@ -141,8 +142,8 @@ int main( int argc, char *argv[] )
 	double nodataVal = rsrc->nodata_read();
 	cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
 
-	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
-	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
+	vector<vector<LOLAShot> > trackPts = LOLAFileRead(inputCSVFilename);
+	//vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
 	
 	camera::IsisCameraModel model(inputCubFile);
 	Vector3 center_of_moon(0,0,0);
@@ -152,14 +153,31 @@ int main( int argc, char *argv[] )
 	
 	//initialization step for LIMA - START	
 	GetAllPtsFromCub(trackPts, model, cubImage);
-	
+
 	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	vector<Matrix3x3> trackTransforms;
+	if (vm.count("startMatrices"))
+	{
+		trackTransforms = load_track_transforms(startMatricesFilename);
+		transform_tracks_by_matrices(trackPts, trackTransforms);
+	}
+	
 	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
 	transform_tracks(aligned, matrix, cubImage);
+	float error = compute_transform_error(aligned);
 	
-	//find_track_transforms(aligned, inputCubFile);
-	Matrix3x3 trans = find_tracks_transform(aligned, cubImage, matrix, 
+	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
+	if (!vm.count("startMatrices"))
+	{
+		for (unsigned int i = 0; i < trackPts.size(); i++)
+			trackTransforms.push_back(Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1));
+		trans = find_tracks_transform(aligned, cubImage, matrix, 
 			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
+	}
+	for (unsigned int i = 0; i < aligned.size(); i++)
+		trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
+	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
 
 	FILE* output = stdout;
 	if (outputFile.length() > 0)
@@ -171,8 +189,11 @@ int main( int argc, char *argv[] )
 			output = stdout;
 		}
 	}
-	for (int i = 0; i < 3; i++)
-		fprintf(output, "%g %g %g\n", trans(i, 0), trans(i, 1), trans(i, 2));
+	for (unsigned int i = 0; i < trackTransforms.size(); i++)
+	{
+		Matrix3x3 & m = trackTransforms[i];
+		fprintf(output, "%g %g %g %g %g %g\n", m(0, 0), m(0, 1), m(0, 2), m(1, 0), m(1, 1), m(1, 2));
+	}
 	fclose(output);
 
 	if (dataFile.length() > 0)

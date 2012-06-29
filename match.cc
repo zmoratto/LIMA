@@ -122,7 +122,9 @@ Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, Im
 	int index = 0;
 	for (unsigned int i = 0; i < track.size(); i++)
 	{
-		if (track[i].image == -1 || track[i].synth_image == -1)
+		// TODO: we may ignore some points that weren't in the image when num_points was computed,
+		// but are with the new transformation
+		if (track[i].image == -1 || track[i].synth_image == -1 || index >= num_points)
 			continue;
 
 		int x = track[i].image_x;
@@ -167,7 +169,7 @@ Matrix<double> generate_error_vector(vector<AlignedLOLAShot> & track, int num_po
 	Matrix<double> r(num_points, 1);
 	int index = 0;
 	for (unsigned int i = 0; i < track.size(); i++)
-		if (track[i].image != -1 && track[i].synth_image != -1)
+		if (track[i].image != -1 && track[i].synth_image != -1 && index < num_points)
 		{
 			r(index, 0) = track[i].image - track[i].synth_image;
 			index++;
@@ -210,7 +212,6 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
 		Matrix<double> delta = pseudoinverse * trans * r;
 		Matrix3x3 last_matrix = B;
-		printf("%g %g %g\n%g %g %g\n", delta(0, 0), delta(1, 0), delta(2, 0), delta(3, 0), delta(4, 0), delta(5, 0));
 		B(0, 0) += delta(0, 0);
 		B(0, 1) += delta(1, 0);
 		B(0, 2) += delta(2, 0);
@@ -225,7 +226,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 			return last_matrix;
 		}
 		//printf("Error: %g Old Error: %g\n", err, last_err);
-		if (err > last_err)
+		if (err >= last_err)
 		{
 			B = last_matrix;
 			break;
