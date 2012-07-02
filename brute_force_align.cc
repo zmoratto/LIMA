@@ -46,33 +46,73 @@ using namespace std;
 #include "display.h"
 #include "weights.h"
 #include "featuresLOLA.h"
+
+vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, string & inputCubFile,
+		vector<Matrix3x3> & trackTransforms, int transSearchWindow=0, int transSearchStep=0,
+		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
+{
+	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(inputCubFile));
+	DiskImageView<PixelGray<float> > cub(rsrc);
+	ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
+	double nodataVal = rsrc->nodata_read();
+	cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
+
+	camera::IsisCameraModel model(inputCubFile);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	//initialization step for LIMA - START	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	transform_tracks_by_matrices(trackPts, trackTransforms);
+	
+	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
+	transform_tracks(aligned, trans, cubImage);
+	float error = compute_transform_error(aligned);
+	
+	if (transSearchStep > 0 && thetaSearchStep > 0.0)
+	{
+		trans = find_tracks_transform(aligned, cubImage, 
+			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
+	}
+	for (unsigned int i = 0; i < aligned.size(); i++)
+		trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
+	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
+	
+	if (image_file.length() > 0)
+		SaveReflectanceImages(aligned, cubImage, image_file);
+
+	return aligned;
+}
 	
 int main( int argc, char *argv[] )
 {
 	// command line options
 	string inputCSVFilename; 
 	
-	std::string resDir = "../results";
 	std::string inputCubFile;
-	std::string outputFile, dataFile, imageFile, startMatrix, startMatricesFilename;
-	Matrix3x3 matrix(1, 0, 0, 0, 1, 0, 0, 0, 1);
-	int transSearchWindow = 20, transSearchStep = 5;
-	float thetaSearchWindow = (M_PI / 10), thetaSearchStep = (M_PI / 40);
+	std::string outputFile, dataFile, imageFile, startMatricesFilename, pyramidFile;
+	int transSearchWindow = 0, transSearchStep = 0;
+	float thetaSearchWindow = 0.0, thetaSearchStep = 0.0;
 
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
 	("inputCubFile,i", po::value<std::string>(&inputCubFile))
+	("imagePyramid,p", po::value<std::string>(&pyramidFile))
 	("outputFile,o", po::value<std::string>(&outputFile))
 	("dataFile,d", po::value<std::string>(&dataFile))
 	("outputImage", po::value<std::string>(&imageFile))
-	("startMatrix,m", po::value<std::string>(&startMatrix))
 	("startMatrices,s", po::value<std::string>(&startMatricesFilename))
 	("transSearchWindow", po::value<int>(&transSearchWindow))
 	("transSearchStep", po::value<int>(&transSearchStep))
 	("thetaSearchWindow", po::value<float>(&thetaSearchWindow))
 	("thetaSearchStep", po::value<float>(&thetaSearchStep))
-	("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
 	("help,h", "Display this help message");
 	
 	po::options_description options("Allowed Options");
@@ -99,86 +139,36 @@ int main( int argc, char *argv[] )
 		return 1;
 	}
 
-	if (vm.count("startMatrix"))
-	{
-		int ret = sscanf(startMatrix.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", 
-			&matrix[0][0], &matrix[0][1], &matrix[0][2], 
-			&matrix[1][0], &matrix[1][1], &matrix[1][2], 
-			&matrix[2][0], &matrix[2][1], &matrix[2][2]);
-		if (ret != 9)
-		{
-			fprintf(stderr, "Failed to read startMatrix argument.\n");
-			return 1;
-		}
-	}
-
 	if( vm.count("help") )
 	{
 		std::cerr << usage.str() << std::endl;
 		return 1;
 	}
 
-	if(( vm.count("inputCubFile") < 1 ))
-	{
-		std::cerr << "Error: Must specify a cub image file!" << std::endl << std::endl;
-		std::cerr << usage.str();
-		return 1;
-	}
-	
-	//create the results directory and prepare the output filenames - START
-	string makeResDirCmd = "mkdir -p " + resDir;
-	int ret = system(makeResDirCmd.c_str()); 
-
-	if (ret)
-	{
-		fprintf(stderr, "Failed to create directory.\n");
-		return 1;
-	}
-	
-	// done parsing arguments
-	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(inputCubFile));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
-	double nodataVal = rsrc->nodata_read();
-	cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
-
 	vector<vector<LOLAShot> > trackPts = LOLAFileRead(inputCSVFilename);
-	//vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
-	
-	camera::IsisCameraModel model(inputCubFile);
-	Vector3 center_of_moon(0,0,0);
-	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-	Vector3 cameraPosition = model.camera_center( pixel_location );
-	Vector3 lightPosition = model.sun_position( pixel_location );
-	
-	//initialization step for LIMA - START	
-	GetAllPtsFromCub(trackPts, model, cubImage);
-
-	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
-
 	vector<Matrix3x3> trackTransforms;
 	if (vm.count("startMatrices"))
-	{
 		trackTransforms = load_track_transforms(startMatricesFilename);
-		transform_tracks_by_matrices(trackPts, trackTransforms);
-	}
-	
-	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
-	transform_tracks(aligned, matrix, cubImage);
-	float error = compute_transform_error(aligned);
-	
-	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
-	if (!vm.count("startMatrices"))
-	{
+	else
 		for (unsigned int i = 0; i < trackPts.size(); i++)
 			trackTransforms.push_back(Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1));
-		trans = find_tracks_transform(aligned, cubImage, matrix, 
-			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
-	}
-	for (unsigned int i = 0; i < aligned.size(); i++)
-		trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
-	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
+	vector<vector< AlignedLOLAShot> > aligned;
 
+	if (vm.count("inputCubFile") > 0)
+	{
+		aligned = align_to_image(trackPts, inputCubFile, trackTransforms, 
+				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep, imageFile);
+	}
+	else if (vm.count("imagePyramid") > 1)
+	{
+
+	}
+	else
+	{
+		fprintf(stderr, "Must specify either a cub file or an image pyramid file!\n");
+		return 1;
+	}
+	
 	FILE* output = stdout;
 	if (outputFile.length() > 0)
 	{
@@ -198,8 +188,6 @@ int main( int argc, char *argv[] )
 
 	if (dataFile.length() > 0)
 		save_track_data(aligned, dataFile);
-	if (imageFile.length() > 0)
-		SaveReflectanceImages(aligned, cubImage, imageFile);
  
 	return 0;
 

@@ -44,7 +44,6 @@ using namespace std;
 float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL);
 void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
 Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,
-		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1),
 		int transSearchWindow=DEFAULT_SEARCH_TRANS_WINDOW, int transSearchStep=DEFAULT_SEARCH_TRANS_STEP, 
 		float thetaSearchWindow=DEFAULT_SEARCH_THETA_WINDOW, float thetaSearchStep=DEFAULT_SEARCH_THETA_STEP);
 

@@ -76,7 +76,7 @@ float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* nu
 	return err / num_points;
 }
 
-Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub, Matrix3x3 matrix,
+Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,
 		int transSearchWindow, int transSearchStep, float thetaSearchWindow, float thetaSearchStep)
 {
 	float mid_x = cub.cols() / 2;
@@ -96,13 +96,13 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, Image
 			for (int yt = -transSearchWindow; yt <= transSearchWindow; yt += transSearchStep)
 			{
 				Matrix3x3 trans(1, 0, xt, 0, 1, yt, 0, 0, 1);
-				transform_tracks(tracks, trans * rot * matrix, cub);
+				transform_tracks(tracks, trans * rot, cub);
 				float score = compute_transform_error(tracks);
 				if (score < best_score)
 				{
 					//printf("%g %d %d %g\n", tt, xt, yt, score);
 					best_score = score;
-					best = trans * rot * matrix;
+					best = trans * rot;
 				}
 			}
 		//printf("%g\n", tt);
