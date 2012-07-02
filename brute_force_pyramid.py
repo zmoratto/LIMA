@@ -4,24 +4,22 @@
 
 import sys
 import os
-import subprocess
+import os.path
+import shutil
 import argparse
 import tempfile
 import math
 import time
-
 import numpy
+
+from isis import *
+
+CACHE_DIR = '../cache/'
 
 #libraries needed for numpy conflict with those for ISIS. we put:
 # alias python='OLD_LD_LIBRARY_PATH=$LD_LIBRARY_PATH LD_LIBRARY_PATH="" python'
 # in .bashrc to remove these libraries when loading python, here we restore them
 os.environ['LD_LIBRARY_PATH'] = os.environ['OLD_LD_LIBRARY_PATH']
-
-if not os.environ.has_key('ISISROOT'):
-	print >> sys.stderr, 'The environment variable ISISROOT is undefined.'
-	sys.exit(1)
-ISISROOT = os.environ['ISISROOT']
-ISISBIN = ISISROOT + '/bin'
 
 # returns [minlon, minlat, maxlon, maxlat] of box enclosing LOLA tracks
 def get_tracks_bbox(tracks_file):
@@ -49,84 +47,6 @@ def get_tracks_bbox(tracks_file):
 	f.close()
 	return [minlon, minlat, maxlon, maxlat]
 
-# get longitude / latitude borders of image
-def get_image_bbox(image_file):
-	proc = subprocess.Popen([ISISBIN + '/camrange', 'from=' + image_file], stdout=subprocess.PIPE)
-	proc.wait()
-	os.remove('print.prt')
-	if proc.returncode != 0:
-		print >> sys.stderr, "Error in camrange from=%s, aborting." % (image_file)
-		return None
-	for l in proc.stdout:
-		if l.startswith('Group = UniversalGroundRange'):
-			break
-		if l == '':
-			print >> sys.stderr, "UniversalGroundRange not found in camrange output."
-	minlon = None; maxlon = None; minlat = None; maxlat = None
-	for l in proc.stdout:
-		if l.startswith('End_Group'):
-			break
-		s = l.split()
-		try:
-			if s[0] == 'MaximumLatitude':
-				maxlat = float(s[2])
-			if s[0] == 'MinimumLatitude':
-				minlat = float(s[2])
-		except ValueError:
-			print >> sys.stderr, 'Could not convert %s to float in camrange output.' % (s[2])
-			return None
-	for l in proc.stdout:
-		if l.startswith('Group = PositiveEast180'):
-			break
-		if l == '':
-			print >> sys.stderr, "PositiveEast180 not found in camrange output."
-	for l in proc.stdout:
-		if l.startswith('End_Group'):
-			break
-		s = l.split()
-		try:
-			if s[0] == 'MaximumLongitude':
-				maxlon = float(s[2])
-			if s[0] == 'MinimumLongitude':
-				minlon = float(s[2])
-		except ValueError:
-			print >> sys.stderr, 'Could not convert %s to float in camrange output.' % (s[2])
-			return None
-	
-	if minlon == None or maxlon == None or minlat == None or maxlat == None:
-		print >> sys.stderr, "Not all boundaries found in camrange output."
-		return None
-
-	return [minlon, minlat, maxlon, maxlat]
-
-def get_image_dimensions(image_file):
-	tfile = tempfile.NamedTemporaryFile(delete=False)
-	out_file = tfile.name
-	tfile.close()
-	ret = os.system(ISISBIN + '/caminfo from=%s to=%s format=flat' % (image_file, out_file))
-	os.remove('print.prt')
-	if ret != 0:
-		return (None, None)
-	f = open(out_file, 'r')
-	f.readline() # header
-	s = f.readline().split(',')
-	os.remove(out_file)
-	return (int(s[4]), int(s[5]))
-
-def get_point_projection(image_file, lon, lat):
-	tfile = tempfile.NamedTemporaryFile(delete=False)
-	out_file = tfile.name
-	tfile.close()
-	if lon < 0.0:
-		lon = lon + 360.0
-	ret = os.system(ISISBIN + '/campt from=%s to=%s format=flat type=ground latitude=%g longitude=%g > /dev/null' % (image_file, out_file, lat, lon))
-	os.remove('print.prt')
-	if ret != 0:
-		return (None, None)
-	f = open(out_file, 'r')
-	s = f.readline().split(',')
-	os.remove(out_file)
-	return (int(float(s[1])), int(float(s[2])))
 
 # create bounds for a trimmed image including as many of the LOLA points as possible,
 # with some wiggle room around the edges for alignment
@@ -165,35 +85,30 @@ def get_bounding_box(tracks_file, image_file):
 	y2 = min(max(y2, 1), height)
 	return [min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2)]
 
-def crop_image(image_file, view_bbox):
-	tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.cub')
-	trimmed_file = tfile.name
-	tfile.close()
-	command = ISISBIN + '/crop from=%s to=%s sample=%d nsamples=%d line=%d nlines=%d > /dev/null' % \
-		(image_file, trimmed_file, view_bbox[0] + 1, view_bbox[2] - view_bbox[0], view_bbox[1] + 1, view_bbox[3] - view_bbox[1])
-	ret = os.system(command)
-	os.remove('print.prt')
-	if ret != 0:
-		print >> sys.stderr, "Failed to crop image."
-		return None
-	return trimmed_file
+# scale the images, write a file containing the scale factors and file paths
+def construct_image_pyramid(image_file):
+	scale_reductions = [8, 4, 2]
+	base = os.path.splitext(os.path.basename(image_file))[0]
+	pyramid_file = os.path.join(CACHE_DIR, base + '.pyr')
+	f = open(pyramid_file, 'w')
+	for s in scale_reductions:
+		fn = os.path.join(CACHE_DIR, base + '_' + str(s) + '.cub')
+		if not os.path.exists(fn):
+			reduced = reduce_image(image_file, s)
+			if fn == None:
+				f.close()
+				os.remove(pyramid_file)
+				return None
+			shutil.move(reduced, fn)
+		f.write('%d %s\n' % (s, fn))
+	f.write('1 %s\n' % (image_file))
+	f.close()
+	return pyramid_file
 
-def reduce_image(in_file, scale_factor):
-	tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.cub')
-	reduced_file = tfile.name
-	tfile.close()
-	command = ISISBIN + '/reduce from=%s to=%s sscale=%g lscale=%g > /dev/null' % \
-		(in_file, reduced_file, scale_factor, scale_factor)
-	ret = os.system(command)
-	os.remove('print.prt')
-	if ret != 0:
-		print >> sys.stderr, "Failed to downscale image."
-		return None
-	return reduced_file
 
 # if alignments is specified, use those as starting track alignments
 # if window is specified, do brute force search over a window
-def align_image(tracks, image, alignments=None, window=None, output_image=None):
+def align_image(tracks, image=None, image_pyramid=None, alignments=None, window=None, output_image=None):
 	if alignments != None:
 		tfile = tempfile.NamedTemporaryFile(delete=False)
 		alignment_file = tfile.name
@@ -211,8 +126,12 @@ def align_image(tracks, image, alignments=None, window=None, output_image=None):
 	tfile = tempfile.NamedTemporaryFile(delete=False)
 	output_file = tfile.name
 	tfile.close()
-	command = '../bin/bruteforcealign -l %s -i %s -o %s %s ' % \
-		(tracks, image, output_file, output_image)
+	command = '../bin/bruteforcealign -l %s -o %s %s ' % \
+		(tracks, output_file, output_image)
+	if image != None:
+		command += '-i ' + image + ' '
+	if image_pyramid != None:
+		command += '-p ' + image_pyramid + ' '
 	if alignments != None:
 		command += '--startMatrices ' + alignment_file + ' '
 	if window != None:
@@ -245,17 +164,23 @@ def brute_force_pyramid_align(image_file, tracks_file):
 	if view_bbox == None:
 		return None
 	
-	print "Cropping image file to tracks..."
-	trimmed_image_file = crop_image(image_file, view_bbox)
+	trimmed_image_file = os.path.join(CACHE_DIR, os.path.splitext(os.path.basename(image_file))[0] + '_%d_%d_%d_%d.cub' % (view_bbox[0], view_bbox[1], view_bbox[2], view_bbox[3]))
+	if not os.path.exists(trimmed_image_file):
+		print "Cropping image file to tracks..."
+		trimmed_image_temp = crop_image(image_file, view_bbox)
+		shutil.move(trimmed_image_temp, trimmed_image_file)
 	if trimmed_image_file == None:
 		return None
+
+	pyramid_file = construct_image_pyramid(trimmed_image_file)
+	return align_image(tracks_file, image_pyramid=pyramid_file, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
 
 	# first do a big search over the smallest image
 	old_factor = 8
 	print 'Downscaling image by scale factor %d...' % (old_factor)
 	reduced = reduce_image(trimmed_image_file, old_factor)
 	print 'Aligning image...'
-	alignments = align_image(tracks_file, reduced, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
+	alignments = align_image(tracks_file, image=reduced, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
 	
 	# now do smaller searches over more detailed images, using previous alignment as starting point
 	scale_reductions = [4, 2, 1]
@@ -274,7 +199,7 @@ def brute_force_pyramid_align(image_file, tracks_file):
 			print "Reducing image by scale factor %d." % (factor)
 			reduced = reduce_image(trimmed_image_file, factor)
 		print 'Aligning image...'
-		alignments = align_image(tracks_file, reduced, alignments=alignments, output_image='reflectance.tif')
+		alignments = align_image(tracks_file, image=reduced, alignments=alignments, output_image='reflectance.tif')
 		# also use finer theta search window
 		search_window[2] = search_window[2] / 2
 		search_window[3] = search_window[3] / 2

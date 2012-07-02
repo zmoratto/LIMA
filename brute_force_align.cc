@@ -77,6 +77,7 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 	
 	if (transSearchStep > 0 && thetaSearchStep > 0.0)
 	{
+		printf("Brute force alignment.\n");
 		trans = find_tracks_transform(aligned, cubImage, 
 			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 	}
@@ -159,9 +160,45 @@ int main( int argc, char *argv[] )
 		aligned = align_to_image(trackPts, inputCubFile, trackTransforms, 
 				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep, imageFile);
 	}
-	else if (vm.count("imagePyramid") > 1)
+	else if (vm.count("imagePyramid") > 0)
 	{
-
+		FILE* f = fopen(pyramidFile.c_str(), "r");
+		bool first = true;
+		float last_zoom;
+		while (true)
+		{
+			float zoom_factor;
+			char image_file[100];
+			int ret = fscanf(f, "%g %s\n", &zoom_factor, image_file);
+			if (ret != 2)
+				break;
+			string im(image_file);
+			if (!first) // transform previous matrices
+			{
+				float r = last_zoom / zoom_factor;
+				Matrix3x3 t1(r, 0, 0, 0, r, 0, 0, 0, 1);
+				Matrix3x3 t2(1.0/r, 0, 0, 0, 1.0/r, 0, 0, 0, 1);
+				for (unsigned int i = 0; i < trackTransforms.size(); i++)
+					trackTransforms[i] = t1 * trackTransforms[i] * t2;
+			}
+			last_zoom = zoom_factor;
+			if (first) // do brute force search the first time
+			{
+				aligned = align_to_image(trackPts, im, trackTransforms, 
+					transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
+				first = false;
+			}
+			else if (zoom_factor == 1) // last level, save image
+			{
+				aligned = align_to_image(trackPts, im, trackTransforms, 
+					0.0, 0.0, 0.0, 0.0, imageFile);
+			}
+			else
+			{
+				aligned = align_to_image(trackPts, im, trackTransforms);
+			}
+		}
+		fclose(f);
 	}
 	else
 	{
