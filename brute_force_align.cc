@@ -51,11 +51,11 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 		vector<Matrix3x3> & trackTransforms, int transSearchWindow=0, int transSearchStep=0,
 		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
 {
-	boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(inputCubFile));
-	DiskImageView<PixelGray<float> > cub(rsrc);
-	ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
-	double nodataVal = rsrc->nodata_read();
-	cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
+	DiskImageResourceIsis rsrc(inputCubFile);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
 
 	camera::IsisCameraModel model(inputCubFile);
 	Vector3 center_of_moon(0,0,0);
