@@ -16,6 +16,8 @@
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
 
+#include <boost/filesystem.hpp>
+
 #include "coregister.h"
 #include "util.h"
 #include "tracks.h"
@@ -225,17 +227,7 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
 
 vector<vector<LOLAShot> > LOLAFilesRead( const string& tracksList )
 {
-	FILE* f = fopen(tracksList.c_str(), "r");
-	vector<string> trackFiles;
-	while (true)
-	{
-		char name[100];
-		int ret = fscanf(f, "%s\n", name);
-		if (ret != 1)
-			break;
-		trackFiles.push_back(string(name));
-	}
-	fclose(f);
+	vector<string> trackFiles = ReadVectorFrom<string>(tracksList);
 	vector<vector<LOLAShot> > points;
 	for (unsigned int i = 0; i < trackFiles.size(); i++)
 	{
