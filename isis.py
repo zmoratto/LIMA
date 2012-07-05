@@ -103,6 +103,18 @@ def crop_image(image_file, view_bbox):
 		return None
 	return trimmed_file
 
+def normalize_image(image_file):
+	tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.cub')
+	normalized_file = tfile.name
+	tfile.close()
+	command = ISISBIN + '/bandnorm from=%s to=%s average=cube > /dev/null' % (image_file, normalized_file)
+	ret = os.system(command)
+	os.remove('print.prt')
+	if ret != 0:
+		print >> sys.stderr, "Failed to normalize image."
+		return None
+	return normalized_file
+
 def reduce_image(in_file, scale_factor):
 	tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.cub')
 	reduced_file = tfile.name

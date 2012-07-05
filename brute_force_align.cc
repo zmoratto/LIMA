@@ -96,7 +96,7 @@ int main( int argc, char *argv[] )
 	// command line options
 	string inputCSVFilename; 
 	
-	std::string inputCubFile;
+	std::string inputCubFile, tracksListFile;
 	std::string outputFile, dataFile, imageFile, startMatricesFilename, pyramidFile;
 	int transSearchWindow = 0, transSearchStep = 0;
 	float thetaSearchWindow = 0.0, thetaSearchStep = 0.0;
@@ -104,6 +104,7 @@ int main( int argc, char *argv[] )
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
+	("tracksList,t", po::value<std::string>(&tracksListFile))
 	("inputCubFile,i", po::value<std::string>(&inputCubFile))
 	("imagePyramid,p", po::value<std::string>(&pyramidFile))
 	("outputFile,o", po::value<std::string>(&outputFile))
@@ -146,7 +147,16 @@ int main( int argc, char *argv[] )
 		return 1;
 	}
 
-	vector<vector<LOLAShot> > trackPts = LOLAFileRead(inputCSVFilename);
+	vector<vector<LOLAShot> > trackPts;
+	if (vm.count("Lidar-filename"))
+		trackPts = LOLAFileRead(inputCSVFilename);
+	else if (vm.count("tracksList"))
+		trackPts = LOLAFilesRead(tracksListFile);
+	else
+	{
+		fprintf(stderr, "No track files specified.\n");
+		return 1;
+	}
 	vector<Matrix3x3> trackTransforms;
 	if (vm.count("startMatrices"))
 		trackTransforms = load_track_transforms(startMatricesFilename);

@@ -211,6 +211,7 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
 
 
 std::vector<std::vector<LOLAShot> > LOLAFileRead( const std::string& );
+std::vector<std::vector<LOLAShot> > LOLAFilesRead( const std::string& );
 inline std::vector<std::vector<LOLAShot> > CSVFileRead( const std::string& f ){
   // This function is deprecated, please use LOLAFileRead().
   return LOLAFileRead( f );

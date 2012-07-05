@@ -10,6 +10,7 @@ import argparse
 import tempfile
 import math
 import time
+import glob
 import numpy
 
 from isis import *
@@ -20,6 +21,17 @@ CACHE_DIR = '../cache/'
 # alias python='OLD_LD_LIBRARY_PATH=$LD_LIBRARY_PATH LD_LIBRARY_PATH="" python'
 # in .bashrc to remove these libraries when loading python, here we restore them
 os.environ['LD_LIBRARY_PATH'] = os.environ['OLD_LD_LIBRARY_PATH']
+
+def bboxes_overlap(b1, b2):
+	if b1[0] > b2[2]:
+		return False
+	if b2[0] > b1[2]:
+		return False
+	if b1[1] > b2[3]:
+		return False
+	if b2[1] > b1[3]:
+		return False
+	return True
 
 # returns [minlon, minlat, maxlon, maxlat] of box enclosing LOLA tracks
 def get_tracks_bbox(tracks_file):
@@ -46,6 +58,14 @@ def get_tracks_bbox(tracks_file):
 			maxlat = lat
 	f.close()
 	return [minlon, minlat, maxlon, maxlat]
+
+def get_overlapping_tracks(tracks_dir, bbox):
+	overlap = []
+	for f in glob.glob(tracks_dir + '/*.csv'):
+		b = get_tracks_bbox(f)
+		if bboxes_overlap(bbox, b):
+			overlap.append(f)
+	return overlap
 
 
 # create bounds for a trimmed image including as many of the LOLA points as possible,
@@ -108,7 +128,14 @@ def construct_image_pyramid(image_file):
 
 # if alignments is specified, use those as starting track alignments
 # if window is specified, do brute force search over a window
-def align_image(tracks, image=None, image_pyramid=None, alignments=None, window=None, output_image=None):
+def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, alignments=None, window=None, output_image=None):
+	if tracks == None and tracks_list == None:
+		return None
+	if tracks_list != None:
+		tracks_file_list = tempfile.NamedTemporaryFile(delete=False)
+		for t in tracks_list:
+			tracks_file_list.write(t + '\n')
+		tracks_file_list.close()
 	if alignments != None:
 		tfile = tempfile.NamedTemporaryFile(delete=False)
 		alignment_file = tfile.name
@@ -126,8 +153,12 @@ def align_image(tracks, image=None, image_pyramid=None, alignments=None, window=
 	tfile = tempfile.NamedTemporaryFile(delete=False)
 	output_file = tfile.name
 	tfile.close()
-	command = '../bin/bruteforcealign -l %s -o %s %s ' % \
-		(tracks, output_file, output_image)
+	if tracks != None:
+		command = '../bin/bruteforcealign -l %s -o %s %s ' % \
+			(tracks, output_file, output_image)
+	else:
+		command = '../bin/bruteforcealign -t %s -o %s %s ' % \
+			(tracks_file_list.name, output_file, output_image)
 	if image != None:
 		command += '-i ' + image + ' '
 	if image_pyramid != None:
@@ -137,9 +168,12 @@ def align_image(tracks, image=None, image_pyramid=None, alignments=None, window=
 	if window != None:
 		command += '--transSearchWindow %d --transSearchStep %d --thetaSearchWindow %g --thetaSearchStep %g' % \
 			(window[0], window[1], window[2], window[3])
+	print command
 	ret = os.system(command)
 	if alignments != None:
 		os.remove(alignment_file)
+	if tracks_list != None:
+		os.remove(tracks_file_list.name)
 	if ret != 0:
 		print >> sys.stderr, "Failed to align image."
 		return None
@@ -173,51 +207,39 @@ def brute_force_pyramid_align(image_file, tracks_file):
 		return None
 
 	pyramid_file = construct_image_pyramid(trimmed_image_file)
-	return align_image(tracks_file, image_pyramid=pyramid_file, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
+	return align_image(tracks=tracks_file, image_pyramid=pyramid_file, window=[20, 5, 0.0, math.pi/20], output_image="reflectance.tif")
 
-	# first do a big search over the smallest image
-	old_factor = 8
-	print 'Downscaling image by scale factor %d...' % (old_factor)
-	reduced = reduce_image(trimmed_image_file, old_factor)
-	print 'Aligning image...'
-	alignments = align_image(tracks_file, image=reduced, window=[20, 5, math.pi/20, math.pi/20], output_image="reflectance.tif")
-	
-	# now do smaller searches over more detailed images, using previous alignment as starting point
-	scale_reductions = [4, 2, 1]
-	search_window = [2, 1, math.pi / 40, math.pi / 80]
-	for factor in scale_reductions:
-		# scale matrix for new resolution
-		for i in range(len(alignments)):
-			r = float(old_factor) / factor
-			t1 = numpy.array([[r, 0, 0], [0, r, 0], [0, 0, 1]])
-			t2 = numpy.array([[1.0/r, 0, 0], [0, 1.0/r, 0], [0, 0, 1]])
-			alignments[i] = t1.dot(alignments[i]).dot(t2)
-		old_factor = factor
-		if factor == 1:
-			reduced = trimmed_image_file
-		else:
-			print "Reducing image by scale factor %d." % (factor)
-			reduced = reduce_image(trimmed_image_file, factor)
-		print 'Aligning image...'
-		alignments = align_image(tracks_file, image=reduced, alignments=alignments, output_image='reflectance.tif')
-		# also use finer theta search window
-		search_window[2] = search_window[2] / 2
-		search_window[3] = search_window[3] / 2
-	return alignments
+def align_tracks(image_file, tracks_directory):
+	print "Computing bounding box..."
+	image_bbox = get_image_bbox(image_file)
+	print "Determining overlapping tracks..."
+	tracks = get_overlapping_tracks(tracks_directory, image_bbox)
+	print "Constructing image pyramid..."
+	pyramid_file = construct_image_pyramid(image_file)
+	print "Aligning tracks..."
+	return align_image(tracks_list=tracks, image_pyramid=pyramid_file, window=[20, 5, 0.0, math.pi/20], output_image="reflectance.tif")
 
 parser = argparse.ArgumentParser(description='Align LOLA tracks to an image.')
-parser.add_argument('-t', '--tracks', type=argparse.FileType('r'), required=True, metavar='tracks', help='A CSV file of LOLA tracks.')
+parser.add_argument('-t', '--tracks', type=argparse.FileType('r'), required=False, metavar='tracks', help='A CSV file of LOLA tracks.')
 parser.add_argument('-i', '--image', type=argparse.FileType('r'), required=True, metavar='image', help='A cub satelite image.')
+parser.add_argument('-d', '--trackDirectory', type=str, required=False, metavar='trackDirectory', help='Directory to look for track files.')
 res = parser.parse_args()
 
-tracks = res.tracks
-tracks_file = tracks.name
-tracks.close()
+if res.tracks != None:
+	tracks = res.tracks
+	tracks_files = [tracks.name]
+	tracks.close()
 image = res.image
 image_file = image.name
 image.close()
 
 start = time.time()
-brute_force_pyramid_align(image_file, tracks_file)
+if res.tracks != None:
+	brute_force_pyramid_align(image_file, tracks_file)
+elif res.trackDirectory != None:
+	align_tracks(image_file, res.trackDirectory)
+else:
+	print "Must specify either track file or track directory."
+	sys.exit(1)
 print 'Time taken: ' + str(time.time() - start)
 

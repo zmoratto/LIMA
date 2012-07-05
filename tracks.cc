@@ -223,6 +223,30 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   return trackPts; 
 }
 
+vector<vector<LOLAShot> > LOLAFilesRead( const string& tracksList )
+{
+	FILE* f = fopen(tracksList.c_str(), "r");
+	vector<string> trackFiles;
+	while (true)
+	{
+		char name[100];
+		int ret = fscanf(f, "%s\n", name);
+		if (ret != 1)
+			break;
+		trackFiles.push_back(string(name));
+	}
+	fclose(f);
+	vector<vector<LOLAShot> > points;
+	for (unsigned int i = 0; i < trackFiles.size(); i++)
+	{
+		vector<vector<LOLAShot> > shots = LOLAFileRead(trackFiles[i]);
+		points.reserve(points.size() + distance(shots.begin(),shots.end()));
+		points.insert(points.end(), shots.begin(), shots.end());
+	}
+
+	return points;
+}
+
 Vector2 ComputeMinMaxValuesFromCub( ImageView<PixelGray<float> > & isis_view)
 {
   Vector2 minmax;
@@ -1066,7 +1090,7 @@ void apply_gain_bias(vector<AlignedLOLAShot>& track)
 	}
 }
 
-void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
+void transform_track_no_gain_bias(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
 {
 	for (unsigned int i = 0; i < track.size(); i++)
 	{
@@ -1086,6 +1110,11 @@ void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, Image
 		}
 		track[i].image = cub(x, y)[0];
 	}
+}
+
+void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
+{
+	transform_track_no_gain_bias(track, transform, cub);
 	
 	apply_gain_bias(track);
 }
@@ -1094,7 +1123,7 @@ void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, Image
 void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, ImageView<PixelGray<float> >& cub)
 {
 	for (unsigned int i = 0; i < tracks.size(); i++)
-		transform_track(tracks[i], transform, cub);
+		transform_track_no_gain_bias(tracks[i], transform, cub);
 
 	apply_gain_bias(tracks);
 }
