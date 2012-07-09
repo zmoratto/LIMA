@@ -121,6 +121,7 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   // This is specifically for reading the RDR_*PointPerRow_csv_table.csv files only.
   // It will ignore lines which do not start with year (or a value that can be converted
   // into an integer greater than zero, specfically).
+  char temp[255];
   ifstream file( f.c_str() );
   if( !file ) {
     vw_throw( vw::IOErr() << "Unable to open track file \"" << f << "\"" );
@@ -129,8 +130,8 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   vector<vector<LOLAShot> > trackPts(1);
 
   // Prepare the tokenizer stuff.
-  typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-  boost::char_separator<char> sep(" ,");
+  //typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+  //boost::char_separator<char> sep(" ,");
 
   // file >> ignoreLine; // Skip header line
  
@@ -144,23 +145,11 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
   pointCloud prevPt;
   string line;
   while( getline(file, line, '\n') ) {
-    /*
-    // For Debugging: this reads the first line, parses, numbers, and prints
-    tokenizer tokens( line, sep );
-    int counter(0);
-    for( tokenizer::iterator token = tokens.begin();
-    		token != tokens.end();
-    		++token, counter++)
-    	{
-    	cerr	<< boost::lexical_cast<std::string>(counter) 
-    			<< ". " << *token << endl;
-    	}
-    exit(1);
-    */
 
-    tokenizer tokens( line, sep );
+    // we went with C-style file reading instead of C++ in this instance
+    // because we found it to be significantly faster on large files
+    /*tokenizer tokens( line, sep );
     tokenizer::iterator token = tokens.begin();
-
     istringstream date_s( *token );
     date_s >>  setw(4) >> currPt.year
 	       >> ignoreOne // -
@@ -173,29 +162,42 @@ vector<vector<LOLAShot> > LOLAFileRead( const string& f ) {
 	       >> setw(2) >> currPt.min
 	       >> ignoreOne // :
 	       >> currPt.sec;
-    //cout<<"year "<< currPt.year << endl;
-    if( currPt.year <= 0 ) { continue; }
-    //cout << currPt.year <<' '<< currPt.month <<' '<< currPt.day 
-    //	<<' '<< currPt.hour <<' '<< currPt.min <<' '<< currPt.sec << endl;
-
     ++token;
     istringstream lon_s( *token );
     lon_s >> currPt.x(); // Pt_Longitude
-    // cout<<"lon "<< currPt.coords	s_s >> "s_s"<<currPt.s; // S(0) << endl;
-
     ++token;
     istringstream lat_s( *token );
     lat_s >> currPt.y(); // Pt_Latitude
-
     ++token;
     istringstream rad_s( *token );
     rad_s >> currPt.z(); // Pt_Radius
-    // cout<<"radius "<< currPt.coords(2) << endl;
-
     advance( token, 8 );
     istringstream s_s( *token );
-    s_s >>currPt.s; // S
-    //cout<<"s_s "<<currPt.s<<endl;
+    s_s >>currPt.s; // S*/
+
+    strncpy(temp, line.c_str(), 255);
+    const char* token = strtok(temp, ",");
+    
+    int ret = sscanf(token, "%d-%d-%dT%d:%d:%g", &currPt.year, &currPt.month, &currPt.day, &currPt.hour, &currPt.min, &currPt.sec);
+    if( currPt.year <= 0 ) { continue; }
+
+    token = strtok(NULL, ",");
+    ret += sscanf(token, "%lg", &currPt.x());
+
+    token = strtok(NULL, ",");
+    ret = ret + sscanf(token, "%lg", &currPt.y());
+    token = strtok(NULL, ",");
+    ret = ret + sscanf(token, "%lg", &currPt.z());
+
+    for (int i = 0; i < 8; i++)
+      token = strtok(NULL, ",");
+    ret = ret + sscanf(token, "%d", &currPt.s);
+    
+    if (ret != 10)
+    {
+      fprintf(stderr, "Failed to read line %s.\n", line.c_str());
+      vw_throw( vw::IOErr() << "Failed to read line." );
+    }
     
     if( LOLArange.contains(currPt) ){
       if( trackPts[trackIndex].empty() ) {

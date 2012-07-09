@@ -227,7 +227,7 @@ res = parser.parse_args()
 
 if res.tracks != None:
 	tracks = res.tracks
-	tracks_files = [tracks.name]
+	tracks_file = tracks.name
 	tracks.close()
 image = res.image
 image_file = image.name
