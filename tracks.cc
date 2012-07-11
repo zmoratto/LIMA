@@ -589,38 +589,56 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
  
   for( unsigned int k = 0; k < shots.size(); ++k ){
     for( unsigned int i = 0; i < shots[k].size(); ++i ){
-      try {
-        if( shots[k][i].LOLAPt.size() > 5 ) { 
-          vw_throw( ArgumentErr() << "Too many LOLAPts: " << shots[k][i].LOLAPt.size() );
-        }
+      // abort if we don't have the center point
+      Vector3 center;
+      try
+      {
         pointCloud centerPt = GetPointFromIndex( shots[k][i].LOLAPt, 1 );
-        pointCloud topPt    = GetPointFromIndex( shots[k][i].LOLAPt, 3 );
-        pointCloud leftPt   = GetPointFromIndex( shots[k][i].LOLAPt, 2 );
-      
         centerPt.z() *= 1000;
-        topPt.z()    *= 1000;
-        leftPt.z()   *= 1000;
-        
-        Vector3 xyz = lon_lat_radius_to_xyz(centerPt);
-        Vector3 xyzTop = lon_lat_radius_to_xyz(topPt);
-        Vector3 xyzLeft = lon_lat_radius_to_xyz(leftPt);
-
-        Vector3 normal = ComputeNormalFrom3DPointsGeneral(xyz, xyzLeft, xyzTop);
-
-        shots[k][i].reflectance = ComputeLunarLambertianReflectanceFromNormal(lightPosition, cameraPosition, xyz, normal); 
-        
-        if( shots[k][i].reflectance != 0 ){ 
-          ++numValidReflPts;
-
-          if( shots[k][i].reflectance < minReflectance ){
-            minReflectance = shots[k][i].reflectance;
-          } 
-          if( shots[k][i].reflectance > maxReflectance ){
-            maxReflectance = shots[k][i].reflectance;
-          }
-        }        
+        center = lon_lat_radius_to_xyz(centerPt);
       }
-      catch( const vw::ArgumentErr& error ){ shots[k][i].reflectance = -1; }
+      catch( const vw::ArgumentErr& error ){ shots[k][i].reflectance = -1; continue;}
+      
+
+      Vector3 points[4];
+      bool validPoints[4] = {true, true, true, true};
+      // compute average of normal for each triangle, LOLA beams are positioned like
+      // number 5 of a die
+      // 1 is center dot, 2 is left, 3 is top, 4 is right, 5 is bottom
+      for (int m = 2; m <= 5; m++)
+        try {
+          pointCloud pt = GetPointFromIndex( shots[k][i].LOLAPt, m);
+          pt.z() *= 1000;
+          points[m-2] = lon_lat_radius_to_xyz(pt);
+        } catch( const vw::ArgumentErr& error ) {validPoints[m-2] = false;}
+      // add normal for every available triangle
+      Vector3 normal(0.0, 0.0, 0.0);
+      for (int m = 0; m < 4; m++)
+      {
+        int n = m == 4 ? 0 : m + 1;
+        if (!validPoints[m] || !validPoints[n])
+          continue;
+        normal += ComputeNormalFrom3DPointsGeneral(center, points[m], points[n]);
+      }
+      if (normal.x() == 0.0 && normal.y() == 0.0 && normal.z() == 0.0)
+      {
+        shots[k][i].reflectance = -1;
+        continue;
+      }
+
+      normal = normalize(normal);
+      shots[k][i].reflectance = ComputeLunarLambertianReflectanceFromNormal(lightPosition, cameraPosition, center, normal); 
+
+      if( shots[k][i].reflectance != 0 ){ 
+        ++numValidReflPts;
+
+        if( shots[k][i].reflectance < minReflectance ){
+          minReflectance = shots[k][i].reflectance;
+        } 
+        if( shots[k][i].reflectance > maxReflectance ){
+          maxReflectance = shots[k][i].reflectance;
+        }
+      }        
     }//i
   }//k
  

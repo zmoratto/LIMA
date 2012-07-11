@@ -186,8 +186,8 @@ TEST_F( ReflectanceTests, ComputeAllReflectance_Test ){
                                                  camera_pos_, 
                                                  light_pos_);
   ASSERT_EQ( num_shots, shots.size() ) << "The length of the vector of shots was altered.";
-  ASSERT_EQ( 2723, test_valid_points ) << "There is the wrong number of valid points.";
-  ASSERT_NEAR( 0.859062, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
+  ASSERT_EQ( 2782, test_valid_points ) << "There is the wrong number of valid points.";
+  ASSERT_NEAR( 0.8749, shots[4][1306].reflectance, 0.00001 ) << "The reflectance is wrong.";
 }
 
 TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
@@ -204,7 +204,7 @@ TEST_F( ReflectanceTests,  ComputeGainBiasFactor_vector_of_shots ){
   vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(shots);
   Vector2 test = ComputeGainBiasFactor( aligned[4] );
 
-  ASSERT_NEAR( 11.08288, test[0], 0.00001 ) << "Gain is different.";
+  ASSERT_NEAR( 11.064688682556152, test[0], 0.00001 ) << "Gain is different.";
   ASSERT_NEAR( 0.0, test[1], 0.0001 ) << "Bias is different.";
 }
 
@@ -229,7 +229,7 @@ TEST_F( ReflectanceTests, ComputeGainBiasFactor_vector_of_vector_of_shots ){
   vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(shots);
   Vector2 test = ComputeGainBiasFactor( aligned );
 
-  EXPECT_NEAR( 4.24705,  test[0], 0.0001 ) << "Gain is different.";
+  EXPECT_NEAR( 4.244377,  test[0], 0.0001 ) << "Gain is different.";
   EXPECT_NEAR( 0.0, test[1], 0.0001 ) << "Bias is different.";
 
   //SaveReflectancePoints( shots, test, "SaveReflectancePoints_Test.txt");
