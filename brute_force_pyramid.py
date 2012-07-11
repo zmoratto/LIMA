@@ -128,7 +128,7 @@ def construct_image_pyramid(image_file):
 
 # if alignments is specified, use those as starting track alignments
 # if window is specified, do brute force search over a window
-def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, alignments=None, window=None, output_image=None):
+def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, alignments=None, global_alignment=False, window=None, output_image=None):
 	if tracks == None and tracks_list == None:
 		return None
 	if tracks_list != None:
@@ -154,10 +154,10 @@ def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, a
 	output_file = tfile.name
 	tfile.close()
 	if tracks != None:
-		command = '../bin/bruteforcealign -l %s -o %s %s ' % \
+		command = '../bin/bruteforcealign -l %s -o %s %s -d tracks.dat ' % \
 			(tracks, output_file, output_image)
 	else:
-		command = '../bin/bruteforcealign -t %s -o %s %s ' % \
+		command = '../bin/bruteforcealign -t %s -o %s %s -d tracks.dat ' % \
 			(tracks_file_list.name, output_file, output_image)
 	if image != None:
 		command += '-i ' + image + ' '
@@ -165,6 +165,8 @@ def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, a
 		command += '-p ' + image_pyramid + ' '
 	if alignments != None:
 		command += '--startMatrices ' + alignment_file + ' '
+	if global_alignment:
+		command += '--globalAlignment true '
 	if window != None:
 		command += '--transSearchWindow %d --transSearchStep %d --thetaSearchWindow %g --thetaSearchStep %g' % \
 			(window[0], window[1], window[2], window[3])
@@ -207,7 +209,7 @@ def brute_force_pyramid_align(image_file, tracks_file):
 		return None
 
 	pyramid_file = construct_image_pyramid(trimmed_image_file)
-	return align_image(tracks=tracks_file, image_pyramid=pyramid_file, window=[20, 5, 0.0, math.pi/20], output_image="reflectance.tif")
+	return align_image(tracks=tracks_file, image_pyramid=pyramid_file, global_alignment=True, output_image="reflectance.tif")
 
 def align_tracks(image_file, tracks_directory):
 	print "Computing bounding box..."

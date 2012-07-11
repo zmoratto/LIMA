@@ -48,7 +48,7 @@ using namespace std;
 #include "featuresLOLA.h"
 
 vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, string & inputCubFile,
-		vector<Matrix3x3> & trackTransforms, int transSearchWindow=0, int transSearchStep=0,
+		vector<Matrix3x3> & trackTransforms, bool globalAlignment=false, int transSearchWindow=0, int transSearchStep=0,
 		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
 {
 	DiskImageResourceIsis rsrc(inputCubFile);
@@ -81,6 +81,15 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 		trans = find_tracks_transform(aligned, cubImage, 
 			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 	}
+	else if (globalAlignment)
+	{
+		printf("Global Gauss-Newton alignment.\n");
+		vector<AlignedLOLAShot> oneTrack;
+		for (unsigned int i = 0; i < aligned.size(); i++)
+			oneTrack.insert(oneTrack.end(), aligned[i].begin(), aligned[i].end());
+		trans = gauss_newton_track(oneTrack, cubImage, trans);
+		transform_tracks(aligned, trans, cubImage);
+	}
 	for (unsigned int i = 0; i < aligned.size(); i++)
 		trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
 	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
@@ -98,6 +107,7 @@ int main( int argc, char *argv[] )
 	
 	std::string inputCubFile, tracksListFile;
 	std::string outputFile, dataFile, imageFile, startMatricesFilename, pyramidFile;
+	bool globalAlignment = false;
 	int transSearchWindow = 0, transSearchStep = 0;
 	float thetaSearchWindow = 0.0, thetaSearchStep = 0.0;
 
@@ -111,6 +121,7 @@ int main( int argc, char *argv[] )
 	("dataFile,d", po::value<std::string>(&dataFile))
 	("outputImage", po::value<std::string>(&imageFile))
 	("startMatrices,s", po::value<std::string>(&startMatricesFilename))
+	("globalAlignment", po::value<bool>(&globalAlignment))
 	("transSearchWindow", po::value<int>(&transSearchWindow))
 	("transSearchStep", po::value<int>(&transSearchStep))
 	("thetaSearchWindow", po::value<float>(&thetaSearchWindow))
@@ -167,7 +178,7 @@ int main( int argc, char *argv[] )
 
 	if (vm.count("inputCubFile") > 0)
 	{
-		aligned = align_to_image(trackPts, inputCubFile, trackTransforms, 
+		aligned = align_to_image(trackPts, inputCubFile, trackTransforms, globalAlignment,
 				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep, imageFile);
 	}
 	else if (vm.count("imagePyramid") > 0)
@@ -194,13 +205,13 @@ int main( int argc, char *argv[] )
 			last_zoom = zoom_factor;
 			if (first) // do brute force search the first time
 			{
-				aligned = align_to_image(trackPts, im, trackTransforms, 
+				aligned = align_to_image(trackPts, im, trackTransforms, globalAlignment,
 					transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 				first = false;
 			}
 			else if (zoom_factor == 1) // last level, save image
 			{
-				aligned = align_to_image(trackPts, im, trackTransforms, 
+				aligned = align_to_image(trackPts, im, trackTransforms, false,
 					0.0, 0.0, 0.0, 0.0, imageFile);
 			}
 			else
