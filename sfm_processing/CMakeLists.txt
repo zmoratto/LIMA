@@ -7,11 +7,10 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 project(sfm_project)
-add_executable(sfm_test sfm_test.cpp SFM.cpp PoseEstimation.cpp FeatureExtraction.cpp Tiling.cpp)
+add_executable(sfm_test sfm_test.cpp SFM.cpp PoseEstimation.cpp FeatureExtraction.cpp ../common/Tiling.cpp)
 target_link_libraries(sfm_test ${PCL_LIBRARIES})
 target_link_libraries(sfm_test ${OpenCV_LIBS})
-#project(tile_maker)
-#add_executable(tiling Tiling_test.cpp Tiling.cpp)
+
 
 #project(calibration_project)
 #add_executable(calibration DoKinectCalibration.cpp)
@@ -28,3 +27,4 @@ target_link_libraries(sfm_test ${OpenCV_LIBS})
 #target_link_libraries(save_kinect ${PCL_VISUALIZATION_LIBRARIES})
 #target_link_libraries(save_kinect ${PCL_COMMON_LIBRARIES})
 #target_link_libraries(save_kinect ${OpenCV_LIBS})
+
