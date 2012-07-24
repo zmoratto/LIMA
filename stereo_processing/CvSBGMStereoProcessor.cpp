@@ -10,6 +10,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 //boost
 #include <boost/operators.hpp>
@@ -140,18 +141,19 @@ int readCalibrationFile(const string &calibrationFilename,
 
 
 CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) :
-    m_params(params),
-    m_bMState(cvCreateStereoBMState())/*,
+    m_params(params)/*,
     m_imageDisparity(cvCreateMat(imageSize.height, imageSize.width, CV_16S)),
     m_imageDisparityNormalized(cvCreateMat(imageSize.height, imageSize.width, CV_8U)*/
   { 
-    m_bMState->preFilterSize       = m_params.preFilterSize;
-    m_bMState->preFilterCap        = m_params.preFilterCap;
-    m_bMState->SADWindowSize       = m_params.sadWindowSize;
-    m_bMState->minDisparity        = m_params.minDisparity;
-    m_bMState->numberOfDisparities = m_params.numberOfDisparities;
-    m_bMState->textureThreshold    = m_params.textureThreshold;
-    m_bMState->uniquenessRatio     = m_params.uniquenessRatio;
+    sgbm.preFilterCap              = m_params.preFilterCap;
+    sgbm.SADWindowSize             = m_params.sadWindowSize;
+    sgbm.P1                        = m_params.P1;
+    sgbm.P2                        = m_params.P2;
+    sgbm.minDisparity              = m_params.minDisparity;
+    sgbm.numberOfDisparities       = m_params.numberOfDisparities;
+    sgbm.uniquenessRatio           = m_params.uniquenessRatio;
+    NEED_RECTIFICATION             = m_params.needRectification;
+    sgbm.fullDP=true;
 
     //rectification code - START
     //TODO:calibration filename can be a parameter in StereoCV21Parameters!!!
@@ -159,6 +161,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     cv::Mat camera_matrix[2], dist_coeffs[2];
     cv::Mat R, T;
     cv::Size imageSize;
+
     int readCalibFilenameError = readCalibrationFile(calibrationFilename,
                                                      camera_matrix[0], camera_matrix[1],
                                                      dist_coeffs[0], dist_coeffs[1],
@@ -167,41 +170,45 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     cv::Mat R1, R2, P1, P2;
     cv::Rect validRoi[2];
 
-    cv::stereoRectify(camera_matrix[0], dist_coeffs[0],
-                      camera_matrix[1], dist_coeffs[1],
-                      imageSize, R, T,
-                      R1, R2, P1, P2,
-                      m_Q, 1,
-                      cv::CALIB_ZERO_DISPARITY, imageSize, &validRoi[0], &validRoi[1]);
+    if(NEED_RECTIFICATION)
+    {
+      //FIXED: order of cv::CALIB_ZERO_DISPARITY, 1 was switched
+      cv::stereoRectify(camera_matrix[0], dist_coeffs[0],
+                        camera_matrix[1], dist_coeffs[1],
+                        imageSize, R, T,
+                        R1, R2, P1, P2,
+                        m_Q, cv::CALIB_ZERO_DISPARITY,
+                        1, imageSize, &validRoi[0], &validRoi[1]);
 
-    cv::initUndistortRectifyMap(camera_matrix[0], dist_coeffs[0], R1, P1, imageSize, CV_16SC2, m_refRMap[0], m_refRMap[1]);
-    cv::initUndistortRectifyMap(camera_matrix[1], dist_coeffs[1], R2, P2, imageSize, CV_16SC2, m_matchRMap[0], m_matchRMap[1]);
-    //rectification code - END
+      cv::initUndistortRectifyMap(camera_matrix[0], dist_coeffs[0], R1, P1, imageSize, CV_16SC2, m_refRMap[0], m_refRMap[1]);
+      cv::initUndistortRectifyMap(camera_matrix[1], dist_coeffs[1], R2, P2, imageSize, CV_16SC2, m_matchRMap[0], m_matchRMap[1]);
 
-    //the disparity map in OpenCV is stored on a 16bit format to increase the precision of the subpixel correlation
-    //this effectively increases the disparity value by a factor of 16 and the statement below accopunts for this effect.
-    m_Q.at<double>(3,2) = m_Q.at<double>(3,2)/16.0;
-    m_Q.at<double>(3,2) =-m_Q.at<double>(3,2); //! @FIXME fix for OpenCV 2.3.1
+      //the disparity map in OpenCV is stored on a 16bit format to increase the precision of the subpixel correlation
+      //this effectively increases the disparity value by a factor of 16 and the statement below accopunts for this effect.
+      m_Q.at<double>(3,2) = m_Q.at<double>(3,2)/16.0;
+      m_Q.at<double>(3,2) =-m_Q.at<double>(3,2); //! @FIXME fix for OpenCV 2.3.1
 
-    //TODO: copy m_Q to m_QOrig
-    m_QOrig = m_Q; 
-    //cout<<m_Q<<endl; 
+      //TODO: copy m_Q to m_QOrig
+      m_QOrig = m_Q; 
+      //cout<<m_Q<<endl; */
+      //rectification code - END
+      }
 
     m_imageDisparity=cvCreateMat(imageSize.height, imageSize.width, CV_16S);
     m_imageDisparityNormalized=cvCreateMat(imageSize.height, imageSize.width, CV_8U);
   }
 
-
   CvStereoProcessor::~CvStereoProcessor()
   {
-    cvReleaseMat(&m_imageDisparity);
-    cvReleaseMat(&m_imageDisparityNormalized);
-    cvReleaseStereoBMState(&m_bMState);
   }
 
   void
   CvStereoProcessor::savePoints(string const &filenameNoPath)
   {
+   //TODO:cant run without doing rectification yet
+   if(NEED_RECTIFICATION)
+   {
+
     double const maxZ = 1.0e4;
      
     ofstream ostr;
@@ -213,17 +220,22 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
        
         Vec3f const& point = m_points.at<Vec3f>(y, x);
         //if (!(fabs(point[2] - maxZ) < FLT_EPSILON || fabs(point[2]) > maxZ)) {
-        if (fabs(point[2]-maxZ)> FLT_EPSILON && fabs(point[2]<maxZ) && point[2]>0){
+        if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0){
           ostr << point[0] << " " << point[1] << " " << point[2] << endl;
         }
       }
     }
     ostr.close();
+   }
+
   }
 
   //modifies the Q matrix with the rotation  and translation
   void CvStereoProcessor::changeCoordinates(cv::Mat const &rotationMat, cv::Mat const &vectorMat)
   {
+   //TODO:cant do without doing rectification yet
+   if(NEED_RECTIFICATION)
+   {
     //define the extended rotation matrix
     cv::Mat extRotationMat=cv::Mat::eye(4,4, CV_64F);
     for(int i = 0; i < 3; i++){
@@ -240,6 +252,8 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     int flags = 0;    
     gemm(extRotationMat, m_QOrig, 1.0,  m_Q, 0.0, m_Q, flags);
    
+   }
+
   }
 
   void
@@ -248,24 +262,36 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     Mat refMat = refImg;
     Mat matchMat = matchImg;
 
-    //image rectification before stereo correlation
-    remap(refMat, m_refImgRect, m_refRMap[0], m_refRMap[1], CV_INTER_LINEAR);
-    remap(matchMat, m_matchImgRect, m_matchRMap[0], m_matchRMap[1], CV_INTER_LINEAR);
-    
+    if(NEED_RECTIFICATION)
+    {
+      //image rectification before stereo correlation
+      remap(refMat, m_refImgRect, m_refRMap[0], m_refRMap[1], CV_INTER_LINEAR);
+      remap(matchMat, m_matchImgRect, m_matchRMap[0], m_matchRMap[1], CV_INTER_LINEAR);
+    }
+    else
+    {
+    m_refImgRect = refMat.clone();
+    m_matchImgRect = matchMat.clone();
+    }    
+
     IplImage refImgRect;
     IplImage matchImgRect;
     refImgRect = m_refImgRect;
     matchImgRect = m_matchImgRect;
 
-    cvFindStereoCorrespondenceBM(&refImgRect, &matchImgRect, m_imageDisparity, m_bMState);
-    
-    // hack to get rid of small-scale noise
-    cvErode(m_imageDisparity, m_imageDisparity, NULL, 2);
-    cvDilate(m_imageDisparity, m_imageDisparity, NULL, 2);
-    
-    Mat disMat = m_imageDisparity;
+    //process
+    sgbm(m_refImgRect,m_matchImgRect, m_imageDisparity);
 
-    reprojectImageTo3D(disMat, m_points, m_Q, 1);
+    // hack to get rid of small-scale noise
+    Mat disMat;
+    m_imageDisparity.convertTo(disMat,CV_32F);
+    erode(disMat, disMat, Mat(), Point(-1,-1), 2);
+    dilate(disMat, disMat, Mat(), Point(-1,-1), 2);
+
+
+    //TODO:cant do this without doing rectification yet
+    if(NEED_RECTIFICATION)
+      reprojectImageTo3D(disMat, m_points, m_Q, 1);
   }
 
   //save the normalized disparity for display and debug  
@@ -273,8 +299,8 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
   CvStereoProcessor::saveDisparity(string const& filenameNoPath)
   {
     string disparityFilename = m_params.resDir+filenameNoPath;
-    cvNormalize(m_imageDisparity, m_imageDisparityNormalized, 0, 256, CV_MINMAX);
-    cvSaveImage( disparityFilename.c_str(), m_imageDisparityNormalized);
+    normalize(m_imageDisparity, m_imageDisparityNormalized, 0, 256, CV_MINMAX);
+    imwrite( disparityFilename.c_str(), m_imageDisparityNormalized);
   }
   
 cv::Mat CvStereoProcessor::GetRectifiedModelImage()

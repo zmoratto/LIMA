@@ -10,15 +10,16 @@
 #include <string>
 
 struct CvStereoProcessorParameters{
-  int preFilterSize;
   int preFilterCap;
   int sadWindowSize;
+  int P1;
+  int P2;
   int minDisparity;
   int numberOfDisparities;
-  int textureThreshold;
   int uniquenessRatio;
   std::string modelImageFilename;
   std::string resDir;
+  bool needRectification;
 };
 
 class CvStereoProcessor
@@ -29,11 +30,10 @@ class CvStereoProcessor
   CvStereoProcessor(CvStereoProcessorParameters const& params);
   ~CvStereoProcessor();
   
-  float samplingFactor;
   void processImagePair(IplImage *refImg, IplImage *matchImg);
   //void processImagePair(kn::Image const& refImg, kn::Image const& matchImg);
   
-  CvMat* getDisparityMap(){return m_imageDisparity;};
+  cv::Mat getDisparityMap(){return m_imageDisparity;};
   void saveDisparity(std::string const& filenameNoPath);
   
   void changeCoordinates(cv::Mat const& rotationMat, cv::Mat const& vectorMat);
@@ -51,7 +51,7 @@ class CvStereoProcessor
   //static void iplImageFromKnImage(IplImage& ipl, Image const& img);
   
   CvStereoProcessorParameters m_params;
-  CvStereoBMState * m_bMState;
+  cv::StereoSGBM sgbm;
   
   cv::Mat m_refRMap[2];
   cv::Mat m_matchRMap[2];
@@ -61,8 +61,10 @@ class CvStereoProcessor
   cv::Mat m_refImgRect;
   cv::Mat m_matchImgRect;
   
-  CvMat * m_imageDisparity;
-  CvMat * m_imageDisparityNormalized;
+  cv::Mat m_imageDisparity;
+  cv::Mat m_imageDisparityNormalized;
   
   PointImage m_points;
+
+  bool NEED_RECTIFICATION;
 };
