@@ -128,7 +128,7 @@ def construct_image_pyramid(image_file):
 
 # if alignments is specified, use those as starting track alignments
 # if window is specified, do brute force search over a window
-def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, alignments=None, global_alignment=False, window=None, output_image=None):
+def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, alignments=None, global_alignment=False, window=None, output_image=None, gcp_file=None):
 	if tracks == None and tracks_list == None:
 		return None
 	if tracks_list != None:
@@ -163,6 +163,8 @@ def align_image(tracks=None, tracks_list=None, image=None, image_pyramid=None, a
 		command += '-i ' + image + ' '
 	if image_pyramid != None:
 		command += '-p ' + image_pyramid + ' '
+	if gcp_file != None:
+		command += '-g ' + gcp_file + ' '
 	if alignments != None:
 		command += '--startMatrices ' + alignment_file + ' '
 	if global_alignment:
@@ -200,16 +202,19 @@ def brute_force_pyramid_align(image_file, tracks_file):
 	if view_bbox == None:
 		return None
 	
-	trimmed_image_file = os.path.join(CACHE_DIR, os.path.splitext(os.path.basename(image_file))[0] + '_%d_%d_%d_%d.cub' % (view_bbox[0], view_bbox[1], view_bbox[2], view_bbox[3]))
-	if not os.path.exists(trimmed_image_file):
-		print "Cropping image file to tracks..."
-		trimmed_image_temp = crop_image(image_file, view_bbox)
-		shutil.move(trimmed_image_temp, trimmed_image_file)
-	if trimmed_image_file == None:
-		return None
+	pyramid_file = construct_image_pyramid(image_file)
+	return align_image(tracks=tracks_file, image_pyramid=pyramid_file, global_alignment=True, output_image="reflectance.tif", gcp_file="gcp")
+	
+	#trimmed_image_file = os.path.join(CACHE_DIR, os.path.splitext(os.path.basename(image_file))[0] + '_%d_%d_%d_%d.cub' % (view_bbox[0], view_bbox[1], view_bbox[2], view_bbox[3]))
+	#if not os.path.exists(trimmed_image_file):
+	#	print "Cropping image file to tracks..."
+		#trimmed_image_temp = crop_image(image_file, view_bbox)
+		#shutil.move(trimmed_image_temp, trimmed_image_file)
+	#if trimmed_image_file == None:
+	#	return None
 
-	pyramid_file = construct_image_pyramid(trimmed_image_file)
-	return align_image(tracks=tracks_file, image_pyramid=pyramid_file, global_alignment=True, output_image="reflectance.tif")
+	#pyramid_file = construct_image_pyramid(trimmed_image_file)
+	#return align_image(tracks=tracks_file, image_pyramid=pyramid_file, global_alignment=True, output_image="reflectance.tif", gcp_file="gcp")
 
 def align_tracks(image_file, tracks_directory):
 	print "Computing bounding box..."

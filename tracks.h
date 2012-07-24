@@ -255,8 +255,12 @@ void UpdateGCP( const std::vector<std::vector<LOLAShot> >& trackPts,
                 const std::vector<vw::Vector4>& matchArray, 
                 const std::string& camCubFile, 
                 const std::string& mapCubFile, 
-                      std::vector<gcp>& gcps,
-		      float downsample_factor);
+                std::vector<gcp>& gcps,
+                float downsample_factor);
+
+void UpdateGCP( const vector<vector<AlignedLOLAShot> >& trackPts, 
+                const string&                    camCubFile, 
+                vector<gcp>&                     gcpArray);
 
 void SaveGCPoints( const std::vector<gcp>&, const std::string& );
 

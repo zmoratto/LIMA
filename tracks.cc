@@ -777,6 +777,48 @@ void UpdateGCP(vector<vector<LOLAShot> > trackPts, Vector<float, 6> optimalTrans
 }
 */
 
+void UpdateGCP( const vector<vector<AlignedLOLAShot> >& trackPts, 
+                const string&                    camCubFile, 
+                vector<gcp>&                     gcpArray) {
+  int featureIndex = 0;
+  int validFeatureIndex = 0;
+
+  for( unsigned int t = 0; t < trackPts.size(); ++t ){
+    for( unsigned int s = 0; s < trackPts[t].size(); ++s ){
+      if( trackPts[t][s].featurePtLOLA == 1 ){
+        gcpArray[featureIndex].filename.push_back(camCubFile);
+        if( (trackPts[t][s].valid == 1) && 
+            (trackPts[t][s].reflectance != 0) && 
+            (trackPts[t][s].reflectance != -1)  ){
+
+          // convert a map projected pixel location to the
+          // original image coordinate system.
+          gcpArray[featureIndex].x.push_back( trackPts[t][s].image_x);
+          gcpArray[featureIndex].y.push_back( trackPts[t][s].image_y);
+
+          gcpArray[featureIndex].x_before.push_back(trackPts[t][s].imgPt[2].x);
+          gcpArray[featureIndex].y_before.push_back(trackPts[t][s].imgPt[2].y);
+
+          gcpArray[featureIndex].trackIndex = t;
+          gcpArray[featureIndex].shotIndex = s;
+
+          validFeatureIndex++;
+        }//valid==1
+	else
+	{
+          	gcpArray[featureIndex].x.push_back(-1);
+          	gcpArray[featureIndex].y.push_back(-1);
+          	gcpArray[featureIndex].x_before.push_back(-1);
+          	gcpArray[featureIndex].y_before.push_back(-1);
+		//gcpArray[featureIndex].trackIndex = -1;
+		//gcpArray[featureIndex].shotIndex = -1;
+	}
+        featureIndex++;
+      }
+    }
+  }
+}
+
 // update ground control points
 void UpdateGCP( const vector<vector<LOLAShot> >& trackPts, 
                 const vector<Vector4>&           matchArray, 
@@ -910,7 +952,7 @@ void SaveGCPoints( const vector<gcp>& gcpArray, const string& gcpFilename ) {
     //check if this GCP is valid
     if( !gcpArray[i].filename.empty() ){
       stringstream filename;
-      filename << gcpFilename << "_" << gcpArray[i].trackIndex 
+      filename << "gcp/" << gcpFilename << "_" << gcpArray[i].trackIndex 
                               << "_" << gcpArray[i].shotIndex << ".gcp";
       
       ofstream file( filename.str().c_str() );
@@ -1106,7 +1148,7 @@ void transform_track_no_gain_bias(vector<AlignedLOLAShot> & track, Matrix3x3 tra
 {
 	for (unsigned int i = 0; i < track.size(); i++)
 	{
-		if (track[i].reflectance == -1 || track[i].imgPt.size() <= 2)
+		if (!track[i].valid || track[i].reflectance == -1 || track[i].imgPt.size() <= 2)
 		{
 			track[i].image = -1;
 			continue;
@@ -1262,10 +1304,16 @@ std::vector<std::vector< AlignedLOLAShot> > initialize_aligned_lola_shots(std::v
 		std::vector< AlignedLOLAShot> t;
 		for (unsigned int j = 0; j < trackPts[i].size(); j++)
 		{
-			if (!trackPts[i][j].valid)
-				continue;
+			//if (!trackPts[i][j].valid)
+			//	continue;
 			AlignedLOLAShot s(trackPts[i][j]);
-			if (trackPts[i][j].imgPt.size() > 2)
+			if (!trackPts[i][j].valid || trackPts[i][j].imgPt.size() <= 2)
+			{
+				s.image_x = -1;
+				s.image_y = -1;
+				s.image = -1;
+			}
+			else
 			{
 				s.image_x = trackPts[i][j].imgPt[2].x;
 				s.image_y = trackPts[i][j].imgPt[2].y;

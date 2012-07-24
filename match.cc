@@ -32,6 +32,8 @@
 #include "weights.h"
 #include "util.h"
 
+#define MAX_GAUSS_NEWTON_STEPS 200
+
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -196,7 +198,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 	float err, last_err = compute_transform_error(track, &num_points);
 	if (num_points <= 0) // no points
 		return matrix;
-	while (true)
+	for (int count = 0; count < MAX_GAUSS_NEWTON_STEPS; count++)
 	{
 		Matrix<double> J = compute_jacobian(track, B, cubImage, num_points);
 		Matrix<double> trans = transpose(J);

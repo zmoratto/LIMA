@@ -401,8 +401,8 @@ TEST( GCP, Update ){
 
   ASSERT_EQ( (unsigned int)23, gcpArray.size() ) << "Array of GCPs not the right size.";
   EXPECT_EQ( cam, gcpArray[13].filename[0] ) << "Wrong camera file name.";
-  EXPECT_NEAR( 538.923, gcpArray[14].x[0], 0.001 ) << "Wrong x value.";
-  EXPECT_NEAR( 7080.323, gcpArray[14].y[0], 0.01 ) << "Wrong y value.";
+  EXPECT_NEAR( 1609.619, gcpArray[14].x[0], 0.001 ) << "Wrong x value.";
+  EXPECT_NEAR( 8.0933, gcpArray[14].y[0], 0.01 ) << "Wrong y value.";
   EXPECT_NEAR( 527.185, gcpArray[14].x_before[0], 0.001 ) << "Wrong x_before value.";
   EXPECT_NEAR( 7075.3, gcpArray[14].y_before[0], 0.1 ) << "Wrong y_before value.";
   EXPECT_EQ( 4, gcpArray[14].trackIndex ) << "Wrong trackIndex value.";
