@@ -73,8 +73,7 @@ int main (int argc, char** argv)
 
 	if (argc == 1)
 	{
-		cout << endl << "This program expects at least one point cloud file name as a command line argument." << endl << endl;
-		return -1;
+		cout << endl << "Usage: ./pc_vis <pointcloudfilename>" << endl << endl;
 	}
 
 	numPoints = numPoints1 + numPoints2;
