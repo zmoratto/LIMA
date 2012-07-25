@@ -575,67 +575,70 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	if(globalCurrMatchedPix.size() >= nbMatches)
 		collect3DMatches(image->width);
 
-	//Calculate Norm
-	for(i=0; i<globalCurrMatchedPts.size(); i++)
-	{
-		normXDist += globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x;
-		normYDist += globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y;
-		normZDist += globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z;
-	}
-	normXDist/=globalCurrMatchedPts.size();
-	normYDist/=globalCurrMatchedPts.size();
-	normZDist/=globalCurrMatchedPts.size();
-
-	//Calculate Standard Deviation
-	for(i=0; i<globalCurrMatchedPts.size(); i++)
-	{
-		stdXDev += pow((globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist), 2);
-		stdYDev += pow((globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist), 2);
-		stdZDev += pow((globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist), 2);
-	}
-	stdXDev/=globalCurrMatchedPix.size();
-	stdYDev/=globalCurrMatchedPix.size();
-	stdZDev/=globalCurrMatchedPix.size();
-
-	stdXDev = sqrt(stdXDev);
-	stdYDev = sqrt(stdYDev);
-	stdZDev = sqrt(stdZDev);
-
-	cout << "Matches Before STD DEV: " << globalCurrMatchedPts.size() << endl;
-
 	matchWeights.clear();
 
-	//Remove those not within 1 STD DEV of the NORM
-	for(i=0; i<globalCurrMatchedPix.size(); i++)
+	if(depthInfo != NO_DEPTH)
 	{
-		if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
+		//Calculate Norm
+		for(i=0; i<globalCurrMatchedPts.size(); i++)
 		{
-			currPts.push_back(globalCurrMatchedPts[i]);
-			currPix.push_back(globalCurrMatchedPix[i]);
-			prevPts.push_back(globalPrevMatchedPts[i]);
-			prevPix.push_back(globalPrevMatchedPix[i]);
-
-			if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
-			{
-				matchWeights.push_back(DOUBLE_WEIGHT);
-			}
-			else
-				matchWeights.push_back(SINGLE_WEIGHT);
+			normXDist += globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x;
+			normYDist += globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y;
+			normZDist += globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z;
 		}
-	}
+		normXDist/=globalCurrMatchedPts.size();
+		normYDist/=globalCurrMatchedPts.size();
+		normZDist/=globalCurrMatchedPts.size();
 
-	globalCurrMatchedPts.clear();
-	globalPrevMatchedPts.clear();
-	globalCurrMatchedPix.clear();
-	globalPrevMatchedPix.clear();
-	globalCurrMatchedPts = currPts;
-	globalPrevMatchedPts = prevPts;
-	globalCurrMatchedPix = currPix;
-	globalPrevMatchedPix = prevPix;
-	currPts.clear();
-	prevPts.clear();
-	currPix.clear();
-	prevPix.clear();
+		//Calculate Standard Deviation
+		for(i=0; i<globalCurrMatchedPts.size(); i++)
+		{
+			stdXDev += pow((globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist), 2);
+			stdYDev += pow((globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist), 2);
+			stdZDev += pow((globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist), 2);
+		}
+		stdXDev/=globalCurrMatchedPix.size();
+		stdYDev/=globalCurrMatchedPix.size();
+		stdZDev/=globalCurrMatchedPix.size();
+
+		stdXDev = sqrt(stdXDev);
+		stdYDev = sqrt(stdYDev);
+		stdZDev = sqrt(stdZDev);
+
+		cout << "Matches Before STD DEV: " << globalCurrMatchedPts.size() << endl;
+
+		//Remove those not within 1 STD DEV of the NORM
+		for(i=0; i<globalCurrMatchedPix.size(); i++)
+		{
+			if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
+			{
+				currPts.push_back(globalCurrMatchedPts[i]);
+				currPix.push_back(globalCurrMatchedPix[i]);
+				prevPts.push_back(globalPrevMatchedPts[i]);
+				prevPix.push_back(globalPrevMatchedPix[i]);
+
+				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
+				{
+					matchWeights.push_back(DOUBLE_WEIGHT);
+				}
+				else
+					matchWeights.push_back(SINGLE_WEIGHT);
+			}
+		}
+
+		globalCurrMatchedPts.clear();
+		globalPrevMatchedPts.clear();
+		globalCurrMatchedPix.clear();
+		globalPrevMatchedPix.clear();
+		globalCurrMatchedPts = currPts;
+		globalPrevMatchedPts = prevPts;
+		globalCurrMatchedPix = currPix;
+		globalPrevMatchedPix = prevPix;
+		currPts.clear();
+		prevPts.clear();
+		currPix.clear();
+		prevPix.clear();
+	}
 
 	cout << "Matches After STD DEV: " << globalCurrMatchedPts.size() << endl;
 

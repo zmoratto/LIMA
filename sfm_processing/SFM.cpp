@@ -264,38 +264,42 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		pose.globalCurrDescriptors.create(0, feat.point_descriptors.cols, feat.point_descriptors.type());
 	}
 
-	//Remove KeyPoints with No Depth
-	tileY = referenceTile.tiles[currTile].y;
-	tileX = referenceTile.tiles[currTile].x;
-	for(int i=0; i<feat.key_points.size(); i++)
+	if(configParams.depthInfo != NO_DEPTH)
 	{
-		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-		if(pose.curr_z[index] > 0)
+		//Remove KeyPoints with No Depth
+		tileY = referenceTile.tiles[currTile].y;
+		tileX = referenceTile.tiles[currTile].x;
+		for(int i=0; i<feat.key_points.size(); i++)
 		{
-			temp.push_back(feat.key_points.at(i));
-			loc.push_back(i);
+			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+			if(pose.curr_z[index] > 0)
+			{
+				temp.push_back(feat.key_points.at(i));
+				loc.push_back(i);
+			}
 		}
-	}
-	tempMat.create(temp.size(), feat.point_descriptors.cols, feat.point_descriptors.type());
+		tempMat.create(temp.size(), feat.point_descriptors.cols, feat.point_descriptors.type());
 
-	cnt = 0;
-	for(int i=0; i<feat.key_points.size(); i++)
-	{
-		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-		if(pose.curr_z[index] > 0)
+		cnt = 0;
+		for(int i=0; i<feat.key_points.size(); i++)
 		{
-			Mat dest(tempMat.rowRange(cnt, cnt+1));
-			feat.point_descriptors.row(i).copyTo(dest);
-			cnt++;
+			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+			if(pose.curr_z[index] > 0)
+			{
+				Mat dest(tempMat.rowRange(cnt, cnt+1));
+				feat.point_descriptors.row(i).copyTo(dest);
+				cnt++;
+			}
 		}
+
+
+		feat.point_descriptors.release();
+		feat.key_points.clear();
+
+		feat.point_descriptors = tempMat.clone();
+		feat.key_points = temp;
+
 	}
-
-
-	feat.point_descriptors.release();
-	feat.key_points.clear();
-
-	feat.point_descriptors = tempMat.clone();
-	feat.key_points = temp;
 
 	//FLANN
 	if(feat.point_descriptors.type()!=CV_32F) 
@@ -310,7 +314,6 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		tilePt.pt.y = feat.key_points[i].pt.y + referenceTile.tiles[currTile].y;
 		pose.globalCurrKeyPoints.push_back(tilePt);
 	}
-
 
 	//Collect All Descriptors
 	oldRow = pose.globalCurrDescriptors.rows;

@@ -11,20 +11,3 @@ add_executable(sfm_test sfm_test.cpp SFM.cpp PoseEstimation.cpp FeatureExtractio
 target_link_libraries(sfm_test ${PCL_LIBRARIES})
 target_link_libraries(sfm_test ${OpenCV_LIBS})
 
-
-#project(calibration_project)
-#add_executable(calibration DoKinectCalibration.cpp)
-#target_link_libraries(sfm ${PCL_IO_LIBRARIES})
-#target_link_libraries(sfm ${PCL_VISUALIZATION_LIBRARIES})
-#target_link_libraries(sfm ${PCL_COMMON_LIBRARIES})
-#target_link_libraries(calibration ${PCL_LIBRARIES})
-#target_link_libraries(calibration ${OpenCV_LIBS})
-#add_executable(imagelist_creator imagelist_creator.cpp)
-#target_link_libraries(imagelist_creator ${OpenCV_LIBS})
-#project(save_kinect)
-#add_executable(save_kinect save_kinect.cc)
-#target_link_libraries(save_kinect ${PCL_IO_LIBRARIES})
-#target_link_libraries(save_kinect ${PCL_VISUALIZATION_LIBRARIES})
-#target_link_libraries(save_kinect ${PCL_COMMON_LIBRARIES})
-#target_link_libraries(save_kinect ${OpenCV_LIBS})
-
