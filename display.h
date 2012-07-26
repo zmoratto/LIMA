@@ -27,4 +27,6 @@ void SaveAdjustedReflectanceImages(vector<gcp> gcps, vector<vector<LOLAShot> > t
 
 void Save3DImage(vector<vector<LOLAShot> >& trackPts, string filename);
 
+void overlay_image(char* image1, char* image2, Matrix3x3 H, char* outFile);
+
 #endif /* DISPLAY_H */

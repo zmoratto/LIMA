@@ -588,3 +588,29 @@ void Save3DImage(vector<vector<LOLAShot> >& tracks, string filename)
 		fprintf(stderr, "Error saving vertex file.\n");
 }
 
+void overlay_image(char* image1, char* image2, Matrix3x3 H, char* outFile)
+{
+	boost::shared_ptr<DiskImageResource> rsrc1(new DiskImageResourceIsis(image1));
+	boost::shared_ptr<DiskImageResource> rsrc2(new DiskImageResourceIsis(image2));
+	DiskImageView<PixelGray<float> > temp1(rsrc1), temp2(rsrc2);
+
+	ImageView<PixelGray<float> > base = normalize(temp1);
+	ImageView<PixelGray<float> > t = normalize(temp2);
+
+	for (int i = 0; i < base.rows(); i++)
+		for (int j = 0; j < base.cols(); j++)
+		{
+			Vector3 coord = H * Vector3(i, j, 1);
+			coord = coord / coord(2);
+			int x = (int)coord(0);
+			int y = (int)coord(1);
+			if (x < 0 || y < 0 || x >= t.rows() || y >= t.cols())
+				continue;
+			base(i, j) = 0.5 * base(i, j) + 0.5 * t(x, y);
+		}
+	
+	ImageView<PixelRGB<uint8> > assembledImg(temp1.rows(), temp1.cols());
+	assembledImg = apply_mask(base * 255, 0);
+	write_image(outFile, assembledImg);
+}
+

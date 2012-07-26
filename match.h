@@ -40,6 +40,8 @@ using namespace std;
 #define DEFAULT_SEARCH_THETA_WINDOW (M_PI / 10)
 #define DEFAULT_SEARCH_THETA_STEP (M_PI / 40)
 
+Matrix3x3 find_track_homography(vector<vector<AlignedLOLAShot> > aligned, vector<vector<AlignedLOLAShot> > aligned2);
+Matrix3x3 find_image_homography(char* image1, char* image2, float lonstart, float lonend, float latstart, float latend);
 
 float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL);
 void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);

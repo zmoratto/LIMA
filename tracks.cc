@@ -1154,6 +1154,7 @@ void transform_track_no_gain_bias(vector<AlignedLOLAShot> & track, Matrix3x3 tra
 			continue;
 		}
 		Vector3 r = transform * Vector3(track[i].imgPt[2].x, track[i].imgPt[2].y, 1);
+		r = r / r(2);
 		int x = (int)r(0), y = (int)r(1);
 		track[i].image_x = x;
 		track[i].image_y = y;

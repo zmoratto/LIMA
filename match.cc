@@ -39,6 +39,87 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
+// returns a transformation matrix from coordinates in image 2 to coordinates in image 1
+Matrix3x3 find_track_homography(vector<vector<AlignedLOLAShot> > aligned, vector<vector<AlignedLOLAShot> > aligned2)
+{
+	int num_points = 0;
+	for (unsigned int i = 0; i < aligned.size(); i++)
+	{
+		for (unsigned int j = 0; j < aligned[i].size(); j++)
+			if (aligned[i][j].image_x >= 0 && aligned2[i][j].image_x >= 0)
+				num_points++;
+	}
+	// [a b c; d e f; 0 0 1] * [x;y;1] = [x';y';1] = [ax + by + c; dx + ey + f; 1]
+	// [x y 1 0 0 0; 0 0 0 x y 1] * [a;b;c;d;e;f]
+	// [a b c; d e f; g h i] * [x;y;1] = [x';y';w'] = [ax + by + c; dx + ey + f; gx + hy + i]
+	// [x y 1 0 0 0 0 0 0; 0 0 0 x y 1 0 0 0; 0 0 0 0 0 0 x y 1] * [a;b;c;d;e;f;g;h;i]
+	// [h11 x + h12 y + h13 - 
+	Matrix<double> A(2 * num_points, 9);
+	Matrix<double> b(2 * num_points, 1);
+	int index = 0;
+	for (unsigned int i = 0; i < aligned.size(); i++)
+		for (unsigned int j = 0; j < aligned[i].size(); j++)
+			if (aligned[i][j].image_x >= 0 && aligned2[i][j].image_x >= 0)
+			{
+				A(2 * index    , 0) = aligned2[i][j].image_x;
+				A(2 * index    , 1) = aligned2[i][j].image_y;
+				A(2 * index    , 2) = 1;
+				A(2 * index    , 3) = 0;
+				A(2 * index    , 4) = 0;
+				A(2 * index    , 5) = 0;
+				A(2 * index    , 6) = -aligned[i][j].image_x * aligned2[i][j].image_x;
+				A(2 * index    , 7) = -aligned[i][j].image_x * aligned2[i][j].image_y;
+				A(2 * index    , 8) = -aligned[i][j].image_x;
+				A(2 * index + 1, 0) = 0;
+				A(2 * index + 1, 1) = 0;
+				A(2 * index + 1, 2) = 0;
+				A(2 * index + 1, 3) = aligned2[i][j].image_x;
+				A(2 * index + 1, 4) = aligned2[i][j].image_y;
+				A(2 * index + 1, 5) = 1;
+				A(2 * index + 1, 6) = -aligned[i][j].image_y * aligned2[i][j].image_x;
+				A(2 * index + 1, 7) = -aligned[i][j].image_y * aligned2[i][j].image_y;
+				A(2 * index + 1, 8) = -aligned[i][j].image_y;
+				b(2 * index    , 0) = 0;
+				b(2 * index + 1, 0) = 0;
+				//printf("(%d %d) (%d %d)\n", aligned2[i][j].image_x, aligned2[i][j].image_y, aligned[i][j].image_x, aligned[i][j].image_y);
+				index++;
+			}
+
+	Matrix<double> U(2 * num_points, 9), S(9, 9), VT(9, 9);
+	Vector<double> s(9);
+	svd(A, U, s, VT);
+	Matrix3x3 H(VT(8, 0), VT(8, 1), VT(8, 2), VT(8, 3), VT(8, 4), VT(8, 5), VT(8, 6), VT(8, 7), VT(8, 8));
+
+	return H;
+}
+
+Matrix3x3 find_image_homography(char* image1, char* image2, float lonstart, float lonend, float latstart, float latend)
+{
+	camera::IsisCameraModel model1(image1);
+	camera::IsisCameraModel model2(image2);
+	vector<vector<AlignedLOLAShot> > aligneda, alignedb;
+	aligneda.push_back(vector<AlignedLOLAShot>());
+	alignedb.push_back(vector<AlignedLOLAShot>());
+	for (float x = lonstart; x <= lonend; x += 0.1)
+		for (float y = latstart; y <= latend; y += 0.1)
+		{
+			// height at one point, we treat the surface as a plane
+        		Vector3 lon_lat_rad( x, y, 1735.0 * 1000);
+        		Vector3 xyz = cartography::lon_lat_radius_to_xyz(lon_lat_rad);
+			Vector2 a = model1.point_to_pixel(xyz);
+			Vector2 b = model2.point_to_pixel(xyz);
+			std::vector<pointCloud> p;
+			LOLAShot l1(p), l2(p);
+			AlignedLOLAShot s1(l1), s2(l2);
+			s1.image_x = a.x(); s1.image_y = a.y();
+			s2.image_x = b.x(); s2.image_y = b.y();
+			aligneda[0].push_back(s1);
+			alignedb[0].push_back(s2);
+		}
+	Matrix3x3 H = find_track_homography(aligneda, alignedb);
+	return H;
+}
+
 float compute_transform_error(vector<AlignedLOLAShot> & track, int* numpoints=NULL)
 {
 	float err = 0.0;
