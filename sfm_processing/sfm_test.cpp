@@ -27,7 +27,7 @@ int main (int argc, char** argv)
 	//Read Config Files and set up tiles
 	SFM sfmTest(argv[1], argv[2]);
 
-	//Process Image Pairs
+	//Process Each Image
 	for(int frameIndex=sfmTest.configParams.firstFrame; frameIndex<=sfmTest.configParams.lastFrame; frameIndex++)
 	{
 		cout << "******************************************" << endl << endl;

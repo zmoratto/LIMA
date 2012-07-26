@@ -28,8 +28,6 @@ SFM::SFM(char* configFile, char* inputFilename)
 
 	numTiles = referenceTile.tiles.size();
 
-
-	cout << "line 36" << endl;
 	//Read Camera/Point Information Depending on Depth Info
 	if (configParams.depthInfo == KINECT_DEPTH && depthFiles.size() == 0)
 	{
@@ -302,7 +300,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 
 	}
 
-	//FLANN
+	//FLANN Formatting
 	if(feat.point_descriptors.type()!=CV_32F) 
 		feat.point_descriptors.convertTo(pose.currObjectData, CV_32F);
 	else 
@@ -474,7 +472,8 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	int validIndex = 0;
 	int validSize = pose.validPix.size();
 
-	CvPoint pt1, pt2;
+	//If I want to show all keypoints
+/*	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevKeyPoints.size(); m++)
 	{
 		index = m;
@@ -494,8 +493,8 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.y = pose.globalCurrKeyPoints[index].pt.y+1;
 		cvRectangle(image2, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
 	}
+*/
 
-/*
 	//Show KeyPoints Image 1
 	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevMatchedPix.size(); m++)
@@ -517,7 +516,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.y = pose.globalCurrMatchedPix[index].y+1;
 		cvRectangle(image2, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
 	}
-*/
+
 	composedImage = cvCreateImage(cvSize(image1->width*2, image1->height), image1->depth, image1->nChannels);
 	CvRect imageRect = cvRect(0,0, image1->width, image1->height); 
 	cvSetImageROI(composedImage, imageRect);
@@ -542,14 +541,21 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.x = pose.globalPrevMatchedPix[index].x+(composedImage->width/2);
 		pt2.y = pose.globalPrevMatchedPix[index].y;
 
-		if(pose.validPix.size() != 0 && pose.validPix[validIndex] == index)
+		if(configParams.depthInfo != 0)
 		{
-			cvLine( composedImage, pt1, pt2, CV_RGB(255,255,255), 1);
-			if(validSize != validIndex-1)
-				validIndex++;
+			if(pose.validPix.size() != 0 && pose.validPix[validIndex] == index)
+			{
+				cvLine( composedImage, pt1, pt2, CV_RGB(255,255,255), 1);
+				if(validSize != validIndex-1)
+					validIndex++;
+			}
+			else
+				cvLine( composedImage, pt1, pt2, CV_RGB(0,0,0), 1);
 		}
 		else
-			cvLine( composedImage, pt1, pt2, CV_RGB(0,0,0), 1);
+		{
+			cvLine( composedImage, pt1, pt2, CV_RGB(255,255,255), 1);
+		}
 	}
 
 	stringstream ss;

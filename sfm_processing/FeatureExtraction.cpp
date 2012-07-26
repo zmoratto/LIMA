@@ -148,7 +148,6 @@ void FeatureExtraction::process(IplImage* image)
 		delete extractor;
 	setDetectExtract(featureMethod);
 	detectKeyPoints(image);
-	showKeyPoints(image);
 
 	extractKeyPoints(image);
 }

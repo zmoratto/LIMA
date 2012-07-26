@@ -323,9 +323,22 @@ void PoseEstimation::mapping(string filename, IplImage* image)
 	int width = image->width;
 	float rgb;
 	uchar* data = (uchar*)image->imageData;
+	uchar *rData, *gData, *bData;
 	CvMat* temp_T = cvCreateMat(3,1,CV_32FC1);
 	CvMat* temp_R = cvCreateMat(3,3,CV_32FC1);
+	int numChannels = image->nChannels;
 
+IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
+IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
+IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
+
+if(numChannels == 3)
+{
+	cvSplit(image,b,g,r,NULL);
+	rData = (uchar*)r->imageData;
+	gData = (uchar*)g->imageData;
+	bData = (uchar*)b->imageData;
+}
 	int numPoints = curr_x.size();
 	int counter = 0;
 	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1);
@@ -351,13 +364,18 @@ void PoseEstimation::mapping(string filename, IplImage* image)
 	{
 		if(curr_z[i] > 0)
 		{
-			rgb = data[i];
 			cvSetReal2D(pointMat, 0, 0, curr_x[i]);
 			cvSetReal2D(pointMat, 1, 0, curr_y[i]);
 			cvSetReal2D(pointMat, 2, 0, curr_z[i]);
 			cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
-			ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << rgb << " " << rgb << " " << rgb << '\n';
+			if(numChannels == 1)
+				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(data[i]) << " " << int(data[i]) << " " << int(data[i]) << '\n';
+			else if(numChannels == 3)
+			{
+				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(rData[i]) << " " << int(gData[i]) << " " << int(bData[i]) << '\n';
+			}
 			counter++;
+
 		}
 	}
 
@@ -567,6 +585,15 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	bool xTrue, yTrue;
 	int numX = 0, numY = 0;
 	int counter = 0;
+
+	if(globalCurrDescriptors.type() !=CV_32F)
+	{
+		globalCurrDescriptors.convertTo(globalCurrDescriptors, CV_32F);
+	} 
+	if(globalPrevDescriptors.type() != CV_32F)
+	{
+		globalPrevDescriptors.convertTo(globalPrevDescriptors, CV_32F);
+	}
 
 	//Nearest Neighbor Matching
 	nearestNeighborMatching();

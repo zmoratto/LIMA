@@ -1,6 +1,6 @@
-firstFrame 1
-lastFrame 6
-depthInfo 0
+firstFrame 45
+lastFrame 48
+depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
