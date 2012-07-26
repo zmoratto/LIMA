@@ -110,7 +110,7 @@ public:
 	void resetPrevPos();
 	void depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsicMatrix);
 	void dispToPointCloud(cv::Mat dispMat,  cv::Mat Q);
-	void readPointCloudFiles(string filename, vector<string>& pointFiles);
+	void readDepthFiles(string filename, vector<string>& depthFiles);
 	void savePointCloud(vector<string> filenames, int iteration, IplImage* image);
 	void resizeXYZVectors(int width, int height);
 	void nearestNeighborMatching();

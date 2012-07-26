@@ -8,15 +8,16 @@ using namespace std;
 
 void printDepthWarning();
 
-SFM::SFM(char* configFile, char* inputFilename, vector<string>& inputFiles, vector<string>& depthFiles)
+SFM::SFM(char* configFile, char* inputFilename)
 {
 	prevImage = NULL;
 	prevDepth = NULL;
+	currDepth = NULL;
 	sfmInit = 1;
 
 	//Read Configuration Files and Set Up Tiles
 	readConfigurationFile(string(configFile));
-	readImageFilenames(string(inputFilename), inputFiles, depthFiles);
+	readImageFilenames(string(inputFilename));
 
 	IplImage* image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 
@@ -24,22 +25,24 @@ SFM::SFM(char* configFile, char* inputFilename, vector<string>& inputFiles, vect
 	imageHeight = image->height;
 
 	referenceTile.setUpReferenceTiles(image);
-	//matchingTile.setUpMatchingTiles(referenceTile, image);
+
 	numTiles = referenceTile.tiles.size();
 
+
+	cout << "line 36" << endl;
 	//Read Camera/Point Information Depending on Depth Info
-	if (configParams.depthInfo == KINECT_DEPTH && sfmInit)
+	if (configParams.depthInfo == KINECT_DEPTH && depthFiles.size() == 0)
 	{
 		int cameraCalibrationFileReadError= readCameraCalibrationFile();
-		//readImageFilenames(inputFilename.c_str(), inputFiles, depthFiles);
+		pose.readDepthFiles(configParams.kinectDepthFilename, depthFiles);
 	}
 	if (configParams.depthInfo == STEREO_DISP && sfmInit)
 	{
 		int stereoCalibrationFileReadError = readStereoCalibrationFile();
 	}
-	if(configParams.depthInfo == POINT_CLOUD && pointFiles.size() == 0)
+	if(configParams.depthInfo == POINT_CLOUD && depthFiles.size() == 0)
 	{
-		pose.readPointCloudFiles(configParams.pointCloudFilename, pointFiles);
+		pose.readDepthFiles(configParams.pointCloudFilename, depthFiles);
 	}
 
 	//Set up 3D Point Vectors
@@ -88,6 +91,7 @@ void SFM::readConfigurationFile(string configurationFilename)
 		fin >> identifier >> configParams.cameraCalibrationFilename;
 		fin >> identifier >> configParams.stereoCalibrationFilename;
 		fin >> identifier >> configParams.pointCloudFilename;
+		fin >> identifier >> configParams.kinectDepthFilename;
 		fin >> identifier >> pose.minMatches;
 		fin >> identifier >> pose.detThresh;
 		fin >> identifier >> feat.featureMethod;
@@ -212,7 +216,7 @@ void SFM::restoreDefaultParameters()
 	pose.ransacAccuracy = 0.99;
 }
 
-void SFM::readImageFilenames(string inputFile, vector<string> &imageFiles, vector<string> &depthFiles)
+void SFM::readImageFilenames(string inputFile)
 {
 	string image, depth;
 	int i = 0;
@@ -230,16 +234,14 @@ void SFM::readImageFilenames(string inputFile, vector<string> &imageFiles, vecto
 		stringstream ss;
 		getline(fin, line);
 		ss << line;
-		ss >> image >> depth;
-		imageFiles.push_back(image);
-		depthFiles.push_back(depth);
+		ss >> image;
+		inputFiles.push_back(image);
 	}
 	fin.close();
 }
 
 void SFM::processTile(IplImage *image, int frameIndex)
 {
-	IplImage* currDepth = NULL;
 	int index, cnt = 0;
 	pose.clearMatchedPixels();
 	vector<KeyPoint> temp;
@@ -260,7 +262,6 @@ void SFM::processTile(IplImage *image, int frameIndex)
 
 	if(pose.globalCurrDescriptors.cols == 0)
 	{
-		//pose.globalPrevDescriptors.create(0, feat.point_descriptors.cols, feat.point_descriptors.type());
 		pose.globalCurrDescriptors.create(0, feat.point_descriptors.cols, feat.point_descriptors.type());
 	}
 
@@ -379,38 +380,33 @@ void SFM::processTile(IplImage *image, int frameIndex)
 
 }
 
-void SFM::preprocessing(IplImage* image, IplImage*& currDepth, int frameIndex)
+void SFM::preprocessing(IplImage* image, int frameIndex)
 {
 	int width = image->width;
 	int height = image->height;
-	static vector<string> depthFiles;
-	vector <string> inputFiles;
-	string inputFilename = string("2012_0315_bldg269_list.txt");
-
-	if(configParams.depthInfo == KINECT_DEPTH || configParams.depthInfo == STEREO_DISP)
-		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 
 	//Read and Save Point Cloud File
 	if (configParams.depthInfo == KINECT_DEPTH)
 	{
+		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 		pose.depthToPointCloud(currDepth, camera_matrix);
 	}
 	else if (configParams.depthInfo == STEREO_DISP)
 	{
+		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 		Mat currDispMat = &(*currDepth);
 		pose.dispToPointCloud(currDispMat, Q);
 		currDispMat.release();
 	}
 	else if(configParams.depthInfo == POINT_CLOUD)
 	{
-		pose.savePointCloud(pointFiles, frameIndex, image);
+		pose.savePointCloud(depthFiles, frameIndex, image);
 	}
 }
 
-void SFM::process(IplImage* image, int frameIndex, IplImage* currDepth)
+void SFM::process(IplImage* image, int frameIndex)
 {
-
-	preprocessing(image, currDepth, frameIndex); //Read PC for image1
+	preprocessing(image, frameIndex); //Read PC for image1
 	referenceTile.process(image);
 	//Process Each Tile
 	for(int j=0; j<numTiles;j++)
@@ -425,11 +421,11 @@ void SFM::process(IplImage* image, int frameIndex, IplImage* currDepth)
 		showGlobalMatches(prevImage, image, frameIndex);
 	}
 	//Update
-	update(image, currDepth);
+	update(image);
 }
 
 
-void SFM::update(IplImage* image, IplImage* currDepth)
+void SFM::update(IplImage* image)
 {
 	pose.prevMatchedPoints.clear();
 	pose.currMatchedPoints.clear();
@@ -453,7 +449,11 @@ void SFM::update(IplImage* image, IplImage* currDepth)
 	pose.resetPrevPos();
 
 	prevImage = image;
-
+	if(currDepth != NULL)
+	{
+		cvReleaseImage(&currDepth);
+		currDepth = NULL;
+	}
 	sfmInit = 0;
 }
 
@@ -474,7 +474,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	int validIndex = 0;
 	int validSize = pose.validPix.size();
 
-/*	CvPoint pt1, pt2;
+	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevKeyPoints.size(); m++)
 	{
 		index = m;
@@ -493,9 +493,9 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt1.y = pose.globalCurrKeyPoints[index].pt.y-1;
 		pt2.y = pose.globalCurrKeyPoints[index].pt.y+1;
 		cvRectangle(image2, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
-	}*/
+	}
 
-
+/*
 	//Show KeyPoints Image 1
 	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevMatchedPix.size(); m++)
@@ -517,7 +517,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.y = pose.globalCurrMatchedPix[index].y+1;
 		cvRectangle(image2, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
 	}
-
+*/
 	composedImage = cvCreateImage(cvSize(image1->width*2, image1->height), image1->depth, image1->nChannels);
 	CvRect imageRect = cvRect(0,0, image1->width, image1->height); 
 	cvSetImageROI(composedImage, imageRect);
@@ -554,7 +554,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 
 	stringstream ss;
 	ss<<frameIndex;
-	string composedFilename = configParams.resultImageFilename + ss.str() + string(".pgm");
+	string composedFilename = configParams.resultImageFilename + ss.str() + string(".jpg");
 	cvSaveImage(composedFilename.c_str(), composedImage);
 	cvReleaseImage(&composedImage);
 }
@@ -577,43 +577,4 @@ void SFM::cleanUp(IplImage*& im1, IplImage*& im2)
 	im2 = NULL;
 	prevImage = NULL;
 }
-
-/*void SFM::processImagePair(IplImage*& image1, IplImage*& image2, int frameIndex, IplImage* currDepth)
-{
-	clock_t t1, t2;
-
-	preprocessing(image1, currDepth, frameIndex); //Read PC for image1
-	//pose.resetPrevPos(); //Move PC to prevPC
-	referenceTile.process(image1);
-	//preprocessing(image2, currDepth, frameIndex+1); //Read PC for image2
-	//matchingTile.process(image2);
-
-	//Process Each Tile
-	for(int j=0; j<numTiles;j++)
-	{
-		currTile = j;
-		process(referenceTile.tileImages[j], frameIndex);
-		update(referenceTile.tileImages[j], currDepth);
-		process(matchingTile.tileImages[j], frameIndex+1);
-
-		update(matchingTile.tileImages[j], currDepth);
-		clear();
-	}
-
-	//Compute new R and T
-	t1 = clock();
-	pose.process(configParams.depthInfo, image2);
-	t2 = clock();
-	cout <<"Process Pose: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
-
-	//Save Point Projections -- For SBA
-	pose.savePointProj(frameIndex, configParams.firstFrame);
-
-	if(frameIndex == configParams.lastFrame-1)
-		pose.writePointProj(configParams.pointProjFilename);
-
-	showGlobalMatches(image1, image2, frameIndex);
-	cleanUp(image1, image2);
-}
-*/
 

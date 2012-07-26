@@ -8,8 +8,7 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-	vector<string> inputFiles, depthFiles;
-	IplImage* image = NULL, *currDepth = NULL;
+	IplImage* image = NULL;
 	clock_t t1, t2;
 	KeyPoint tilePt;
 	int oldRow;
@@ -26,18 +25,17 @@ int main (int argc, char** argv)
 	}
 
 	//Read Config Files and set up tiles
-	SFM sfmTest(argv[1], argv[2], inputFiles, depthFiles);
+	SFM sfmTest(argv[1], argv[2]);
 
 	//Process Image Pairs
 	for(int frameIndex=sfmTest.configParams.firstFrame; frameIndex<=sfmTest.configParams.lastFrame; frameIndex++)
 	{
-		cout << endl << "******************************************" << endl << endl;
+		cout << "******************************************" << endl << endl;
 		cout << "FRAME NUM: " << frameIndex << endl;
 
-		image = cvLoadImage(inputFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-
+		image = cvLoadImage(sfmTest.inputFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 		t1 = clock();
-		sfmTest.process(image, frameIndex, currDepth);
+		sfmTest.process(image, frameIndex);
 		t2 = clock();
 
 		cout << "Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;

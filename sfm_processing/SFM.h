@@ -40,6 +40,7 @@ struct SFMParams{
 	string cameraCalibrationFilename;
 	string stereoCalibrationFilename;
 	string pointCloudFilename;
+	string kinectDepthFilename;
 	int featureMethod;
 	int poseEstimationType;
 	string pointProjFilename;
@@ -51,7 +52,7 @@ class SFM
 public:
 
 	//Constructor
-	SFM(char* configFile, char* inputFilename, vector<string>& inputFiles, vector<string>& depthFiles);
+	SFM(char* configFile, char* inputFilename);
 
 	//Destructor
 	~SFM();
@@ -64,7 +65,7 @@ public:
 	Mat dist_coeffs;
 	Mat Q;
 	IplImage *prevImage;
-	IplImage *prevDepth;
+	IplImage *prevDepth, *currDepth;
 	string outputDir;
 	int sfmInit;
 	vector<string> pointFiles;
@@ -74,6 +75,7 @@ public:
 	int numTiles;
 	int imageWidth;
 	int imageHeight;
+	vector<string> inputFiles, depthFiles;
 
 	//Methods
 	void printUsage();
@@ -83,13 +85,12 @@ public:
 	int readCameraCalibrationFile();
 	int  readStereoCalibrationFile();
 	void restoreDefaultParameters();
-	void readImageFilenames(string inputFile, vector<string> &imageFiles, vector<string> &depthFiles);
+	void readImageFilenames(string inputFile);
 	void processTile(IplImage* image, int frameIndex);
-	void preprocessing(IplImage* image, IplImage*& currDepth, int frameIndex);
-	void process(IplImage* image, int frameIndex, IplImage* currDepth);
-	void update(IplImage* image, IplImage* currDepth);
+	void preprocessing(IplImage* image, int frameIndex);
+	void process(IplImage* image, int frameIndex);
+	void update(IplImage* image);
 	void clear();
 	void showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex);
 	void cleanUp(IplImage*& im1, IplImage*& im2);
-	//void processImagePair(IplImage*& im1, IplImage*& im2, int frameIndex, IplImage* currDepth);
 };
