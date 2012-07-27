@@ -7,65 +7,66 @@
 
 \begin{document}
 \title {The Alignment Toolkit}
-\author{Ara V. Nefian and Taemin Kim\\
+\author{Ara V. Nefian \\ Taemin Kim\\
 \{ara.nefian,taemin.kim\}@nasa.gov}
 \maketitle
 
-This document describes a basic use structure of the AlignmentTK (ATK). ATK is developed for 2D and 3D data alignment and supports the 
-following applications:
+This document describes a basic use structure of the AlignmentTK (ATK). ATK is developed for 2D and 3D data alignment and supports the following applications:
 \begin{itemize}
 \item assembler - aligns two DEMs, to be used in rover localization with a large orbital map. It uses iterative clsoest point (ICP) algorithm and has 
 been tested for MER imagery in the context of HiRISE orbital maps.
 \item lidar2dem - aligns DEM to lidar data. It uses ICP and has been tested on several DEMs and LOLA tracks.
-\item lidar2img - aligns lidar to images. It uses a affine transform to match the LOLA simulated reflectance to Apollo imagery. 
+\item lidar2img - aligns lidar to images. It uses a affine transform to match the LOLA simulated reflectance to Apollo imagery.
+\item stereo\_processing - creates 3D point clouds from stereo image pairs
+\item sfm\_processing - performs structure from motion on pairs of images
 \end{itemize} 
 
 \section{How to use}
 Examples of use are given in assembler.sh, lidar2dem.sh and lidar2img.sh respectively.
 
-Each application is controlled by an optional settings file (see coregister\underline{ }settings\underline{ }example.txt) with the following example format:\\
-MATCHING\underline{ }MODE 1\\
-REFLECTANCE\underline{ }TYPE 2\\
-ANALYSE\underline{ }FLAG 0\\
-USE\underline{ }REFLECTANCE\underline{ }FEATURES 1\\
-TOP\underline{ }PERCENT\underline{ }FEATURES 1\\
-SAMPLING\underline{ }STEP 100 100\\
-MATCH\underline{ }WINDOW 5 5\\
-MAX\underline{ }NUM\underline{ }ITER 15\\
-MAX\underline{ }NUM\underline{ }STARTS 20\\
-NO\underline{ }DATA\underline{ }VAL -10000.0\\
-CONV\underline{ }THRESH 0.01\\
+Each application is controlled by an optional settings file (see coregister\_settings\_example.txt) with the following example format:\\
+MATCHING\_MODE 1\\
+REFLECTANCE\_TYPE 2\\
+ANALYSE\_FLAG 0\\
+USE\_REFLECTANCE\_FEATURES 1\\
+TOP\_PERCENT\_FEATURES 1\\
+SAMPLING\_STEP 100 100\\
+MATCH\_WINDOW 5 5\\
+MAX\_NUM\_ITER 15\\
+MAX\_NUM\_STARTS 20\\
+NO\_DATA\_VAL -10000.0\\
+CONV\_THRESH 0.01\\
 
 If the settings file is not found or not entered by the user each application will run with a set of default params.
 
 Each field of the settings file is explained below:
 \begin{itemize}
-\item{MATCHING\underline{ }MODE}: 0 - no matching, 1 - affine 2D alignmment, 2 -ICP 3D alignment\\
-\item{ANALYSE\underline{ }FLAG}:  1 - will display and save verbose information, 0 - no info.\\
-\item{USE\underline{ }REFLECTANCE\underline{ }FEATURES}: 0 - no LOLA features, 1 use LOLA features.\\ 
-\item{TOP\underline{ }PERCENT\underline{ }FEATURES} integer value representing 1000 x perecntage of top features to be kept from LOLA data\\
-\item{SAMPLING\underline{ }STEP} two integers corresponding to the downsampling factor in the width and height of the image or DEM\\
-\item{MATCH\underline{ }WINDOW}: two integers corresponding to the width and height of the matching window\\
-\item{MAX\underline{ }NUM\underline{ }ITER} 15\\
-\item{MAX\underline{ }NUM\underline{ }STARTS} 20\\
-\item{NO\underline{ }DATA\underline{ }VAL} no data float value for images or DEMs that don't have geotiff specified no data value.\\
-\item{CONV\underline{ }THRESH}: float number describing the threshold under which absolute value at consecutive iterations determine 
+\item{MATCHING\_MODE}: 0 - no matching, 1 - affine 2D alignmment, 2 -ICP 3D alignment\\
+\item{ANALYSE\_FLAG}:  1 - will display and save verbose information, 0 - no info.\\
+\item{USE\_REFLECTANCE\_FEATURES}: 0 - no LOLA features, 1 use LOLA features.\\ 
+\item{TOP\_PERCENT\_FEATURES} integer value representing 1000 x perecntage of top features to be kept from LOLA data\\
+\item{SAMPLING\_STEP} two integers corresponding to the downsampling factor in the width and height of the image or DEM\\
+\item{MATCH\_WINDOW}: two integers corresponding to the width and height of the matching window\\
+\item{MAX\_NUM\_ITER} 15\\
+\item{MAX\_NUM\_STARTS} 20\\
+\item{NO\_DATA\_VAL} no data float value for images or DEMs that don't have geotiff specified no data value.\\
+\item{CONV\_THRESH}: float number describing the threshold under which absolute value at consecutive iterations determine 
                                 the algorithm convergence (example: 0.01)\\
 \end{itemize}
 
 
-\section{Code Structure}
-The following files are part of the toolkit
-\begin{itemize}
-\item{lidar2img.cc} - main function for lidar2img
-\item{lidar2dem.cc} - main function for lidar2dem 
-\item{assembler.cc} - main function for assembler
-\end{itemize}
+%\section{Code Structure}
+%The following files are part of the toolkit
+%\begin{itemize}
+%\item{lidar2img.cc} - main function for lidar2img
+%\item{lidar2dem.cc} - main function for lidar2dem 
+%\item{assembler.cc} - main function for assembler
+%\end{itemize}
 
 
 
 \section{SFM Processing}
-The following files are part of the SFM framework:
+\subsection{Files:}
 \begin{itemize}
 	\item{sfm\_test.cpp} - main function for SFM Processing
 	\item{SFM.h} - declaration of SFM class
@@ -78,15 +79,48 @@ The following files are part of the SFM framework:
 \end{itemize}
 
 
-\noindent How to install SFM:
+\subsection{How to install sfm:}
 \begin{enumerate}
-	\item{Install Prerequisites} - Install OpenCV 2.3.1, PCL 1.5
+	\item{Install Prerequisites} - Install OpenCV 2.3.1, PCL 1.5, lapack, cmake, gfortran
 	\item{Install SFM} - inside sfm processing directory type: cmake .
 	\item{Build sfm\_test} - inside sfm processing directory type: make
 	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
 \end{enumerate}
 
+
+\subsection{Configuration Parameters}
+If the configuration file is not specified, the program will run with a set of default parameters.
+\begin{itemize}
+	\item{\textsc{depthInfo}} - 0 (No Depth), 2 (Kinect Depth), 3 (Stereo Point Clouds)
+	\item{\textsc{pointCloudFilename}} - file containing filenames for all point cloud files
+	\item{\textsc{kinectDepthFilename}} - file containing list of kinect depth filenames
+	\item{\textsc{minMatches}} - minimum number of matches in order to do pose estimation
+	\item{\textsc{detThresh}} - small threshold for determinant of R in order to do SVD
+	\item{\textsc{featureMethod}} - 0 (SURF), 1 (ORB), 2 (SIFT)
+	\item{\textsc{poseEstimationType}} - 0 (Pairs of frames for Pose Estimation), 1 (SBA)
+	\item{\textsc{nndrRatio}} - ratio for determining good matches
+	\item{\textsc{numNN}} - number of nearest neighbors to save for each key point
+	\item{\textsc{zDist}} - maximum distance between z coordinates for good matches
+	\item{\textsc{xDist}} - maximum distance between x coordinates for good matches
+	\item{\textsc{yDist}} - maximum distance between y coordinates for good matches
+	\item{\textsc{nbMatches}} - minimum number of matches for homography
+	\item{\textsc{homographyMethod}} - 0 (Default OpenCV Method), 4 (Least Median Method), 8 (RANSAC Method)
+	\item{\textsc{flannCheck}} - number of elements to visit in NN search
+	\item{\textsc{ransacPixels}} - maximum number of pixels the match can be from the epipolar line
+	\item{\textsc{ransacAccuracy}} - accuracy of homography before stopping iterations
+	\item{\textsc{tileWidth}} - width of each tile in image
+	\item{\textsc{tileHeight}} - height of each tile in image
+	\item{\textsc{xOverlap}} - amount of overlap in the x direction between consecutive tiles
+	\item{\textsc{yOverlap}} - amount of overlap in the y direction between consecutive tiles
+	\item{\textsc{tileScaleX}} - scale from reference tile to matching tile in the x direction
+	\item{\textsc{tileScaleY}} - scale from reference tile to matching tile in the y direction
+	\item{\textsc{pointProjFilename}} - file where point projections are saved for later use by SBA
+	\item{\textsc{weightedPortion}} - weights this portion of the image to the bottom of the image (work in progress \ldots)
+\end{itemize}
+
 \end{document}
+
+
 %=======
 %\section{Installation of SFM}
 
