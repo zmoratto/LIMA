@@ -434,9 +434,9 @@ void SFM::update(IplImage* image)
 	pose.prevKeypoints.clear();
 
 	//Global Parameters
-	pose.globalPrevMatchedPts.clear();// = pose.globalCurrMatchedPts;
+	pose.globalPrevMatchedPts.clear();
 	pose.globalCurrMatchedPts.clear();
-	pose.globalPrevMatchedPix.clear();// = pose.globalCurrMatchedPix;
+	pose.globalPrevMatchedPix.clear();
 	pose.globalCurrMatchedPix.clear();
 	pose.globalPrevKeyPoints = pose.globalCurrKeyPoints;
 	pose.globalCurrKeyPoints.clear();
@@ -446,13 +446,24 @@ void SFM::update(IplImage* image)
 	//3D Points
 	pose.resetPrevPos();
 
-	prevImage = image;
+	if(prevImage != NULL)
+	{
+		cvReleaseImage(&prevImage);
+		prevImage = NULL;
+	}
+
+	prevImage = cvCreateImage(cvGetSize(image), image->depth, image->nChannels);
+
+	cvCopy(image, prevImage);
+	//prevImage = image;
 	if(currDepth != NULL)
 	{
 		cvReleaseImage(&currDepth);
 		currDepth = NULL;
 	}
 	sfmInit = 0;
+	cvReleaseImage(&image);
+	image = NULL;
 }
 
 void SFM::clear()

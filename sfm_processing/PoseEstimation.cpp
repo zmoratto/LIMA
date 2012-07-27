@@ -328,17 +328,17 @@ void PoseEstimation::mapping(string filename, IplImage* image)
 	CvMat* temp_R = cvCreateMat(3,3,CV_32FC1);
 	int numChannels = image->nChannels;
 
-IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
-IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
-IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
+	IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
+	IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
+	IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
 
-if(numChannels == 3)
-{
-	cvSplit(image,b,g,r,NULL);
-	rData = (uchar*)r->imageData;
-	gData = (uchar*)g->imageData;
-	bData = (uchar*)b->imageData;
-}
+	if(numChannels == 3)
+	{
+		cvSplit(image,b,g,r,NULL);
+		rData = (uchar*)r->imageData;
+		gData = (uchar*)g->imageData;
+		bData = (uchar*)b->imageData;
+	}
 	int numPoints = curr_x.size();
 	int counter = 0;
 	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1);
@@ -380,7 +380,10 @@ if(numChannels == 3)
 	}
 
 	cvReleaseMat(&pointMat);
-	cvReleaseMat(&outPointMat); 
+	cvReleaseMat(&outPointMat);
+	cvReleaseImage(&r);
+	cvReleaseImage(&g);
+	cvReleaseImage(&b);
 	fout.open (filename.c_str(), ios::app);
 	fout << ss.str();
 	fout.close();
