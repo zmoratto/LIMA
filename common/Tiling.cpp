@@ -162,50 +162,14 @@ void Tiling::setUpReferenceTiles(IplImage* image)
 				break;
 
 			tiles.push_back(roi);
-			oldC = c;
-/*			//Cover Center
-			if(xOver == 0 && c+x < size.width)
-			{
-				cout << "Covering Center... C = " << c << endl;
-				c = c+x/2;
-				roi.x = c;
-				if(c+x>size.width)
-					roi.width = size.width-c;
-				else
-					roi.width = x;
 
-				tiles.push_back(roi);
-				c = oldC;
-			}
-*/
 			if(x >= size.width)
 				break;
 		}
 
-/*		oldR = r;
-		if(yOver == 0 && r+y < size.height)
-		{
-			cout << "Covering Center... R = " << r << endl;
-			r = r+y/2;
-			roi.y = r;
-			if(r+y>size.height)
-				roi.height = size.height-r;
-			else
-				roi.height = y;
-			tiles.push_back(roi);
-			r = oldR;
-		}
-*/
 		if(y >= size.height)
 			break;
 	}
-
-/*	cout << "REFERENCE TILES: " << endl;
-	for(int i=0; i<tiles.size(); i++)
-	{
-		cout << tiles[i].x << " " << tiles[i].y << " " << tiles[i].width << " " << tiles[i].height << endl;
-	}
-*/
 }
 
 void Tiling::setUpMatchingTiles(Tiling ref, IplImage* im1)
@@ -258,13 +222,6 @@ void Tiling::setUpMatchingTiles(Tiling ref, IplImage* im1)
 			tiles[i].height += yScale;
 		}
 	}
-
-/*	cout << "MATCHING TILES: " << endl;
-	for(int i=0; i<tiles.size(); i++)
-	{
-		cout << tiles[i].x << " " << tiles[i].y << " " << tiles[i].width << " " << tiles[i].height << endl;
-	}
-*/
 }
 
 void Tiling::clear()

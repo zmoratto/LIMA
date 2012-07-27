@@ -2,8 +2,8 @@
 %\usepackage{amsfonts}
 %\usepackage{amssymb}
 %\usepackage{amsmath}
-\usepackage{listings}
-\lstset{language=[LaTeX]TeX}
+%\usepackage{listings}
+%\lstset{language=[LaTeX]TeX}
 
 \begin{document}
 \title {The Alignment Toolkit}
@@ -62,102 +62,120 @@ The following files are part of the toolkit
 \item{assembler.cc} - main function for assembler
 \end{itemize}
 
-\section{Installation of SFM}
 
-This is complete installation procedure for Mac OS X.
 
-\begin{lstlisting}
-- install prerequisites
-1) install Macport (http://www.macports.org/install.php) 
-2) install dependencies (http://pointclouds.org/downloads/macosx.html)
-3) install PCL (http://pointclouds.org/downloads/macosx.html)
-4) sudo port install opencv
-5) sudo port install cmake
-6) install gfortran (http://gcc.gnu.org/wiki/GFortranBinaries)
-7) install lapack(http://gcc.gnu.org/testing/testing-lapack.html)
-7.1) download lapack.tgz and unzip it
-7.2) rename make.inc.example to make.inc in the root directory of lapack 
-7.3) make blaslib && make
-8) install sba (http://www.ics.forth.gr/~lourakis/sba/) 
-8.1) edit demo/CMakeLists.txt
+\section{SFM Processing}
+The following files are part of the SFM framework:
+\begin{itemize}
+\item{sfmtest.cpp} - main function for SFM Processing
+\item{SFM.h} - declaration of SFM class
+\item{SFM.cpp} - definition of SFM class
+\item{PoseEstimation.h} - declaration of PoseEstimation class
+\item{PoseEstimation.cpp} - definition of PoseEstimation class
+\item{FeatureExtraction.h} - declaration of FeatureExtraction class
+\item{FeatureExtraction.cpp} - definition of FeatureExtraction class
+\item{sfmconfig.txt} - configuration file for main program
+\end{itemize}
 
-# CMake file for sba's demo program
-
-INCLUDE_DIRECTORIES(..)
-LINK_DIRECTORIES(.. ${LAPACKBLAS_DIR})
-
-ADD_EXECUTABLE(eucsbademo eucsbademo.c imgproj.c readparams.c eucsbademo.h readparams.h)
-# libraries the demo depends on
-IF(HAVE_F2C)
-  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB} ${BLAS_LIB} ${F2C_LIB})
-ELSE(HAVE_F2C)
-  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB})
-ENDIF(HAVE_F2C)
-
-# make sure that the library is built before the demo
-ADD_DEPENDENCIES(eucsbademo sba)
-
-8.2) mkdir build && cd build
-8.3) ccmake ..
-8.3.1) turn HAVE_F2C OFF
-8.3.2) LAPACK_LIB = -framework vecLib
-8.4) make
-8.5) set PATH for the libsba.a
-
-For beginner, check opt/local if you install them with "sudo port install." Otherwise, usr/local
-
-- Initialize SFM
-1) svn co https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/sfm/
-2) cd sfm
-3) mkdir build
-4) cd build
-5) cmake .. (here is big double dots)
-6) make -j2 && make install
-
-- Configure SFM
-1) cd sfm\build
-2) ccmake ..
-[Press 'c' to configure]
-[Select option 'BUILD_TESTS']
-[Press 'c' to reconfigure]
-[Press 'g' to generate]
-
-# Test SFM
-1) cd sfm/build
-2) make test
-3) view the file in sfm/build/Testing/Tempory/LastTest.log
-
-# Run SFM with an Example
-1) cd sfm/examples
-2) scp <username>@<machinename>:/irg/data/kinect/<directory> .
-3) cd <directory>
-4) cp ../sfm_config_example.txt sfm_config.txt
-5) cp ../camera_calibration_example.txt camera_calibration.txt
-6) open sfm_config.txt to change the value of inputDataName by <directory>
-7) sfm
-8) pc_vis <directory>.txt
-
-for example <directory>=2011_1202_bldg_269_2, <machinename>=pesto
-1) cd sfm/examples
-2) scp <username>@pesto:/irg/data/kinect/2011_1202_bldg_269_2 .
-3) cd 2011_1202_bldg_269_2
-4) cp ../sfm_config_example.txt sfm_config.txt
-5) cp ../camera_calibration_example.txt camera_calibration.txt
-6) open sfm_config.txt: inputDataName 2011_1202_bldg_269_2
-7) sfm
-8) pc_vis 2011_1202_bldg_269_2.txt
-
-# troubleshooting
-If any problem to link dependencies,
-Download PCL sources from http://pointclouds.org/downloads/ 
-- compile and install PCL
-1) cd PCL-<ver>-Source
-2) cmake .
-3) make
-4) make install
-
-Add the following to ~/.bash_profile file
-export DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib:/usr/lib
-\end{lstlisting}
 
 \end{document}
+%=======
+%\section{Installation of SFM}
+
+%This is complete installation procedure for Mac OS X.
+
+%\begin{lstlisting}
+%- install prerequisites
+%1) install Macport (http://www.macports.org/install.php) 
+%2) install dependencies (http://pointclouds.org/downloads/macosx.html)
+%3) install PCL (http://pointclouds.org/downloads/macosx.html)
+%4) sudo port install opencv
+%5) sudo port install cmake
+%6) install gfortran (http://gcc.gnu.org/wiki/GFortranBinaries)
+%7) install lapack(http://gcc.gnu.org/testing/testing-lapack.html)
+%7.1) download lapack.tgz and unzip it
+%7.2) rename make.inc.example to make.inc in the root directory of lapack 
+%7.3) make blaslib && make
+%8) install sba (http://www.ics.forth.gr/~lourakis/sba/) 
+%8.1) edit demo/CMakeLists.txt
+
+%# CMake file for sba's demo program
+
+%INCLUDE_DIRECTORIES(..)
+%LINK_DIRECTORIES(.. ${LAPACKBLAS_DIR})
+
+%ADD_EXECUTABLE(eucsbademo eucsbademo.c imgproj.c readparams.c eucsbademo.h readparams.h)
+%# libraries the demo depends on
+%IF(HAVE_F2C)
+%  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB} ${BLAS_LIB} ${F2C_LIB})
+%ELSE(HAVE_F2C)
+%  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB})
+%ENDIF(HAVE_F2C)
+
+%# make sure that the library is built before the demo
+%ADD_DEPENDENCIES(eucsbademo sba)
+
+%8.2) mkdir build && cd build
+%8.3) ccmake ..
+%8.3.1) turn HAVE_F2C OFF
+%8.3.2) LAPACK_LIB = -framework vecLib
+%8.4) make
+%8.5) set PATH for the libsba.a
+
+%For beginner, check opt/local if you install them with "sudo port install." Otherwise, usr/local
+
+%- Initialize SFM
+%1) svn co https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/sfm/
+%2) cd sfm
+%3) mkdir build
+%4) cd build
+%5) cmake .. (here is big double dots)
+%6) make -j2 && make install
+
+%- Configure SFM
+%1) cd sfm\build
+%2) ccmake ..
+%[Press 'c' to configure]
+%[Select option 'BUILD_TESTS']
+%[Press 'c' to reconfigure]
+%[Press 'g' to generate]
+
+%# Test SFM
+%1) cd sfm/build
+%2) make test
+%3) view the file in sfm/build/Testing/Tempory/LastTest.log
+
+%# Run SFM with an Example
+%1) cd sfm/examples
+%2) scp <username>@<machinename>:/irg/data/kinect/<directory> .
+%3) cd <directory>
+%4) cp ../sfm_config_example.txt sfm_config.txt
+%5) cp ../camera_calibration_example.txt camera_calibration.txt
+%6) open sfm_config.txt to change the value of inputDataName by <directory>
+%7) sfm
+%8) pc_vis <directory>.txt
+
+%for example <directory>=2011_1202_bldg_269_2, <machinename>=pesto
+%1) cd sfm/examples
+%2) scp <username>@pesto:/irg/data/kinect/2011_1202_bldg_269_2 .
+%3) cd 2011_1202_bldg_269_2
+%4) cp ../sfm_config_example.txt sfm_config.txt
+%5) cp ../camera_calibration_example.txt camera_calibration.txt
+%6) open sfm_config.txt: inputDataName 2011_1202_bldg_269_2
+%7) sfm
+%8) pc_vis 2011_1202_bldg_269_2.txt
+
+%# troubleshooting
+%If any problem to link dependencies,
+%Download PCL sources from http://pointclouds.org/downloads/ 
+%- compile and install PCL
+%1) cd PCL-<ver>-Source
+%2) cmake .
+%3) make
+%4) make install
+
+%Add the following to ~/.bash_profile file
+%export DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib:/usr/lib
+%\end{lstlisting}
+
+%\end{document}
