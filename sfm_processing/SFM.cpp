@@ -404,8 +404,10 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 
 void SFM::process(IplImage* image, int frameIndex)
 {
-	preprocessing(image, frameIndex); //Read PC for image1
+	preprocessing(image, frameIndex); //Read PC
+
 	referenceTile.process(image);
+
 	//Process Each Tile
 	for(int j=0; j<numTiles;j++)
 	{
@@ -418,6 +420,7 @@ void SFM::process(IplImage* image, int frameIndex)
 		pose.process(configParams.depthInfo, image);
 		showGlobalMatches(prevImage, image, frameIndex);
 	}
+
 	//Update
 	update(image);
 }
@@ -455,13 +458,16 @@ void SFM::update(IplImage* image)
 	prevImage = cvCreateImage(cvGetSize(image), image->depth, image->nChannels);
 
 	cvCopy(image, prevImage);
-	//prevImage = image;
+
 	if(currDepth != NULL)
 	{
 		cvReleaseImage(&currDepth);
 		currDepth = NULL;
 	}
 	sfmInit = 0;
+
+	referenceTile.clear();
+
 	cvReleaseImage(&image);
 	image = NULL;
 }

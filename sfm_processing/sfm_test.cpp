@@ -27,7 +27,7 @@ int main (int argc, char** argv)
 	//Read Config Files and set up tiles
 	SFM sfmTest(argv[1], argv[2]);
 
-	//Process Each Image
+	//Process Each Image Frame
 	for(int frameIndex=sfmTest.configParams.firstFrame; frameIndex<=sfmTest.configParams.lastFrame; frameIndex++)
 	{
 		cout << "******************************************" << endl << endl;
@@ -40,8 +40,6 @@ int main (int argc, char** argv)
 
 		cout << "Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 		cout << endl << "******************************************" << endl << endl;
-
-		//cvReleaseImage(&i
 	}
 
 	return (0);
