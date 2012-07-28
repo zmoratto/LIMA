@@ -21,8 +21,30 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 \item sfm\_processing - performs structure from motion on pairs of images
 \end{itemize} 
 
-\section{How to install Alignment Toolkit}
-\subsection{How to install Prerequisites:}
+\section{How to install the Alignment Toolkit}
+You can simply follow the first subsection to build and test the ATK once you installed its prerequisites such as OpenCV 2.3.1, PCL 1.5, lapack, cmake and gfortran. The complete installation procedure is described in \ref{sec:How to install Prerequisites}.
+
+\subsection{How to build and test the ATK:}
+\begin{enumerate}
+	\item{svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima} - download the ATK
+	\item{mkdir lima/build}
+	\item{cd lima/build}
+	\item{cmake ..} - here is big double dots 
+	\item{make install} - executables are installed in usr/local/bin by default (see the section \ref{sec:How to change BIN directory} to change the location of executables.)
+	\item{make test} - view the details in the file lima/build/Testing/Temporary/LastTest.log
+\end{enumerate}
+
+\subsection{How to run SFM:}
+\begin{enumerate}
+	\item{mkdir lima/examples}
+	\item{cd lima/examples}
+	\item{Copy images and their depth data with their file lists (e.g., testImageList.txt and testPCList.txt) and configuration file (e.g., testConfig.txt)}
+	\item{sfm\_test testConfig.txt testImageList.txt results} - where testImageList.txt contains the list of input images
+	* make sure the bin directory is in \$PATH.
+\end{enumerate}
+
+\subsection{How to install Prerequisites:}\label{sec:How to install Prerequisites}
+
 \begin{enumerate}
 	\item{} install Macport (http://www.macports.org/install.php) 
 	\item{} install dependencies (http://pointclouds.org/downloads/macosx.html)
@@ -76,29 +98,11 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 	\end{enumerate}
 \end{enumerate}
 
-\subsection{How to build Alignment Toolkit:}
-\begin{enumerate}
-	\item{svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima lima} - dowload ATK
-	\item{cd /lima}
-	\item{mkdir build}
-	\item{cd build}
-	\item{cmake ..} - here is big double dots 
-	\item{make install} - make sure that usr/local/bin is in \$PATH. Otherwise, change CMAKE\_INSTALL\_PREFIX by command "ccmake .." in the "build" directory, then executable files will be generated in CMAKE\_INSTALL\_PREFIX/bin directory.
-\end{enumerate}
+\subsection{How to change BIN directory}\label{sec:How to change BIN directory}
 
-\subsection{How to run SFM:}
 \begin{enumerate}
-	\item{cd /lima}
-	\item{mkdir examples}
-	\item{cd examples}
-	\item{Copy images and their depth data with their file lists (e.g., testImageList.txt and testPCList.txt) and configuration file (e.g., testConfig.txt)}
-	\item{sfm\_test testConfig.txt testImageList.txt results} - where testImageList.txt contains the list of input images
-\end{enumerate}
-
-\subsection{How to test SFM:}
-\begin{enumerate}
-	\item{cd /lima/build}
-	\item{make test} - view the file in lima/build/Testing/Temporary/LastTest.log
+	\item{ccmake .} - in the ATK root directory (e.g., lima)
+	\item{change CMAKE\_INSTALL\_PREFIX} - then executable files will be generated in CMAKE\_INSTALL\_PREFIX/bin directory.
 \end{enumerate}
 
 \section{How to use}
