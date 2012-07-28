@@ -1,0 +1,25 @@
+The Alignment Toolkit was developed within the Autonomous Systems and 
+Robotics area of the Intelligent Systems Division at NASA's Ames 
+Research Center.  It is predominantly adventure of the 
+Intelligent Robotics Group (IRG) at Ames.
+
+Credit and thanks go to the following developers for contributing time
+and energy to this effort.
+
+
+Ara Nefian (CMU) - Lead Developer
+Taemin Kim (NPP) - Lead Developer
+Terry Fong (CS) - Project Manager
+
+-------------------------------------
+Contributors for Alignment Toolkit 1.0
+-------------------------------------
+
+Brian (NASA Intern) - Lima Modules
+Chris (NASA Intern) - Stereo Modules
+Emily (NASA Intern) - SFM Module
+
+CS - denotes NASA Civil Servant
+CMU - Carnegie Mellon University
+SGT - Stinger Ghaffarian Technologies
+NPP - NASA Postdoctoral Program
