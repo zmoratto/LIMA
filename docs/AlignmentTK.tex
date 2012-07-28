@@ -27,8 +27,7 @@ You can simply follow the first subsection to build and test the ATK once you in
 \subsection{How to build and test the ATK:}
 \begin{enumerate}
 	\item{svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima} - download the ATK
-	\item{mkdir lima/build}
-	\item{cd lima/build}
+	\item{mkdir lima/build \&\& cd lima/build}
 	\item{cmake ..} - here is big double dots 
 	\item{make install} - executables are installed in usr/local/bin by default (see the section \ref{sec:How to change BIN directory} to change the location of executables.)
 	\item{make test} - view the details in the file lima/build/Testing/Temporary/LastTest.log
@@ -36,8 +35,7 @@ You can simply follow the first subsection to build and test the ATK once you in
 
 \subsection{How to run SFM:}
 \begin{enumerate}
-	\item{mkdir lima/examples}
-	\item{cd lima/examples}
+	\item{mkdir lima/examples \&\& cd lima/examples}
 	\item{Copy images and their depth data with their file lists (e.g., testImageList.txt and testPCList.txt) and configuration file (e.g., testConfig.txt)}
 	\item{sfm\_test testConfig.txt testImageList.txt results} - where testImageList.txt contains the list of input images
 	* make sure the bin directory is in \$PATH.
@@ -86,8 +84,7 @@ You can simply follow the first subsection to build and test the ATK once you in
 
 			ADD\_DEPENDENCIES(eucsbademo sba)
 
-		\item{mkdir build}
-		\item{cd build}
+		\item{mkdir build \&\& cd build}
 		\item{ccmake ..}
 		\begin{enumerate}
 			\item{turn HAVE\_F2C OFF}
