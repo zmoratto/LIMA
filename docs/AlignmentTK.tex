@@ -39,7 +39,40 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 	\end{enumerate}
 	\item{} install sba (http://www.ics.forth.gr/~lourakis/sba/) 
 	\begin{enumerate}
-		\item{} edit demo/CMakeLists.txt
+		\item{edit demo/CMakeLists.txt as follows} -
+		
+			\# CMake file for sba's demo program
+
+			INCLUDE\_DIRECTORIES(..)
+			LINK\_DIRECTORIES(.. \$\{LAPACKBLAS\_DIR\})
+
+			ADD\_EXECUTABLE(eucsbademo eucsbademo.c imgproj.c readparams.c eucsbademo.h readparams.h)
+			
+			\# libraries the demo depends on
+			
+			IF(HAVE\_F2C)
+			
+				TARGET\_LINK\_LIBRARIES(eucsbademo sba \\\$\{LAPACK\_LIB\} \$\{BLAS\_LIB\} \$\{F2C\_LIB\})
+				
+			ELSE(HAVE\_F2C)
+			
+				TARGET\_LINK\_LIBRARIES(eucsbademo sba \$\{LAPACK\_LIB\})
+				
+			ENDIF(HAVE\_F2C)
+
+			\# make sure that the library is built before the demo
+
+			ADD\_DEPENDENCIES(eucsbademo sba)
+
+		\item{mkdir build}
+		\item{cd build}
+		\item{ccmake ..}
+		\begin{enumerate}
+			\item{turn HAVE\_F2C OFF}
+			\item{LAPACK\_LIB = -framework vecLib}
+		\end{enumerate}
+		\item{make}
+		\item{set PATH for the libsba.a}
 	\end{enumerate}
 \end{enumerate}
 
@@ -50,7 +83,7 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 	\item{mkdir build}
 	\item{cd build}
 	\item{cmake ..} - here is big double dots 
-	\item{make install} - make sure that usr/local/bin is in \$PATH. Otherwise, change CMAKE\_INSTALL\_PREFIX by ccmake .. in the "build" directory, then executable files will be generated in CMAKE\_INSTALL\_PREFIX/bin directory.
+	\item{make install} - make sure that usr/local/bin is in \$PATH. Otherwise, change CMAKE\_INSTALL\_PREFIX by command "ccmake .." in the "build" directory, then executable files will be generated in CMAKE\_INSTALL\_PREFIX/bin directory.
 \end{enumerate}
 
 \subsection{How to run SFM:}
