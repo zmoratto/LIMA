@@ -45,17 +45,26 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 
 \subsection{How to build Alignment Toolkit:}
 \begin{enumerate}
-	\item{Download ATK} - svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima lima
-	\item{} - cd /lima 
-	\item{} - mkdir build 
-	\item{} - cd build 
-	\item{} - cmake .. (here is big double dots)
-	\item{} - make install
+	\item{svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima lima} - dowload ATK
+	\item{cd /lima}
+	\item{mkdir build}
+	\item{cd build}
+	\item{cmake ..} - here is big double dots 
+	\item{make install} - make sure that usr/local/bin is in \$PATH
 \end{enumerate}
 
-\subsection{Run SFM}
+\subsection{How to run SFM:}
 \begin{enumerate}
-	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
+	\item{cd /lima}
+	\item{mkdir examples}
+	\item{cd examples}
+	\item{sfm\_test testConfig.txt testImageList.txt results} - where testImageList.txt contains the list of input images
+\end{enumerate}
+
+\subsection{How to test SFM:}
+\begin{enumerate}
+	\item{cd /lima/build}
+	\item{make test} - view the file in lima/build/Testing/Temporary/LastTest.log
 \end{enumerate}
 
 \section{How to use}
