@@ -21,6 +21,43 @@ been tested for MER imagery in the context of HiRISE orbital maps.
 \item sfm\_processing - performs structure from motion on pairs of images
 \end{itemize} 
 
+\section{How to install Alignment Toolkit}
+\subsection{How to install Prerequisites:}
+\begin{enumerate}
+	\item{} install Macport (http://www.macports.org/install.php) 
+	\item{} install dependencies (http://pointclouds.org/downloads/macosx.html)
+	\item{} install PCL (http://pointclouds.org/downloads/macosx.html)
+	\item{} sudo port install opencv
+	\item{} sudo port install cmake
+	\item{} install gfortran (http://gcc.gnu.org/wiki/GFortranBinaries)
+	\item{} install lapack(http://gcc.gnu.org/testing/testing-lapack.html)
+	\begin{enumerate}
+		\item{} download lapack.tgz and unzip it
+		\item{} rename make.inc.example to make.inc in the root directory of lapack 
+		\item{} make blaslib
+		\item{} make
+	\end{enumerate}
+	\item{} install sba (http://www.ics.forth.gr/~lourakis/sba/) 
+	\begin{enumerate}
+		\item{} edit demo/CMakeLists.txt
+	\end{enumerate}
+\end{enumerate}
+
+\subsection{How to build Alignment Toolkit:}
+\begin{enumerate}
+	\item{Download ATK} - svn co  https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima lima
+	\item{} - cd /lima 
+	\item{} - mkdir build 
+	\item{} - cd build 
+	\item{} - cmake .. (here is big double dots)
+	\item{} - make install
+\end{enumerate}
+
+\subsection{Run SFM}
+\begin{enumerate}
+	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
+\end{enumerate}
+
 \section{How to use}
 Examples of use are given in assembler.sh, lidar2dem.sh and lidar2img.sh respectively.
 
@@ -64,7 +101,6 @@ Each field of the settings file is explained below:
 %\end{itemize}
 
 
-
 \section{SFM Processing}
 \subsection{Files:}
 \begin{itemize}
@@ -86,7 +122,6 @@ Each field of the settings file is explained below:
 	\item{Build sfm\_test} - inside sfm processing directory type: make
 	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
 \end{enumerate}
-
 
 \subsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
