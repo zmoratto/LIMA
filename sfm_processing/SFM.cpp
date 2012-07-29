@@ -14,10 +14,12 @@ SFM::SFM(char* configFile, char* inputFilename)
 	prevDepth = NULL;
 	currDepth = NULL;
 	sfmInit = 1;
+	string configFileString = string(configFile);
+	string inputFilenameString = string(inputFilename);
 
 	//Read Configuration Files and Set Up Tiles
-	readConfigurationFile(string(configFile));
-	readImageFilenames(string(inputFilename));
+	readConfigurationFile(configFileString);
+	readImageFilenames(inputFilenameString);
 
 	IplImage* image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 
@@ -62,7 +64,7 @@ void SFM::printUsage()
 	cout << endl;
 }
 
-void SFM::printWarning(string filename)
+void SFM::printWarning(string& filename)
 {
 	cout << endl;
 	cout << "*****************************************************************" << endl;
@@ -72,7 +74,7 @@ void SFM::printWarning(string filename)
 	cout << endl;
 }
 
-void SFM::readConfigurationFile(string configurationFilename)
+void SFM::readConfigurationFile(string& configurationFilename)
 {
 	ifstream fin (configurationFilename.c_str());
 	string line;
@@ -214,7 +216,7 @@ void SFM::restoreDefaultParameters()
 	pose.ransacAccuracy = 0.99;
 }
 
-void SFM::readImageFilenames(string inputFile)
+void SFM::readImageFilenames(string& inputFile)
 {
 	string image, depth;
 	int i = 0;
@@ -246,59 +248,115 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	temp.clear();
 	vector<int> loc;
 	Mat tempMat;
-	int j = 0;
+	int j = 0;	
+	int left = imageWidth, right = 0, top = imageHeight, bottom = 0, x, y;
+	CvRect mask;
+	IplImage* imageMask;
 	int tileY, tileX;
 	KeyPoint tilePt;
 	int oldRow = 0;
+	int buffer = 25;
+	IplImage* tempImg = cvCreateImage(cvSize(imageWidth,imageHeight),image->depth,image->nChannels);
+	IplImage* copy = cvCreateImage(cvGetSize(image),image->depth,image->nChannels);
+
+	//Clear Everything
+	feat.key_points.clear();
+	feat.point_descriptors.release();
+	pose.prevKeypoints.clear();
+	pose.currMatchedPoints.clear();
+	pose.prevMatchedPoints.clear();
+	pose.prevMatchedPixels.clear();
+	pose.currMatchedPixels.clear();
+
+	//Set up mask for FE
+	for(int i=0; i<imageWidth*imageHeight; i++)
+	{
+		if(pose.curr_z[i] > 0)
+		{
+			y = i/imageWidth;
+			x = i%imageWidth;
+			if(x < left)
+				left = x;
+			if(x > right)
+				right = x;
+			if(y < top)
+				top = y;
+			if(y > bottom)
+				bottom = y;
+		}
+	}
+
+	mask.x = referenceTile.tiles[currTile].x;
+	mask.y = referenceTile.tiles[currTile].y;
+	mask.width = referenceTile.tiles[currTile].width;
+	mask.height = referenceTile.tiles[currTile].height;
+
+	if(mask.x < left)
+		mask.x = left;
+	if(referenceTile.tiles[currTile].x + referenceTile.tiles[currTile].width > right)	
+		mask.width = right - mask.x;
+
+	if(mask.y < top)
+		mask.y = top;
+	if(referenceTile.tiles[currTile].y + referenceTile.tiles[currTile].height > bottom)
+		mask.height = bottom - mask.y;
+
+	mask.x -= referenceTile.tiles[currTile].x;
+	mask.y -= referenceTile.tiles[currTile].y;
+
+	cvCopy(image, copy, NULL);
+
+	cvSetImageROI(copy, mask);
 
 	//Feature Extraction
 	clock_t t1, t2;
 	t1 = clock();
-	feat.process(image);
+	feat.process(copy);
 	t2 = clock();
 	cout << "Feature Extraction Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
+	cvResetImageROI(copy);
+
+	for(int i=0; i<feat.key_points.size(); i++)
+	{
+		feat.key_points.at(i).pt.x = feat.key_points.at(i).pt.x + double(mask.x);
+		feat.key_points.at(i).pt.y = feat.key_points.at(i).pt.y + double(mask.y);
+	}
+
 	if(pose.globalCurrDescriptors.cols == 0)
-	{
 		pose.globalCurrDescriptors.create(0, feat.point_descriptors.cols, feat.point_descriptors.type());
-	}
 
-	if(configParams.depthInfo != NO_DEPTH)
+	//Remove KeyPoints with No Depth
+	tileY = referenceTile.tiles[currTile].y;
+	tileX = referenceTile.tiles[currTile].x;
+	for(int i=0; i<feat.key_points.size(); i++)
 	{
-		//Remove KeyPoints with No Depth
-		tileY = referenceTile.tiles[currTile].y;
-		tileX = referenceTile.tiles[currTile].x;
-		for(int i=0; i<feat.key_points.size(); i++)
+		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+		if(pose.curr_z[index] > 0)
 		{
-			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-			if(pose.curr_z[index] > 0)
-			{
-				temp.push_back(feat.key_points.at(i));
-				loc.push_back(i);
-			}
+			temp.push_back(feat.key_points.at(i));
+			loc.push_back(i);
 		}
-		tempMat.create(temp.size(), feat.point_descriptors.cols, feat.point_descriptors.type());
-
-		cnt = 0;
-		for(int i=0; i<feat.key_points.size(); i++)
-		{
-			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-			if(pose.curr_z[index] > 0)
-			{
-				Mat dest(tempMat.rowRange(cnt, cnt+1));
-				feat.point_descriptors.row(i).copyTo(dest);
-				cnt++;
-			}
-		}
-
-
-		feat.point_descriptors.release();
-		feat.key_points.clear();
-
-		feat.point_descriptors = tempMat.clone();
-		feat.key_points = temp;
-
 	}
+	tempMat.create(temp.size(), feat.point_descriptors.cols, feat.point_descriptors.type());
+
+	cnt = 0;
+	for(int i=0; i<feat.key_points.size(); i++)
+	{
+		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+		if(pose.curr_z[index] > 0)
+		{
+			Mat dest(tempMat.rowRange(cnt, cnt+1));
+			feat.point_descriptors.row(i).copyTo(dest);
+			cnt++;
+		}
+	}
+
+	feat.point_descriptors.release();
+	feat.key_points.clear();
+
+	feat.point_descriptors = tempMat.clone();
+	feat.key_points = temp;
 
 	//FLANN Formatting
 	if(feat.point_descriptors.type()!=CV_32F) 
@@ -314,68 +372,12 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		pose.globalCurrKeyPoints.push_back(tilePt);
 	}
 
+
 	//Collect All Descriptors
 	oldRow = pose.globalCurrDescriptors.rows;
 	pose.globalCurrDescriptors.resize(oldRow+feat.key_points.size());
 	Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
 	pose.currObjectData.copyTo(dest1);
-
-		//For Display Purposes -- Do Not Erase
-
-/*		int index;
-		IplImage* composedImage;
-
-		//Show KeyPoints Image 1
-		CvPoint pt1, pt2;
-		for(int m=0; m<pose.prevMatchedPixels.size(); m++)
-		{
-			index = m;
-			pt1.x = pose.prevMatchedPixels[index].x-1;
-			pt2.x = pose.prevMatchedPixels[index].x+1; 
-			pt1.y = pose.prevMatchedPixels[index].y-1;
-			pt2.y = pose.prevMatchedPixels[index].y+1;
-			cvRectangle(prevImage, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
-		}
-		//Show KeyPoints Image2
-		for(int m=0; m<pose.prevMatchedPixels.size(); m++)
-		{
-			index = m;
-			pt1.x = pose.currMatchedPixels[index].x-1;
-			pt2.x = pose.currMatchedPixels[index].x+1; 
-			pt1.y = pose.currMatchedPixels[index].y-1;
-			pt2.y = pose.currMatchedPixels[index].y+1;
-			cvRectangle(image, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
-		}
-
-		composedImage = cvCreateImage(cvSize(prevImage->width*2, prevImage->height), prevImage->depth, prevImage->nChannels);
-		CvRect imageRect = cvRect(0,0, prevImage->width, prevImage->height); 
-		cvSetImageROI(composedImage, imageRect);
-		cvCopy(image, composedImage);
-		cvResetImageROI(composedImage);
-							  
-		imageRect = cvRect((image->width)-1, 0, image->width, image->height);
-		cvSetImageROI(composedImage, imageRect);
-		cvCopy(prevImage, composedImage);
-		cvResetImageROI(composedImage);
-
-		//Show Image matches
-		for(int m=0; m<pose.prevMatchedPixels.size(); m++)
-		{
-			index = m;
-			pt1.x = pose.currMatchedPixels[index].x;
-			pt1.y = pose.currMatchedPixels[index].y;
-			if ((pt1.x <= 0) || (pt1.y <=0))
-			{
-				cout<<"wrong: x="<<pt1.x<<", y="<<pt1.y << "  Index=" << index << "  m=" << m <<endl;
-			}
-			pt2.x = pose.prevMatchedPixels[index].x+(composedImage->width/2);
-			pt2.y = pose.prevMatchedPixels[index].y;
-			cvLine( composedImage, pt1, pt2, CV_RGB(0,0,0), 1);
-		}
-
-		cvShowImage("Composed", composedImage);
-		cvWaitKey(1000);*/
-
 }
 
 void SFM::preprocessing(IplImage* image, int frameIndex)
@@ -414,6 +416,8 @@ void SFM::process(IplImage* image, int frameIndex)
 		currTile = j;
 		processTile(referenceTile.tileImages[j], frameIndex);
 	}
+
+	pose.removeDuplicates(image);
 
 	if(configParams.firstFrame != frameIndex)
 	{
@@ -489,8 +493,8 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	int validIndex = 0;
 	int validSize = pose.validPix.size();
 
-	//If I want to show all keypoints
-/*	CvPoint pt1, pt2;
+	//Show all keypoints
+	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevKeyPoints.size(); m++)
 	{
 		index = m;
@@ -498,7 +502,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.x = pose.globalPrevKeyPoints[index].pt.x+1; 
 		pt1.y = pose.globalPrevKeyPoints[index].pt.y-1;
 		pt2.y = pose.globalPrevKeyPoints[index].pt.y+1;
-		cvRectangle(image1, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
+		cvRectangle(image1, pt1, pt2, CV_RGB(0, 0, 0), 3, 8, 0 );
 	}
 	//Show KeyPoints Image2
 	for(int m=0; m<pose.globalCurrKeyPoints.size(); m++)
@@ -508,12 +512,12 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.x = pose.globalCurrKeyPoints[index].pt.x+1; 
 		pt1.y = pose.globalCurrKeyPoints[index].pt.y-1;
 		pt2.y = pose.globalCurrKeyPoints[index].pt.y+1;
-		cvRectangle(image2, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
+		cvRectangle(image2, pt1, pt2, CV_RGB(0, 0, 0), 3, 8, 0 );
 	}
-*/
+
 
 	//Show KeyPoints Image 1
-	CvPoint pt1, pt2;
+	//CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevMatchedPix.size(); m++)
 	{
 		index = m;

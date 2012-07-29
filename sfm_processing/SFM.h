@@ -79,13 +79,13 @@ public:
 
 	//Methods
 	void printUsage();
-	void printWarning(string filename);
-	void readConfigurationFile(string configurationFilename);
+	void printWarning(string& filename);
+	void readConfigurationFile(string& configurationFilename);
 	void printConfigParams();
 	int readCameraCalibrationFile();
 	int  readStereoCalibrationFile();
 	void restoreDefaultParameters();
-	void readImageFilenames(string inputFile);
+	void readImageFilenames(string& inputFile);
 	void processTile(IplImage* image, int frameIndex);
 	void preprocessing(IplImage* image, int frameIndex);
 	void process(IplImage* image, int frameIndex);

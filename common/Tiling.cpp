@@ -141,35 +141,32 @@ void Tiling::setUpReferenceTiles(IplImage* image)
 
 	tiles.clear();
 
+
+   //Check if Tile too large
+   if( x > size.width )
+      x = size.width;
+   if( y > size.height )
+      y = size.height;
+
 	for (r = 0; r < size.height; r += (y-yOver))
-	{
-		for (c = 0; c < size.width; c += (x-xOver))
-		{
-			roi.x = c;
-			roi.y = r;
-			if(c+x>size.width)
-				roi.width = size.width-c;
-			else
-				roi.width = x;
-			if(r+y>size.height)
-				roi.height = size.height-r;
-			else
-				roi.height = y;
+    {
+        for (c = 0; c < size.width; c += (x-xOver))
+        {
+         roi.width = x;
+            roi.height = y;
+            if(c+x>size.width)
+                roi.x = size.width-x;
+            else
+                roi.x = c;
+            if(r+y>size.height)
+                roi.y = size.height-y;
+            else
+                roi.y = r;
 
-			if(roi.width <= xOver)
-				break;
-			if(roi.height <= yOver)
-				break;
+            tiles.push_back(roi);
+        }
+    }
 
-			tiles.push_back(roi);
-
-			if(x >= size.width)
-				break;
-		}
-
-		if(y >= size.height)
-			break;
-	}
 }
 
 void Tiling::setUpMatchingTiles(Tiling ref, IplImage* im1)

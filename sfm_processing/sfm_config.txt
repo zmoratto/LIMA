@@ -1,6 +1,6 @@
-firstFrame 1
-lastFrame 30
-depthInfo 0
+firstFrame 0
+lastFrame 5
+depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
@@ -21,8 +21,8 @@ homographyMethod 8
 flannCheck 2048
 ransacPixels 3.0
 ransacAccuracy 0.99
-tileWidth 4320
-tileHeight 4320
+tileWidth 700
+tileHeight 768
 xOverlap 0
 yOverlap 0
 tileScaleX 0

@@ -316,7 +316,7 @@ void PoseEstimation::find_homography()
 	H.release();
 }
 
-void PoseEstimation::mapping(string filename, IplImage* image)
+void PoseEstimation::mapping(string& filename, IplImage* image)
 {
 	ofstream fout;
 	stringstream ss;
@@ -463,7 +463,7 @@ void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 	Q.release();
 }
 
-void PoseEstimation::readDepthFiles(string filename, vector<string>& depthFiles)
+void PoseEstimation::readDepthFiles(string& filename, vector<string>& depthFiles)
 {
 	string temp;
 	ifstream fin;
@@ -479,7 +479,7 @@ void PoseEstimation::readDepthFiles(string filename, vector<string>& depthFiles)
 	fin.close();
 }
 
-void PoseEstimation::savePointCloud(vector<string> filenames, int iteration, IplImage* image)
+void PoseEstimation::savePointCloud(vector<string>& filenames, int iteration, IplImage* image)
 {
 	ifstream fin;
 	string filename;
@@ -588,14 +588,20 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	bool xTrue, yTrue;
 	int numX = 0, numY = 0;
 	int counter = 0;
+	Mat currTemp, prevTemp;
 
 	if(globalCurrDescriptors.type() !=CV_32F)
 	{
-		globalCurrDescriptors.convertTo(globalCurrDescriptors, CV_32F);
-	} 
+		globalCurrDescriptors.convertTo(currTemp, CV_32F);
+		globalCurrDescriptors.release();
+		globalCurrDescriptors = currTemp;
+	}
+	
 	if(globalPrevDescriptors.type() != CV_32F)
 	{
-		globalPrevDescriptors.convertTo(globalPrevDescriptors, CV_32F);
+		globalPrevDescriptors.convertTo(prevTemp, CV_32F);
+		globalPrevDescriptors.release();
+		globalPrevDescriptors = prevTemp;
 	}
 
 	//Nearest Neighbor Matching
@@ -668,6 +674,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 		prevPts.clear();
 		currPix.clear();
 		prevPix.clear();
+
 	}
 	else
 	{
@@ -758,7 +765,8 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	{
 		composePose();
 		printCurrentGlobal_R_T();
-		mapping(string("results/PointCloud.txt"), image);
+		string resultsString = string("results/PointCloud.txt");
+		mapping(resultsString, image);
 		copyGlobal_R_T();
 	}
 }
@@ -833,7 +841,7 @@ void PoseEstimation::savePointProj(int frameIndex, int firstFrame)
 	}
 }
 
-void PoseEstimation::writePointProj(string pointProjFile)
+void PoseEstimation::writePointProj(string& pointProjFile)
 {
 	ofstream fout;
 
@@ -848,6 +856,56 @@ void PoseEstimation::writePointProj(string pointProjFile)
 		fout << endl;
 	}
 	fout.close();
+}
+
+void PoseEstimation::removeDuplicates(IplImage* image)
+{
+	CvMat* im = cvCreateMat(image->height,image->width,CV_32F);
+	vector<int> repeats;
+	vector<KeyPoint> tempKeyPoints;
+	int x, y, index, width = image->width;
+	tempKeyPoints.clear();
+	Mat tempMat;
+
+	for(int i=0; i<globalCurrKeyPoints.size(); i++)
+	{
+		x = globalCurrKeyPoints[i].pt.x;
+		y = globalCurrKeyPoints[i].pt.y;
+
+		index = y*width + x;
+
+		if(im->data.fl[index] != 255)
+		{
+			tempKeyPoints.push_back(globalCurrKeyPoints[i]);
+			im->data.fl[index] = 255;
+		}
+		else
+			repeats.push_back(i);
+	}
+
+	tempMat.create(tempKeyPoints.size(), globalCurrDescriptors.cols, CV_32F);
+
+	int j=0, cnt=0;
+	for(int i=0; i<globalCurrKeyPoints.size(); i++)
+	{
+		if(repeats[j] != i)
+		{
+			Mat dest(tempMat.rowRange(cnt, cnt+1));
+			globalCurrDescriptors.row(i).copyTo(dest);
+			cnt++;
+		}
+		else
+			j++;
+	}
+
+	globalCurrDescriptors.release();
+	globalCurrDescriptors = tempMat.clone();
+
+	globalCurrKeyPoints.clear();
+	globalCurrKeyPoints = tempKeyPoints;
+
+	tempKeyPoints.clear();
+	tempMat.release();
 }
 
 

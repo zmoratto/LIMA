@@ -105,13 +105,13 @@ public:
 	int find_curr_index(int loc, int width);
 	int find_prev_index(int loc, int width);
 	void find_homography();
-	void mapping(string filename, IplImage* image);
+	void mapping(string &filename, IplImage* image);
 	void copyGlobal_R_T();
 	void resetPrevPos();
 	void depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsicMatrix);
 	void dispToPointCloud(cv::Mat dispMat,  cv::Mat Q);
-	void readDepthFiles(string filename, vector<string>& depthFiles);
-	void savePointCloud(vector<string> filenames, int iteration, IplImage* image);
+	void readDepthFiles(string &filename, vector<string>& depthFiles);
+	void savePointCloud(vector<string>& filenames, int iteration, IplImage* image);
 	void resizeXYZVectors(int width, int height);
 	void nearestNeighborMatching();
 	void collect3DMatches(int width);
@@ -122,5 +122,7 @@ public:
 	int searchPointProj(Point2f find);
 	void appendPointProj(Point2f pix, Point3f pt, int loc, int frameIndex);
 	void savePointProj(int frameIndex, int firstFrame);
-	void writePointProj(string pointProjFile);
+	void writePointProj(string& pointProjFile);
+
+	void removeDuplicates(IplImage* image);
 };
