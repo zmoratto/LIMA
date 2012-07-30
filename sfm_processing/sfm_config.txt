@@ -18,10 +18,10 @@ xDist 1000
 yDist 1000
 nbMatches 8
 homographyMethod 8
-flannCheck 2048
+flannCheck 64
 ransacPixels 3.0
 ransacAccuracy 0.99
-tileWidth 700
+tileWidth 1024
 tileHeight 768
 xOverlap 0
 yOverlap 0
@@ -30,3 +30,4 @@ tileScaleY 0
 pointProjFilename results/pointProj.txt
 weightedPortion 0.5
 resultImageFilename results/composedImage
+downsampleFactor 0.7

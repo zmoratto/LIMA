@@ -26,6 +26,7 @@ SFM::SFM(char* configFile, char* inputFilename)
 	imageWidth = image->width;
 	imageHeight = image->height;
 
+
 	referenceTile.setUpReferenceTiles(image);
 
 	numTiles = referenceTile.tiles.size();
@@ -46,13 +47,20 @@ SFM::SFM(char* configFile, char* inputFilename)
 	}
 
 	//Set up 3D Point Vectors
-	pose.resizeXYZVectors(image->width,image->height);
+	pose.resizeXYZVectors(imageWidth,imageHeight);
 
 	cvReleaseImage(&image);
 }
 
 SFM::~SFM()
 {
+}
+
+void SFM::downSample(IplImage* input, IplImage*& output)
+{
+	output = cvCreateImage(cvSize(imageWidth, imageHeight), input->depth, input->nChannels);
+	
+	cvResize(input, output, CV_INTER_LINEAR );
 }
 
 void SFM::printUsage()
@@ -115,6 +123,7 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> configParams.pointProjFilename;
 		fin >> identifier >> pose.weightedPortion;
 		fin >> identifier >> configParams.resultImageFilename;
+		fin >> identifier >> configParams.downsampleFactor;
 		fin.close();
 	}
 	else 
@@ -406,9 +415,15 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 
 void SFM::process(IplImage* image, int frameIndex)
 {
+	clock_t t1, t2;
+	t1 = clock();
 	preprocessing(image, frameIndex); //Read PC
-
+	t2 = clock();
 	referenceTile.process(image);
+
+	cout << "PreProcessing Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
+
+	t1 = clock();
 
 	//Process Each Tile
 	for(int j=0; j<numTiles;j++)
@@ -422,11 +437,15 @@ void SFM::process(IplImage* image, int frameIndex)
 	if(configParams.firstFrame != frameIndex)
 	{
 		pose.process(configParams.depthInfo, image);
-		showGlobalMatches(prevImage, image, frameIndex);
+		//showGlobalMatches(prevImage, image, frameIndex);
 	}
 
 	//Update
 	update(image);
+
+	t2 = clock();
+
+	cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 }
 
 

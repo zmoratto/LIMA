@@ -486,11 +486,12 @@ void PoseEstimation::savePointCloud(vector<string>& filenames, int iteration, Ip
 	int index = 0;
 	float x, y, z;
 	int width = image->width;
-	int xPos, yPos;
+	float xPos, yPos;
 	stringstream ss;
 	ss<<iteration;
 	filename = filenames[iteration];
 	fin.open(filename.c_str());
+	string line;
 
 	for(int i=0; i<image->width*image->height; i++)
 	{
@@ -501,11 +502,9 @@ void PoseEstimation::savePointCloud(vector<string>& filenames, int iteration, Ip
 
 	while(fin.good())
 	{
-		fin >> yPos;
-		fin >> xPos;
-		fin >> x;
-		fin >> y;
-		fin >> z;
+		getline(fin, line);
+
+		sscanf(line.c_str(), "%f %f %f %f %f", &yPos, &xPos, &x, &y, &z);
 
 		index = yPos*width + xPos;
 
@@ -589,6 +588,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	int numX = 0, numY = 0;
 	int counter = 0;
 	Mat currTemp, prevTemp;
+	clock_t t1, t2;
 
 	if(globalCurrDescriptors.type() !=CV_32F)
 	{
@@ -605,7 +605,10 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	}
 
 	//Nearest Neighbor Matching
+	t1 = clock();
 	nearestNeighborMatching();
+	t2 = clock();
+	cout << "NN Matching Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 	//Collect 3D Point Matches
 	if(globalCurrMatchedPix.size() >= nbMatches)
@@ -739,6 +742,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	if (globalCurrMatchedPix.size() >= nbMatches)
 	{
 		find_homography();
+		cout << "Find Homography Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 		if(depthInfo == NO_DEPTH)
 		{
@@ -766,7 +770,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 		composePose();
 		printCurrentGlobal_R_T();
 		string resultsString = string("results/PointCloud.txt");
-		mapping(resultsString, image);
+		//mapping(resultsString, image);
 		copyGlobal_R_T();
 	}
 }

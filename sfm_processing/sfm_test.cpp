@@ -10,7 +10,6 @@ int main (int argc, char** argv)
 {
 	IplImage* image = NULL;
 	clock_t t1, t2;
-	KeyPoint tilePt;
 	int oldRow;
 
 	//Read Command Line Arguments
@@ -34,11 +33,11 @@ int main (int argc, char** argv)
 		cout << "FRAME NUM: " << frameIndex << endl;
 
 		image = cvLoadImage(sfmTest.inputFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-		t1 = clock();
+//		t1 = clock();
 		sfmTest.process(image, frameIndex);
-		t2 = clock();
+//		t2 = clock();
 
-		cout << "Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
+//		cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 		cout << endl << "******************************************" << endl << endl;
 	}
 
