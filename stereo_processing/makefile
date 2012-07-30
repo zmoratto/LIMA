@@ -112,72 +112,85 @@ bm_stereo_test/fast:
 .PHONY : bm_stereo_test/fast
 
 #=============================================================================
-# Target rules for targets named sbgm_stereo_test
+# Target rules for targets named sgbm_stereo_test
 
 # Build rule for target.
-sbgm_stereo_test: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 sbgm_stereo_test
-.PHONY : sbgm_stereo_test
+sgbm_stereo_test: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 sgbm_stereo_test
+.PHONY : sgbm_stereo_test
 
 # fast build rule for target.
-sbgm_stereo_test/fast:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/build
-.PHONY : sbgm_stereo_test/fast
+sgbm_stereo_test/fast:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/build
+.PHONY : sgbm_stereo_test/fast
 
-CvSBGMStereoProcessor.o: CvSBGMStereoProcessor.cpp.o
-.PHONY : CvSBGMStereoProcessor.o
+#=============================================================================
+# Target rules for targets named stereo_test
 
-# target to build an object file
-CvSBGMStereoProcessor.cpp.o:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoProcessor.cpp.o
-.PHONY : CvSBGMStereoProcessor.cpp.o
+# Build rule for target.
+stereo_test: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 stereo_test
+.PHONY : stereo_test
 
-CvSBGMStereoProcessor.i: CvSBGMStereoProcessor.cpp.i
-.PHONY : CvSBGMStereoProcessor.i
+# fast build rule for target.
+stereo_test/fast:
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/build
+.PHONY : stereo_test/fast
 
-# target to preprocess a source file
-CvSBGMStereoProcessor.cpp.i:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoProcessor.cpp.i
-.PHONY : CvSBGMStereoProcessor.cpp.i
-
-CvSBGMStereoProcessor.s: CvSBGMStereoProcessor.cpp.s
-.PHONY : CvSBGMStereoProcessor.s
-
-# target to generate assembly for a file
-CvSBGMStereoProcessor.cpp.s:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoProcessor.cpp.s
-.PHONY : CvSBGMStereoProcessor.cpp.s
-
-CvSBGMStereoTest.o: CvSBGMStereoTest.cpp.o
-.PHONY : CvSBGMStereoTest.o
+CvStereoBMProcessor.o: CvStereoBMProcessor.cpp.o
+.PHONY : CvStereoBMProcessor.o
 
 # target to build an object file
-CvSBGMStereoTest.cpp.o:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoTest.cpp.o
-.PHONY : CvSBGMStereoTest.cpp.o
+CvStereoBMProcessor.cpp.o:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMProcessor.cpp.o
+.PHONY : CvStereoBMProcessor.cpp.o
 
-CvSBGMStereoTest.i: CvSBGMStereoTest.cpp.i
-.PHONY : CvSBGMStereoTest.i
+CvStereoBMProcessor.i: CvStereoBMProcessor.cpp.i
+.PHONY : CvStereoBMProcessor.i
 
 # target to preprocess a source file
-CvSBGMStereoTest.cpp.i:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoTest.cpp.i
-.PHONY : CvSBGMStereoTest.cpp.i
+CvStereoBMProcessor.cpp.i:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMProcessor.cpp.i
+.PHONY : CvStereoBMProcessor.cpp.i
 
-CvSBGMStereoTest.s: CvSBGMStereoTest.cpp.s
-.PHONY : CvSBGMStereoTest.s
+CvStereoBMProcessor.s: CvStereoBMProcessor.cpp.s
+.PHONY : CvStereoBMProcessor.s
 
 # target to generate assembly for a file
-CvSBGMStereoTest.cpp.s:
-	$(MAKE) -f CMakeFiles/sbgm_stereo_test.dir/build.make CMakeFiles/sbgm_stereo_test.dir/CvSBGMStereoTest.cpp.s
-.PHONY : CvSBGMStereoTest.cpp.s
+CvStereoBMProcessor.cpp.s:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMProcessor.cpp.s
+.PHONY : CvStereoBMProcessor.cpp.s
+
+CvStereoBMTest.o: CvStereoBMTest.cpp.o
+.PHONY : CvStereoBMTest.o
+
+# target to build an object file
+CvStereoBMTest.cpp.o:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMTest.cpp.o
+.PHONY : CvStereoBMTest.cpp.o
+
+CvStereoBMTest.i: CvStereoBMTest.cpp.i
+.PHONY : CvStereoBMTest.i
+
+# target to preprocess a source file
+CvStereoBMTest.cpp.i:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMTest.cpp.i
+.PHONY : CvStereoBMTest.cpp.i
+
+CvStereoBMTest.s: CvStereoBMTest.cpp.s
+.PHONY : CvStereoBMTest.s
+
+# target to generate assembly for a file
+CvStereoBMTest.cpp.s:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoBMTest.cpp.s
+.PHONY : CvStereoBMTest.cpp.s
 
 CvStereoProcessor.o: CvStereoProcessor.cpp.o
 .PHONY : CvStereoProcessor.o
 
 # target to build an object file
 CvStereoProcessor.cpp.o:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoProcessor.cpp.o
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoProcessor.cpp.o
 .PHONY : CvStereoProcessor.cpp.o
 
 CvStereoProcessor.i: CvStereoProcessor.cpp.i
@@ -185,7 +198,7 @@ CvStereoProcessor.i: CvStereoProcessor.cpp.i
 
 # target to preprocess a source file
 CvStereoProcessor.cpp.i:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoProcessor.cpp.i
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoProcessor.cpp.i
 .PHONY : CvStereoProcessor.cpp.i
 
 CvStereoProcessor.s: CvStereoProcessor.cpp.s
@@ -193,15 +206,63 @@ CvStereoProcessor.s: CvStereoProcessor.cpp.s
 
 # target to generate assembly for a file
 CvStereoProcessor.cpp.s:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoProcessor.cpp.s
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoProcessor.cpp.s
 .PHONY : CvStereoProcessor.cpp.s
+
+CvStereoSGBMProcessor.o: CvStereoSGBMProcessor.cpp.o
+.PHONY : CvStereoSGBMProcessor.o
+
+# target to build an object file
+CvStereoSGBMProcessor.cpp.o:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMProcessor.cpp.o
+.PHONY : CvStereoSGBMProcessor.cpp.o
+
+CvStereoSGBMProcessor.i: CvStereoSGBMProcessor.cpp.i
+.PHONY : CvStereoSGBMProcessor.i
+
+# target to preprocess a source file
+CvStereoSGBMProcessor.cpp.i:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMProcessor.cpp.i
+.PHONY : CvStereoSGBMProcessor.cpp.i
+
+CvStereoSGBMProcessor.s: CvStereoSGBMProcessor.cpp.s
+.PHONY : CvStereoSGBMProcessor.s
+
+# target to generate assembly for a file
+CvStereoSGBMProcessor.cpp.s:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMProcessor.cpp.s
+.PHONY : CvStereoSGBMProcessor.cpp.s
+
+CvStereoSGBMTest.o: CvStereoSGBMTest.cpp.o
+.PHONY : CvStereoSGBMTest.o
+
+# target to build an object file
+CvStereoSGBMTest.cpp.o:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMTest.cpp.o
+.PHONY : CvStereoSGBMTest.cpp.o
+
+CvStereoSGBMTest.i: CvStereoSGBMTest.cpp.i
+.PHONY : CvStereoSGBMTest.i
+
+# target to preprocess a source file
+CvStereoSGBMTest.cpp.i:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMTest.cpp.i
+.PHONY : CvStereoSGBMTest.cpp.i
+
+CvStereoSGBMTest.s: CvStereoSGBMTest.cpp.s
+.PHONY : CvStereoSGBMTest.s
+
+# target to generate assembly for a file
+CvStereoSGBMTest.cpp.s:
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/CvStereoSGBMTest.cpp.s
+.PHONY : CvStereoSGBMTest.cpp.s
 
 CvStereoTest.o: CvStereoTest.cpp.o
 .PHONY : CvStereoTest.o
 
 # target to build an object file
 CvStereoTest.cpp.o:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoTest.cpp.o
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoTest.cpp.o
 .PHONY : CvStereoTest.cpp.o
 
 CvStereoTest.i: CvStereoTest.cpp.i
@@ -209,7 +270,7 @@ CvStereoTest.i: CvStereoTest.cpp.i
 
 # target to preprocess a source file
 CvStereoTest.cpp.i:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoTest.cpp.i
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoTest.cpp.i
 .PHONY : CvStereoTest.cpp.i
 
 CvStereoTest.s: CvStereoTest.cpp.s
@@ -217,8 +278,65 @@ CvStereoTest.s: CvStereoTest.cpp.s
 
 # target to generate assembly for a file
 CvStereoTest.cpp.s:
-	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/CvStereoTest.cpp.s
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/CvStereoTest.cpp.s
 .PHONY : CvStereoTest.cpp.s
+
+Users/anefian/projects/lima/src/common/Tiling.o: Users/anefian/projects/lima/src/common/Tiling.cpp.o
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.o
+
+# target to build an object file
+Users/anefian/projects/lima/src/common/Tiling.cpp.o:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.o
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.o
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.cpp.o
+
+Users/anefian/projects/lima/src/common/Tiling.i: Users/anefian/projects/lima/src/common/Tiling.cpp.i
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.i
+
+# target to preprocess a source file
+Users/anefian/projects/lima/src/common/Tiling.cpp.i:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.i
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.i
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.cpp.i
+
+Users/anefian/projects/lima/src/common/Tiling.s: Users/anefian/projects/lima/src/common/Tiling.cpp.s
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.s
+
+# target to generate assembly for a file
+Users/anefian/projects/lima/src/common/Tiling.cpp.s:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.s
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/common/Tiling.cpp.s
+.PHONY : Users/anefian/projects/lima/src/common/Tiling.cpp.s
+
+Users/anefian/projects/lima/src/string_util.o: Users/anefian/projects/lima/src/string_util.cc.o
+.PHONY : Users/anefian/projects/lima/src/string_util.o
+
+# target to build an object file
+Users/anefian/projects/lima/src/string_util.cc.o:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.o
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.o
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.o
+.PHONY : Users/anefian/projects/lima/src/string_util.cc.o
+
+Users/anefian/projects/lima/src/string_util.i: Users/anefian/projects/lima/src/string_util.cc.i
+.PHONY : Users/anefian/projects/lima/src/string_util.i
+
+# target to preprocess a source file
+Users/anefian/projects/lima/src/string_util.cc.i:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.i
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.i
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.i
+.PHONY : Users/anefian/projects/lima/src/string_util.cc.i
+
+Users/anefian/projects/lima/src/string_util.s: Users/anefian/projects/lima/src/string_util.cc.s
+.PHONY : Users/anefian/projects/lima/src/string_util.s
+
+# target to generate assembly for a file
+Users/anefian/projects/lima/src/string_util.cc.s:
+	$(MAKE) -f CMakeFiles/bm_stereo_test.dir/build.make CMakeFiles/bm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.s
+	$(MAKE) -f CMakeFiles/sgbm_stereo_test.dir/build.make CMakeFiles/sgbm_stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.s
+	$(MAKE) -f CMakeFiles/stereo_test.dir/build.make CMakeFiles/stereo_test.dir/Users/anefian/projects/lima/src/string_util.cc.s
+.PHONY : Users/anefian/projects/lima/src/string_util.cc.s
 
 # Help Target
 help:
@@ -229,19 +347,32 @@ help:
 	@echo "... bm_stereo_test"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... sbgm_stereo_test"
-	@echo "... CvSBGMStereoProcessor.o"
-	@echo "... CvSBGMStereoProcessor.i"
-	@echo "... CvSBGMStereoProcessor.s"
-	@echo "... CvSBGMStereoTest.o"
-	@echo "... CvSBGMStereoTest.i"
-	@echo "... CvSBGMStereoTest.s"
+	@echo "... sgbm_stereo_test"
+	@echo "... stereo_test"
+	@echo "... CvStereoBMProcessor.o"
+	@echo "... CvStereoBMProcessor.i"
+	@echo "... CvStereoBMProcessor.s"
+	@echo "... CvStereoBMTest.o"
+	@echo "... CvStereoBMTest.i"
+	@echo "... CvStereoBMTest.s"
 	@echo "... CvStereoProcessor.o"
 	@echo "... CvStereoProcessor.i"
 	@echo "... CvStereoProcessor.s"
+	@echo "... CvStereoSGBMProcessor.o"
+	@echo "... CvStereoSGBMProcessor.i"
+	@echo "... CvStereoSGBMProcessor.s"
+	@echo "... CvStereoSGBMTest.o"
+	@echo "... CvStereoSGBMTest.i"
+	@echo "... CvStereoSGBMTest.s"
 	@echo "... CvStereoTest.o"
 	@echo "... CvStereoTest.i"
 	@echo "... CvStereoTest.s"
+	@echo "... Users/anefian/projects/lima/src/common/Tiling.o"
+	@echo "... Users/anefian/projects/lima/src/common/Tiling.i"
+	@echo "... Users/anefian/projects/lima/src/common/Tiling.s"
+	@echo "... Users/anefian/projects/lima/src/string_util.o"
+	@echo "... Users/anefian/projects/lima/src/string_util.i"
+	@echo "... Users/anefian/projects/lima/src/string_util.s"
 .PHONY : help
 
 
