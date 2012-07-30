@@ -26,33 +26,30 @@ int CountEntries(string pointCloudFilename)
 		{
 			getline (myfile,line);
 			//cout << line << endl;
-			float x, y, z, g;
-			sscanf(line.c_str(), "%f %f %f", &x, &y, &z);
-			//sscanf(line.c_str(), "%f %f %f %f", &x, &y, &z &g);
+			float x = 0, y = 0, z = 0, r = 0, g = 0, b = 0;
+			sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &r, &g, &b);
 			if ((x!=0.0)||(y!=0.0)||(z!=0.0))
 			{
-				//cout<<"x="<<x<<", y="<<y<<", z="<<z<<endl;
 				numPoints++;
 			}
       	}
     	myfile.close();
     }
     
-    else cout << "Unable to open file";
+    else cout << "Unable to open file." << endl;
     cout<<"numPoints="<<numPoints<<endl;
     return numPoints;
-
 }
 
 int main (int argc, char** argv)
 {
 	cout <<"num arguments = "<<argc<<endl;
-	//pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 	string pointCloudFilename1, pointCloudFilename2;
 	int numPoints, numPoints1, numPoints2;
 	numPoints1 = 0;
 	numPoints2 = 0;
+	int elements;
 
 	if (argc == 2)
 	{
@@ -96,7 +93,7 @@ int main (int argc, char** argv)
 				while ( myFile1.good() )
 				{
 					getline (myFile1,line);
-					float x, y, z, r, g, b;
+					float x = 0, y = 0, z = 0, r = 255, g = 0, b = 0;
 					sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &r, &g, &b);
 					if ((x!=0.0)||(y!=0.0)||(z!=0.0))
 					{
