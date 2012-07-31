@@ -23,10 +23,6 @@ SFM::SFM(char* configFile, char* inputFilename)
 
 	IplImage* image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
 
-	cout << inputFiles[configParams.firstFrame] << endl;
-	cvShowImage("im", image);
-	cvWaitKey(0);
-
 	imageWidth = image->width;
 	imageHeight = image->height;
 
