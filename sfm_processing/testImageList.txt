@@ -1,3 +1,0 @@
-test1.pgm
-test2.pgm
-test3.pgm
