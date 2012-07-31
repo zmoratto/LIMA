@@ -5,7 +5,7 @@ showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
 stereoCalibrationFilename stereo_calibration.txt
-pointCloudFilename testPCList.txt
+pointCloudFilename test/testPCList.txt
 kinectDepthFilename kinectDepth_list.txt
 minMatches 8
 detThresh 0.0000001
@@ -18,7 +18,7 @@ xDist 1000
 yDist 1000
 nbMatches 8
 homographyMethod 8
-flannCheck 2048
+flannCheck 64
 ransacPixels 3.0
 ransacAccuracy 0.99
 tileWidth 4320
@@ -27,6 +27,6 @@ xOverlap 0
 yOverlap 0
 tileScaleX 0
 tileScaleY 0
-pointProjFilename results/pointProj.txt
+pointProjFilename test/results/pointProj.txt
 weightedPortion 0.5
-resultImageFilename results/composedImage
+resultImageFilename test/results/composedImage
