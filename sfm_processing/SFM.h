@@ -45,7 +45,6 @@ struct SFMParams{
 	int poseEstimationType;
 	string pointProjFilename;
 	string resultImageFilename;
-	float downsampleFactor;
 };
 
 class SFM
@@ -79,7 +78,6 @@ public:
 	vector<string> inputFiles, depthFiles;
 
 	//Methods
-	void downSample(IplImage* input, IplImage*& output);
 	void printUsage();
 	void printWarning(string& filename);
 	void readConfigurationFile(string& configurationFilename);

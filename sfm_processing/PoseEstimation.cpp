@@ -605,10 +605,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	}
 
 	//Nearest Neighbor Matching
-	t1 = clock();
 	nearestNeighborMatching();
-	t2 = clock();
-	cout << "NN Matching Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 	//Collect 3D Point Matches
 	if(globalCurrMatchedPix.size() >= nbMatches)
@@ -742,7 +739,6 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	if (globalCurrMatchedPix.size() >= nbMatches)
 	{
 		find_homography();
-		cout << "Find Homography Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 		if(depthInfo == NO_DEPTH)
 		{
@@ -822,8 +818,8 @@ void PoseEstimation::savePointProj(int frameIndex, int firstFrame)
 		tempPoints.allPoints.push_back(globalPrevMatchedPts[index]);
 		tempPoints.pixels.push_back(globalPrevMatchedPix[index]);
 		tempPoints.pixels.push_back(globalCurrMatchedPix[index]);
+		tempPoints.frames.push_back(frameIndex-1);
 		tempPoints.frames.push_back(frameIndex);
-		tempPoints.frames.push_back(frameIndex+1);
 
 		if(frameIndex == firstFrame)
 			projectedPoints.push_back(tempPoints);

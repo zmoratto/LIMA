@@ -33,13 +33,12 @@ int main (int argc, char** argv)
 		cout << "FRAME NUM: " << frameIndex << endl;
 
 		image = cvLoadImage(sfmTest.inputFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-//		t1 = clock();
 		sfmTest.process(image, frameIndex);
-//		t2 = clock();
 
-//		cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 		cout << endl << "******************************************" << endl << endl;
 	}
+
+	sfmTest.pose.writePointProj(sfmTest.configParams.pointProjFilename);
 
 	return (0);
 }

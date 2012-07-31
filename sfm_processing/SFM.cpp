@@ -56,13 +56,6 @@ SFM::~SFM()
 {
 }
 
-void SFM::downSample(IplImage* input, IplImage*& output)
-{
-	output = cvCreateImage(cvSize(imageWidth, imageHeight), input->depth, input->nChannels);
-	
-	cvResize(input, output, CV_INTER_LINEAR );
-}
-
 void SFM::printUsage()
 {
 	cout << endl;
@@ -123,7 +116,6 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> configParams.pointProjFilename;
 		fin >> identifier >> pose.weightedPortion;
 		fin >> identifier >> configParams.resultImageFilename;
-		fin >> identifier >> configParams.downsampleFactor;
 		fin.close();
 	}
 	else 
@@ -437,8 +429,11 @@ void SFM::process(IplImage* image, int frameIndex)
 	if(configParams.firstFrame != frameIndex)
 	{
 		pose.process(configParams.depthInfo, image);
-		//showGlobalMatches(prevImage, image, frameIndex);
+		showGlobalMatches(prevImage, image, frameIndex);
 	}
+
+	pose.savePointProj(frameIndex, configParams.firstFrame);
+
 
 	//Update
 	update(image);
