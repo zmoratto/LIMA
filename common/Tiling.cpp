@@ -153,18 +153,26 @@ void Tiling::setUpReferenceTiles(IplImage* image)
         for (c = 0; c < size.width; c += (x-xOver))
         {
          roi.width = x;
-            roi.height = y;
-            if(c+x>size.width)
-                roi.x = size.width-x;
-            else
-                roi.x = c;
-            if(r+y>size.height)
-                roi.y = size.height-y;
-            else
-                roi.y = r;
+         roi.height = y;
+         if(c+x>size.width)
+             roi.x = size.width-x;
+         else
+             roi.x = c;
+         if(r+y>size.height)
+             roi.y = size.height-y;
+         else
+             roi.y = r;
 
-            tiles.push_back(roi);
+         tiles.push_back(roi);
+
+         if( c+x >= size.width )
+            break;
+
         }
+
+    if( r+y >= size.height )
+         break;
+
     }
 
 }
