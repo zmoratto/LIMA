@@ -5,7 +5,7 @@ showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
 stereoCalibrationFilename stereo_calibration.txt
-pointCloudFilename test/testPCList.txt
+pointCloudFilename tests/testPCList.txt
 kinectDepthFilename kinectDepth_list.txt
 minMatches 8
 detThresh 0.0000001
@@ -27,6 +27,6 @@ xOverlap 0
 yOverlap 0
 tileScaleX 0
 tileScaleY 0
-pointProjFilename test/results/pointProj.txt
+pointProjFilename tests/results/pointProj.txt
 weightedPortion 0.5
-resultImageFilename test/results/composedImage
+resultImageFilename tests/results/composedImage
