@@ -6,7 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-#include "FeatureExtraction.h"
+#include "../FeatureExtraction.h"
 #include <opencv/cv.h>
 
 #include <vector>

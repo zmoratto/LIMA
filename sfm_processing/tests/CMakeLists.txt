@@ -10,4 +10,7 @@ project(sfm_project)
 add_executable(sfm_test sfm_test.cpp ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp ../../common/Tiling.cpp)
 target_link_libraries(sfm_test ${PCL_LIBRARIES})
 target_link_libraries(sfm_test ${OpenCV_LIBS})
+project(FE_project)
+add_executable(FE_test FeatureExtraction_test.cpp ../FeatureExtraction.cpp)
+target_link_libraries(FE_test ${OpenCV_LIBS})
 

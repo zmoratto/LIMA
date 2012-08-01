@@ -1,3 +1,3 @@
-tests/test1.pgm
-tests/test2.pgm
-tests/test3.pgm
+test1.pgm
+test2.pgm
+test3.pgm
