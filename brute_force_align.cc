@@ -74,29 +74,10 @@ vector<vector<AlignedLOLAShot> > setup_tracks(vector<vector<LOLAShot> > & trackP
 	return aligned;
 }
 
-vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, string & inputCubFile,
-		vector<Matrix3x3> & trackTransforms, bool globalAlignment=false, int transSearchWindow=0, int transSearchStep=0,
+vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, ImageView<PixelGray<float> > cubImage,
+		vector<Matrix3x3> & trackTransforms, bool globalAlignment=true, int transSearchWindow=0, int transSearchStep=0,
 		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
 {
-	DiskImageResourceIsis rsrc(inputCubFile);
-	ImageView<PixelGray<float> > cubImage;
-	read_image(cubImage, rsrc);
-	//double nodataVal = rsrc.nodata_read();
-	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
-
-	camera::IsisCameraModel model(inputCubFile);
-	Vector3 center_of_moon(0,0,0);
-	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-	Vector3 cameraPosition = model.camera_center( pixel_location );
-	Vector3 lightPosition = model.sun_position( pixel_location );
-	
-	//initialization step for LIMA - START	
-	GetAllPtsFromCub(trackPts, model, cubImage);
-
-	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
-
-	transform_tracks_by_matrices(trackPts, trackTransforms);
-	
 	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
 	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
 	transform_tracks(aligned, trans, cubImage);
@@ -114,10 +95,10 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 		vector<AlignedLOLAShot> oneTrack;
 		for (unsigned int i = 0; i < aligned.size(); i++)
 			oneTrack.insert(oneTrack.end(), aligned[i].begin(), aligned[i].end());
-		trans = gauss_newton_track(oneTrack, cubImage, trans);
+		trans = gauss_newton_track(oneTrack, cubImage, trackTransforms[0]);
 		transform_tracks(aligned, trans, cubImage);
 		for (unsigned int i = 0; i < trackTransforms.size(); i++)
-			trackTransforms[i] = trans * trackTransforms[i];
+			trackTransforms[i] = trans;// * trackTransforms[i];
 	}
 	else
 	{
@@ -132,52 +113,60 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 	return aligned;
 }
 
-vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & pyramidFile,
-		vector<Matrix3x3> & trackTransforms, bool globalAlignment=false, int transSearchWindow=0, int transSearchStep=0,
-		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string outputImage = "")
+vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & image_file,
+		vector<Matrix3x3> & trackTransforms, string outputImage = "")
 {
+	int ZOOM_MULTIPLIER = 2;
+	
+	int zoom_factor = 8;
+
 	vector<vector< AlignedLOLAShot> > aligned;
 
-	FILE* f = fopen(pyramidFile.c_str(), "r");
 	bool first = true;
-	float last_zoom;
-	while (true)
+	DiskImageResourceIsis rsrc(image_file);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
+	
+	camera::IsisCameraModel model(image_file);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	transform_tracks_by_matrix(trackPts, Matrix3x3(1.0 / zoom_factor, 0, 0, 0, 1.0 / zoom_factor, 0, 0, 0, 0));
+
+	while (zoom_factor >= 1.0)
 	{
-		float zoom_factor;
-		char image_file[100];
-		int ret = fscanf(f, "%g %s\n", &zoom_factor, image_file);
-		if (ret != 2)
-			break;
-		string im(image_file);
 		if (!first) // transform previous matrices
 		{
-			float r = last_zoom / zoom_factor;
-			Matrix3x3 t1(r, 0, 0, 0, r, 0, 0, 0, 1);
-			Matrix3x3 t2(1.0/r, 0, 0, 0, 1.0/r, 0, 0, 0, 1);
+			Matrix3x3 t1((float)ZOOM_MULTIPLIER, 0, 0, 0, (float)ZOOM_MULTIPLIER, 0, 0, 0, 1);
+			Matrix3x3 t2(1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1);
 			for (unsigned int i = 0; i < trackTransforms.size(); i++)
 				trackTransforms[i] = t1 * trackTransforms[i] * t2;
+			transform_tracks_by_matrix(trackPts, Matrix3x3(ZOOM_MULTIPLIER, 0, 0, 0, ZOOM_MULTIPLIER, 0, 0, 0, 1));
 		}
-		last_zoom = zoom_factor;
-		if (first) // do brute force search the first time
+		else
 		{
-			if (!globalAlignment)
-				aligned = align_to_image(trackPts, im, trackTransforms, true,
-					transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
-			aligned = align_to_image(trackPts, im, trackTransforms, globalAlignment,
-				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
 			first = false;
 		}
-		else if (zoom_factor == 1) // last level, save image
+		if (zoom_factor == 1) // last level, save image
 		{
-			aligned = align_to_image(trackPts, im, trackTransforms, globalAlignment,
+			aligned = align_to_image(trackPts, cubImage, trackTransforms, true,
 				0.0, 0.0, 0.0, 0.0, outputImage);
 		}
 		else
 		{
-			aligned = align_to_image(trackPts, im, trackTransforms, globalAlignment);
+			ImageView<PixelGray<float> > img = resize(cubImage, cubImage.rows() / zoom_factor, cubImage.cols() / zoom_factor);
+			
+			aligned = align_to_image(trackPts, img, trackTransforms);
 		}
+		zoom_factor /= ZOOM_MULTIPLIER;
 	}
-	fclose(f);
 
 	return aligned;
 }
@@ -214,26 +203,16 @@ int main( int argc, char *argv[] )
 	string inputCSVFilename; 
 	
 	std::string inputCubFile, tracksListFile, gcpFile;
-	std::string outputFile, dataFile, imageFile, startMatricesFilename, pyramidFile;
-	bool globalAlignment = false;
-	int transSearchWindow = 0, transSearchStep = 0;
-	float thetaSearchWindow = 0.0, thetaSearchStep = 0.0;
+	std::string outputFile, dataFile, imageFile;
 
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
 	("tracksList,t", po::value<std::string>(&tracksListFile))
 	("inputCubFile,i", po::value<std::string>(&inputCubFile))
-	("imagePyramid,p", po::value<std::string>(&pyramidFile))
 	("outputFile,o", po::value<std::string>(&outputFile))
 	("dataFile,d", po::value<std::string>(&dataFile))
 	("outputImage", po::value<std::string>(&imageFile))
-	("startMatrices,s", po::value<std::string>(&startMatricesFilename))
-	("globalAlignment", po::value<bool>(&globalAlignment))
-	("transSearchWindow", po::value<int>(&transSearchWindow))
-	("transSearchStep", po::value<int>(&transSearchStep))
-	("thetaSearchWindow", po::value<float>(&thetaSearchWindow))
-	("thetaSearchStep", po::value<float>(&thetaSearchStep))
 	("gcpFile,g", po::value<std::string>(&gcpFile))
 	("help,h", "Display this help message");
 	
@@ -278,11 +257,8 @@ int main( int argc, char *argv[] )
 		return 1;
 	}
 	vector<Matrix3x3> trackTransforms;
-	if (vm.count("startMatrices"))
-		trackTransforms = load_track_transforms(startMatricesFilename);
-	else
-		for (unsigned int i = 0; i < trackPts.size(); i++)
-			trackTransforms.push_back(Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1));
+	for (unsigned int i = 0; i < trackPts.size(); i++)
+		trackTransforms.push_back(Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 	
 	// use this later, only if saving to file
 	vector<gcp> gcpArray;
@@ -293,13 +269,7 @@ int main( int argc, char *argv[] )
 
 	if (vm.count("inputCubFile") > 0)
 	{
-		aligned = align_to_image(trackPts, inputCubFile, trackTransforms, globalAlignment,
-				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep, imageFile);
-	}
-	else if (vm.count("imagePyramid") > 0)
-	{
-		aligned = align_to_image_pyramid(trackPts, pyramidFile, trackTransforms, globalAlignment,
-				transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep, imageFile);
+		aligned = align_to_image_pyramid(trackPts, inputCubFile, trackTransforms, imageFile);
 	}
 	else
 	{
@@ -316,13 +286,13 @@ int main( int argc, char *argv[] )
 			fprintf(stderr, "Failed to open output file %s.\n", outputFile.c_str());
 			output = stdout;
 		}
+		for (unsigned int i = 0; i < trackTransforms.size(); i++)
+		{
+			Matrix3x3 & m = trackTransforms[i];
+			fprintf(output, "%g %g %g %g %g %g\n", m(0, 0), m(0, 1), m(0, 2), m(1, 0), m(1, 1), m(1, 2));
+		}
+		fclose(output);
 	}
-	for (unsigned int i = 0; i < trackTransforms.size(); i++)
-	{
-		Matrix3x3 & m = trackTransforms[i];
-		fprintf(output, "%g %g %g %g %g %g\n", m(0, 0), m(0, 1), m(0, 2), m(1, 0), m(1, 1), m(1, 2));
-	}
-	fclose(output);
 	
 	if (gcpFile.length() > 0)
 	{

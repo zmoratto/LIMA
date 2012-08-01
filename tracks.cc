@@ -1208,6 +1208,21 @@ void transform_tracks_by_matrices(vector<vector<LOLAShot> > & tracks, vector<Mat
 	}
 }
 
+// this shifts the *original* image points
+void transform_tracks_by_matrix(vector<vector<LOLAShot> > & tracks, Matrix3x3 M)
+{
+	for (unsigned int i = 0; i < tracks.size(); i++)
+	{
+		for (unsigned int j = 0; j < tracks[i].size(); j++)
+			for (unsigned int k = 0; k < tracks[i][j].imgPt.size(); k++)
+			{
+				Vector3 r = M * Vector3(tracks[i][j].imgPt[k].x, tracks[i][j].imgPt[k].y, 1);
+				tracks[i][j].imgPt[k].x = r(0);
+				tracks[i][j].imgPt[k].y = r(1);
+			}
+	}
+}
+
 void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >& tracks, const std::string& filename)
 {
 	FILE* f = fopen(filename.c_str(), "w");

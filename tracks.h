@@ -460,6 +460,7 @@ void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, Image
 void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, ImageView<PixelGray<float> >& cub);
 void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, string cubFile);
 void transform_tracks_by_matrices(vector<vector<LOLAShot> > & tracks, vector<Matrix3x3> matrices);
+void transform_tracks_by_matrix(vector<vector<LOLAShot> > & tracks, Matrix3x3 M);
 
 void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >&, const std::string& filename);
 vector<Matrix3x3> load_track_transforms(const std::string& filename);
