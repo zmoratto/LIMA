@@ -526,7 +526,7 @@ void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& tracks,  ImageView<
 		for (unsigned int j = 0; j < tracks[i].size(); j++)
 		{
 			AlignedLOLAShot* s = &tracks[i][j];
-			if (s->synth_image < 0 || s->image < 0)
+			if (s->synth_image < 0 || s->image < 0 || !s->valid)
 				continue;
 			xl = s->image_x;
 			yt = s->image_y;
