@@ -31,7 +31,7 @@ using std::endl;
 bool verbose = true;
 
 
-int ReadStereoConfigFile(string stereoConfigFilename, CvStereoProcessorParameters *thisStereoParams)
+int ReadStereoConfigFile(string stereoConfigFilename, CvStereoSGBMProcessorParameters *thisStereoParams)
 {
   ifstream configFile (stereoConfigFilename.c_str());
   std::string line;
@@ -121,6 +121,34 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoProcessorParameter
     sline8 >> identifier >> val;
     cout<<val<<endl;
     thisStereoParams->scaleFactor=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline9; 
+    sline9<<line;
+    sline9 >> identifier;
+    if( sline9 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileWidth=val;
+       }
+    else{
+       cout<<"TILE_HEIGHT: "<<-1<<endl;
+       thisStereoParams->tileWidth=-1;
+       }
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline10; 
+    sline10<<line;
+    sline10 >> identifier;
+    if( sline10 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileHeight=val;
+       }
+    else{
+       cout<<"TILE_HEIGHT: "<<-1<<endl;
+       thisStereoParams->tileHeight=-1;
+       }
 
     configFile.close();
     return 1;
@@ -302,8 +330,13 @@ int main( int argc, char *argv[] )
       return 1;
     }
 
-  if (vm.count(modelImageFilename)){
+  if (!vm.count("model-filename")){
       std::cerr << "Error: Must specify at least one model image file!" << std::endl << std::endl;
+      std::cerr << usage.str();
+      return 1;
+  }   
+  if (!vm.count("match-filename")){
+      std::cerr << "Error: Must specify at least one match image file!" << std::endl << std::endl;
       std::cerr << usage.str();
       return 1;
   }
@@ -332,7 +365,7 @@ int main( int argc, char *argv[] )
 
  
   //run openCV stereo
-  CvStereoProcessorParameters thisStereoParams;
+  CvStereoSGBMProcessorParameters thisStereoParams;
   int configReadError = ReadStereoConfigFile(string("stereo_settingsSGBM.txt"), &thisStereoParams);
  
   if( !configReadError )
@@ -345,8 +378,8 @@ int main( int argc, char *argv[] )
   imageSize.width = modelImage->width;
   imageSize.height = modelImage->height;
   
-  CvStereoProcessor *thisStereo;  
-  thisStereo = new CvStereoProcessor(thisStereoParams);
+  CvStereoSGBMProcessor *thisStereo;  
+  thisStereo = new CvStereoSGBMProcessor(thisStereoParams);
 
   //get start time for debug - START
   timeval start, end;

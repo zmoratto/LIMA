@@ -141,7 +141,7 @@ int readCalibrationFile(const string &calibrationFilename,
 
 
 
-CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) :
+CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& params) :
     m_params(params),
     m_bMState(cvCreateStereoBMState())/*,
     m_imageDisparity(cvCreateMat(imageSize.height, imageSize.width, CV_16S)),
@@ -205,7 +205,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
     m_imageDisparityNormalized=cvCreateMat(smallSize.height, smallSize.width, CV_8U);
   }
 
-  CvStereoProcessor::~CvStereoProcessor()
+  CvStereoBMProcessor::~CvStereoBMProcessor()
   {
     cvReleaseMat(&m_imageDisparity);
     cvReleaseMat(&m_imageDisparityNormalized);
@@ -213,7 +213,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
   }
 
   void
-  CvStereoProcessor::savePoints(string const &filenameNoPath)
+  CvStereoBMProcessor::savePoints(string const &filenameNoPath)
   {
    //TODO:cant run without doing rectification yet
    if(NEED_RECTIFICATION)
@@ -241,7 +241,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
   }
 
   //modifies the Q matrix with the rotation  and translation
-  void CvStereoProcessor::changeCoordinates(cv::Mat const &rotationMat, cv::Mat const &vectorMat)
+  void CvStereoBMProcessor::changeCoordinates(cv::Mat const &rotationMat, cv::Mat const &vectorMat)
   {
    //TODO:cant do without doing rectification yet
    if(NEED_RECTIFICATION)
@@ -267,7 +267,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
   }
 
   void
-  CvStereoProcessor::processImagePair(IplImage *refImg, IplImage *matchImg)
+  CvStereoBMProcessor::processImagePair(IplImage *refImg, IplImage *matchImg)
   {
     Mat refMatOrig = refImg;
     Mat matchMatOrig = matchImg;
@@ -301,7 +301,7 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
 
     //create tiles
     Tiling tiler;
-    initTiling(tiler);
+    initializeTiling(tiler);
     tiler.setUpReferenceTiles(&refImgRect);    
 
     //create Mat header for disparity (Mat headers used for copying data)
@@ -314,17 +314,18 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
        cvSetImageROI(&matchImgRect, *it);
        tileDisparity = cvCreateMat(it->height, it->width, CV_16S);
 
-       //process section of tile
+       //process tile
        cvFindStereoCorrespondenceBM(&refImgRect, &matchImgRect, tileDisparity, m_bMState);
 
        //create Mat header for tile disparity
        tileDisMat = tileDisparity;
 
-       //create roi's to copy part of the tile that was processed
-       imageRoi = getRoiToCopy(*it, tiler.tileParams.xOverlap, tiler.tileParams.yOverlap);
-       tileRoi = imageRoi;
-       tileRoi.x -= it->x;
-       tileRoi.y -= it->y;
+       //create roi's for copying part of the tile without the overlap
+       imageRoi = getTileWithoutOverlap(*it, tiler.tileParams.xOverlap, tiler.tileParams.yOverlap);
+       tileRoi.width = imageRoi.width;
+       tileRoi.height = imageRoi.height;
+       tileRoi.x = imageRoi.x - it->x;
+       tileRoi.y = imageRoi.y - it->y;
 
        //copy data using roi's
        Mat tileRoiMat(tileDisMat, tileRoi);
@@ -350,28 +351,37 @@ CvStereoProcessor::CvStereoProcessor(CvStereoProcessorParameters const& params) 
 
   //save the normalized disparity for display and debug  
   void
-  CvStereoProcessor::saveDisparity(string const& filenameNoPath)
+  CvStereoBMProcessor::saveDisparity(string const& filenameNoPath)
   {
     string disparityFilename = m_params.resDir+filenameNoPath;
     cvNormalize(m_imageDisparity, m_imageDisparityNormalized, 0, 256, CV_MINMAX);
     cvSaveImage( disparityFilename.c_str(), m_imageDisparityNormalized);
   }
   
-cv::Mat CvStereoProcessor::GetRectifiedModelImage()
+cv::Mat CvStereoBMProcessor::GetRectifiedModelImage()
 {
    return m_refImgRect;
 }
 
-cv::Mat CvStereoProcessor::GetRectifiedMatchImage()
+cv::Mat CvStereoBMProcessor::GetRectifiedMatchImage()
 {
    return m_matchImgRect;
 }
 
-void 
-CvStereoProcessor::initTiling(Tiling &tiling)
+
+// function to compute overlap and set up tile size
+void CvStereoBMProcessor::initializeTiling(Tiling &tiling)
 {
-    // read config file
-    tiling.readTilingConfigFile(string("tiling_config.txt"));
+    // check for default no tiling
+    if(m_params.tileWidth <= 0 || m_params.tileHeight <= 0)
+      {
+      m_params.tileWidth = smallSize.width;
+      m_params.tileHeight = smallSize.height;
+      }
+
+    // set tile size from params
+    tiling.tileParams.tileWidth = m_params.tileWidth;
+    tiling.tileParams.tileHeight = m_params.tileHeight;
 
     // force tiles to be of even size
     if( tiling.tileParams.tileWidth%2 == 1 ) 
@@ -406,8 +416,8 @@ CvStereoProcessor::initTiling(Tiling &tiling)
 }
 
 
-
-Rect CvStereoProcessor::getRoiToCopy(Rect tile, int xOverlap, int yOverlap)
+// computes the tile region that doesn't include overlap
+Rect CvStereoBMProcessor::getTileWithoutOverlap(Rect tile, int xOverlap, int yOverlap)
 {
    Rect roi;
 

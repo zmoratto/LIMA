@@ -14,7 +14,7 @@
 // Tiling includes
 #include "../common/Tiling.h"
 
-struct CvStereoProcessorParameters{
+struct CvStereoBMProcessorParameters{
   int preFilterSize;
   int preFilterCap;
   int sadWindowSize;
@@ -26,15 +26,17 @@ struct CvStereoProcessorParameters{
   std::string resDir;
   bool needRectification;
   float scaleFactor;
+  int tileWidth;
+  int tileHeight;
 };
 
-class CvStereoProcessor
+class CvStereoBMProcessor
 {
  public:
   typedef cv::Mat PointImage;
   
-  CvStereoProcessor(CvStereoProcessorParameters const& params);
-  ~CvStereoProcessor();
+  CvStereoBMProcessor(CvStereoBMProcessorParameters const& params);
+  ~CvStereoBMProcessor();
   
   void processImagePair(IplImage *refImg, IplImage *matchImg);
   //void processImagePair(kn::Image const& refImg, kn::Image const& matchImg);
@@ -47,19 +49,17 @@ class CvStereoProcessor
   PointImage const& pointImage() const {
     return m_points;
   }
-  
-  void initTiling(Tiling &tiling);
-
-  cv::Rect getRoiToCopy(cv::Rect tile, int xOverlap, int yOverlap);
-
+ 
   void savePoints(std::string const& filenameNoPath);
   cv::Mat GetRectifiedModelImage();
   cv::Mat GetRectifiedMatchImage();
   
  protected:
   //static void iplImageFromKnImage(IplImage& ipl, Image const& img);
-  
-  CvStereoProcessorParameters m_params;
+  void initializeTiling(Tiling &tiling);
+  cv::Rect getTileWithoutOverlap(cv::Rect tile, int xOverlap, int yOverlap); 
+ 
+  CvStereoBMProcessorParameters m_params;
   CvStereoBMState * m_bMState;
   
   cv::Mat m_refRMap[2];
