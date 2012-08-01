@@ -1,0 +1,6 @@
+tileWidth 512
+tileHeight 768
+xOverlap 0
+yOverlap 0
+tileScaleX 0
+tileScaleY 0

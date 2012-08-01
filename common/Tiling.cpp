@@ -16,9 +16,9 @@ Tiling::~Tiling()
 void Tiling::printUsage()
 {
 		cout << endl;
-		cout << "*********************** USAGE **********************" << endl;
-		cout << "./Tiling_test <configFile> <inputFile> <outputDir>  " << endl;
-		cout << "****************************************************" << endl;
+		cout << "****************** USAGE *****************" << endl;
+		cout << "./Tiling_test <configFile> <inputFile>              " << endl;
+		cout << "******************************************" << endl;
 		cout << endl;
 }
 
@@ -67,8 +67,6 @@ void Tiling::readTilingConfigFile(string filename)
 		fin >> identifier >> tileHeight;
 		fin >> identifier >> xOverlap;
 		fin >> identifier >> yOverlap;
-		fin >> identifier >> featureMethod;
-		fin >> identifier >> showResultsFlag;
 		fin >> identifier >> tileScaleX;
 		fin >> identifier >> tileScaleY;
 
@@ -78,8 +76,6 @@ void Tiling::readTilingConfigFile(string filename)
 		tileParams.tileHeight = tileHeight;
 		tileParams.xOverlap = xOverlap;
 		tileParams.yOverlap = yOverlap;
-		tileParams.featureMethod = featureMethod;
-		tileParams.showResultsFlag = showResultsFlag;
 		tileParams.tileScaleX = tileScaleX;
 		tileParams.tileScaleY = tileScaleY;
 	}
@@ -89,7 +85,6 @@ void Tiling::readTilingConfigFile(string filename)
 		tileParams.tileHeight = 500;
 		tileParams.xOverlap = 50;
 		tileParams.yOverlap = 50;
-		tileParams.featureMethod = 0;
 		printDefaultWarning(filename);
 	}
 }
