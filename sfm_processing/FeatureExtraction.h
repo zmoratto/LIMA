@@ -32,6 +32,13 @@ public:
 	DescriptorExtractor * extractor;
 	Mat point_descriptors;
 	int featureMethod;
+	double hessianThresh;
+	int nOctaves;
+	int nOctaveLayers;
+	bool extended;
+	bool upright;
+	int octaves;
+	int octaveLayers;
 
 	//Methods
 	void printWarning(string configFilename);

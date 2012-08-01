@@ -1,5 +1,6 @@
-firstFrame 0
-lastFrame 5
+firstFrame 100
+lastFrame 150
+frameStep 1
 depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
@@ -9,7 +10,7 @@ pointCloudFilename point_cloud_list.txt
 kinectDepthFilename kinectDepth_list.txt
 minMatches 8
 detThresh 0.0000001
-featureMethod 1
+featureMethod 0
 poseEstimationType 0
 nndrRatio 0.55
 numNN 2
@@ -30,3 +31,10 @@ tileScaleY 0
 pointProjFilename results/pointProj.txt
 weightedPortion 0.5
 resultImageFilename results/composedImage
+hessianThresh 800.0
+nOctaves 4
+nOctaveLayers 2
+extended 0
+upright 1
+octaves 3
+octaveLayers 4

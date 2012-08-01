@@ -26,7 +26,6 @@ SFM::SFM(char* configFile, char* inputFilename)
 	imageWidth = image->width;
 	imageHeight = image->height;
 
-
 	referenceTile.setUpReferenceTiles(image);
 
 	numTiles = referenceTile.tiles.size();
@@ -86,6 +85,7 @@ void SFM::readConfigurationFile(string& configurationFilename)
 
 		fin >> identifier >> configParams.firstFrame;
 		fin >> identifier >> configParams.lastFrame;
+		fin >> identifier >> configParams.frameStep;
 		fin >> identifier >> configParams.depthInfo;
 		fin >> identifier >> configParams.showResultsFlag;
 		fin >> identifier >> configParams.saveResultsFlag;
@@ -116,6 +116,13 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> configParams.pointProjFilename;
 		fin >> identifier >> pose.weightedPortion;
 		fin >> identifier >> configParams.resultImageFilename;
+		fin >> identifier >> feat.hessianThresh;
+		fin >> identifier >> feat.nOctaves;
+		fin >> identifier >> feat.nOctaveLayers;
+		fin >> identifier >> feat.extended;
+		fin >> identifier >> feat.upright;
+		fin >> identifier >> feat.octaves;
+		fin >> identifier >> feat.octaveLayers;
 		fin.close();
 	}
 	else 
@@ -429,18 +436,15 @@ void SFM::process(IplImage* image, int frameIndex)
 	if(configParams.firstFrame != frameIndex)
 	{
 		pose.process(configParams.depthInfo, image);
+		t2 = clock();
+		cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 		showGlobalMatches(prevImage, image, frameIndex);
 	}
 
 	pose.savePointProj(frameIndex, configParams.firstFrame);
 
-
 	//Update
 	update(image);
-
-	t2 = clock();
-
-	cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 }
 
 

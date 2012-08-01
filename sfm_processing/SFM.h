@@ -29,9 +29,9 @@ using namespace cv;
 using namespace std;
 
 struct SFMParams{
-	string dataRootDirname; 
 	int firstFrame;
 	int lastFrame;
+	int frameStep;
 	int depthInfo;
 	int showResultsFlag;
 	int saveResultsFlag;

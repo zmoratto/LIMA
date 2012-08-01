@@ -7,7 +7,7 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 project(sfm_project)
-add_executable(sfm_test sfm_test.cpp ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp ../common/Tiling.cpp)
+add_executable(sfm_test sfm_test.cpp ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp ../../common/Tiling.cpp)
 target_link_libraries(sfm_test ${PCL_LIBRARIES})
 target_link_libraries(sfm_test ${OpenCV_LIBS})
 

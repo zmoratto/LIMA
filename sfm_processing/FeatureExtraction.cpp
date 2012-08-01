@@ -102,8 +102,8 @@ void FeatureExtraction::setDetectExtract(int type)
 			extractor = new SiftDescriptorExtractor();
 			break;
 		default: //Surf
-			detector = new SurfFeatureDetector();
-			extractor = new SurfDescriptorExtractor();
+			detector = new SurfFeatureDetector(hessianThresh, octaves, octaveLayers, upright);
+			extractor = new SurfDescriptorExtractor(nOctaves, nOctaveLayers, extended, upright);
 	}
 }
 
