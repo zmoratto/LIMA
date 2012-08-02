@@ -1,64 +1,77 @@
-To be completed by Ara
+The {\bf dem2dem} application matches to DEMs by finding the best rotation matrix and translation vector. This method uses an Iterative Closest Point (ICP) solution.
+The {\bf assembler} application aligns specifically a foreground DEM as obtained from rover traverse over an orbital DEM and overlays them. If orthoprojected image data is available, 
+assembler will use the DEM alignment to overlap overlay the two (ground level and orbital) orthoprojected images. The assembled output is reelased as a set of DEM and DRG tiles. 
 
 \subsection{Files:}
-
 \begin{itemize}
-\item{a file, does this}
+\item{assembler.cc, main file for assembler application}
+\item{assembler.h, header file for assembler application}
+\item{icp.cpp, source file for icp functions}
+\item{icp.h, header file for icp functions}
 \end{itemize}
-
 
 \subsection{How to install:}
 \begin{enumerate}
 	\item{Install Prerequisites} 
-	\item{Install } 
-	\item{Build } 
-	\item{Run Examples} 
+	\item{Install} 
+	\item{Build} 
 \end{enumerate}
 
-\subsection{Configuration Parameters}
+\subsection{How to run}
+./assembler config.txt
+\subsubsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
-%MATCHING_MODE 3
-%WEIGHTING_MODE 1
-%MAX_NUM_STARTS 36
-%DELTA_LON_LAT 0.0001 0.0001
-%USE_LON_LAT_RAD_OFFSET 0
-%LON_LAT_RAD_OFFSET 0 0
-%MAX_FORE_PPD 2000000
-%SAMPLING_STEP 256 256
-%MATCH_WINDOW 9 9
-%MAX_NUM_ITER 10
-%CONV_THRESH 0.01
-%TILE_SIZE_DEM 128
-%PADDING_PARAMS_DEM 0 0 1 1
-%TILE_SIZE_DRG 512
-%PADDING_PARAMS_DRG 1 1 2 2
-%FORE_NO_DATA_VAL_DEM -3.4028226550889e+38
-%BACK_NO_DATA_VAL_DEM -3.4028226550889e+38
-%FORE_NO_DATA_VAL_DRG 0
-%BACK_NO_DATA_VAL_DRG 0
 
-	\item{\textsc{MATCHING\_MODE}}: 0 - no alignment, 1 - altitude alignment, 2-ICP with translation only, 3-ICP with rotation and translation 
-        \item{\textsc{WEIGHTING\_MODE}}: 0 - no DEM weighting, 1 - DEM weights based on ground level DEM/ orbital DEM resolution 
-        \item{\textsc{MAX\_NUM\_STARTS}}: the number of restarts for the alignment. this number must be an integer $n^2$ where $n$ is the number of restarts in vertical or horizontal direction
-        \item{\textsc{DELTA\_LON\_LAT}}: the lon lat dispacement for each restart of the alignment
-        \item{\textsc{USE\_LON\_LAT\_RAD\_OFFSET}}: 0 - ignore the initial offset of the foreground DEM in the line below, 1 - read the original DEM offset from the line below 
-        \item{\textsc{LON\_LAT\_RAD\_OFFSET}}: initial lon lat and radial offset of the foreground DEM
-        \item{\textsc{MAX\_FORE\_PPD}}: max foreground DEM pixel per degree resolution
-        \item{\textsc{SAMPLING\_STEP}}:sampling step in horizontal and vertical direction taken for matching features step in ICP
-	\item{\textsc{MATCH\_WINDOW}}:pixel size in horizontal and vertical direction of the matching window used in ICP. 
-        \item{\textsc{MAX\_NUM\_ITER}}: max number of iterations used in ICP
-        \item{\textsc{CONV\_THRESH}}: convergence threshold used in ICP. When the ICP error at consecutive iterations falls below this threshold or max number of iterations is achieved the ICP iteration stop.
-        \item{\textsc{TILE\_SIZE\_DEM}}: DEM tile size in horizontal and vertical direction compatible with the viewer (Antares for MSL)
-        \item{\textsc{PADDING\_PARAMS\_DEM}}: DEM tile padding top, left bottom, right compatible with the viewer (Antares for MSL)
-        \item{\textsc{TILE\_SIZE\_DEM}}: DRG tile size in horizontal and vertical direction compatible with the viewer (Antares for MSL)
-	\item{\textsc{PADDING\_PARAMS\_DRG}}: DRG tile padding top, left bottom, right compatible with the viewer (Antares for MSL)
-        \item{\textsc{FORE\_NO\_DATA\_VAL\_DEM}} :no data value for the foreground DEM
-        \item{\textsc{BACK\_NO\_DATA\_VAL\_DEM}} :no data value for the background DEM
-        \item{\textsc{FORE\_NO\_DATA\_VAL\_DRG}} :no data value for the foreground DRG
-        \item{\textsc{BACK\_NO\_DATA\_VAL\_DRG}} :no data value for the background DRG
+
+	\item{\textsc{MATCHING\_MODE}}: 0 - no alignment, 1 - altitude alignment, 2-ICP with translation only, 3-ICP with rotation and translation; {\bf default}
+        \item{\textsc{WEIGHTING\_MODE}}: 0 - no DEM weighting, 1 - DEM weights based on ground level DEM/ orbital DEM resolution; {\bf default}
+        \item{\textsc{MAX\_NUM\_STARTS}}: the number of restarts for the alignment. this number must be an integer $n^2$ where $n$ is the number of restarts in vertical or horizontal direction; {\bf default}
+        \item{\textsc{DELTA\_LON\_LAT}}: the lon lat dispacement for each restart of the alignment; {\bf default}
+        \item{\textsc{USE\_LON\_LAT\_RAD\_OFFSET}}: 0 - ignore the initial offset of the foreground DEM in the line below, 1 - read the original DEM offset from the line below; {\bf default} 
+        \item{\textsc{LON\_LAT\_RAD\_OFFSET}}: initial lon lat and radial offset of the foreground DEM; {\bf default}
+        \item{\textsc{MAX\_FORE\_PPD}}: max foreground DEM pixel per degree resolution; {\bf default}
+        \item{\textsc{SAMPLING\_STEP}}: sampling step in horizontal and vertical direction taken for matching features step in ICP; {\bf default}
+	\item{\textsc{MATCH\_WINDOW}}:p ixel size in horizontal and vertical direction of the matching window used in ICP; {\bf default}
+        \item{\textsc{MAX\_NUM\_ITER}}: max number of iterations used in ICP; {\bf default}
+        \item{\textsc{CONV\_THRESH}}: convergence threshold used in ICP. When the ICP error at consecutive iterations falls below this threshold or 
+                                      MAX\_NUM\_ITER is achieved the ICP iteration stop; {\bf default}
+        \item{\textsc{TILE\_SIZE\_DEM}}: DEM tile size in horizontal and vertical direction compatible with the viewer; {\bf default} (Antares for MSL)
+        \item{\textsc{PADDING\_PARAMS\_DEM}}: DEM tile padding top, left bottom, right compatible with the viewer; {\bf default} (Antares for MSL)
+        \item{\textsc{TILE\_SIZE\_DEM}}: DRG tile size in horizontal and vertical direction compatible with the viewer; {\bf default} (Antares for MSL)
+	\item{\textsc{PADDING\_PARAMS\_DRG}}: DRG tile padding top, left bottom, right compatible with the viewer; {\bf default} (Antares for MSL)
+        \item{\textsc{FORE\_NO\_DATA\_VAL\_DEM}}: no data value for the foreground DEM; {\bf default}
+        \item{\textsc{BACK\_NO\_DATA\_VAL\_DEM}}: no data value for the background DEM; {\bf default}
+        \item{\textsc{FORE\_NO\_DATA\_VAL\_DRG}}: no data value for the foreground DRG; {\bf default}
+        \item{\textsc{BACK\_NO\_DATA\_VAL\_DRG}}: no data value for the background DRG; {\bf default}
 
 \end{itemize}
 
 
+\subsection{The algorithm explained: Iterative Closest Point (ICP)}
+The goal of ICP is to find a rotation matrix $R$ and a translation vector $T$ such that 
+\begin{eqnarray}
+{\bf r} = R*{\bf m}+T
+\end{eqnarray}
+where $\bf r$ is a reference and $\bf m$ is matching array of 3D vectors respectively.
+At each iteration
+\begin{itemize}
+\item {\bf step 1} determine best matches between features in $\bf r$ and $\bf m$.
+\item {\bf step 2} estimate $R$ from arrays ${\bf r} - E({\bf r})$ and ${\bf m}-E({\bf m})$ using Kaubsh method; $E({\bf x})$ is the expected value of $\bf x$;
+                   note that these two arrays have 0 mean.
+\item {\bf step 3} estimate $T=E({\bf r}-R*{\bf m})$.
+\item {\bf step 4} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
+\item {\bf step 5} check convergence, otherwise go to step 1.
+\end{itemize}
 
+An alternative solution:
+
+At each iteration
+\begin{itemize}
+\item {\bf step 1} determine best matches between features in $\bf r$ and $\bf m$.
+\item {\bf step 3} estimate $R$ from arrays ${\bf r}$ and ${\bf m}+E({\bf r}-{\bf m})$,  using Kaubsh method;
+                   note that these two arrays have the same mean; $E({\bf x})$ is the expected value of $\bf x$.
+\item {\bf step 2} estimate $T=R*E({\bf r}-{\bf m})$.
+\item {\bf step 4} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
+\item {\bf step 5} check convergence, otherwise go to step 1.
+\end{itemize}
