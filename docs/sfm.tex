@@ -1,0 +1,152 @@
+\subsection{Files:}
+\begin{itemize}
+	\item{sfm\_test.cpp} - main function for SFM Processing
+	\item{SFM.h} - declaration of SFM class
+	\item{SFM.cpp} - definition of SFM class
+	\item{PoseEstimation.h} - declaration of PoseEstimation class
+	\item{PoseEstimation.cpp} - definition of PoseEstimation class
+	\item{FeatureExtraction.h} - declaration of FeatureExtraction class
+	\item{FeatureExtraction.cpp} - definition of FeatureExtraction class
+	\item{sfm\_config.txt} - configuration file for main program
+\end{itemize}
+
+
+\subsection{How to install sfm:}
+\begin{enumerate}
+	\item{Install Prerequisites} - Install OpenCV 2.3.1, PCL 1.5, lapack, cmake, gfortran
+	\item{Install SFM} - inside sfm processing directory type: cmake .
+	\item{Build sfm\_test} - inside sfm processing directory type: make
+	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
+\end{enumerate}
+
+\subsection{Configuration Parameters}
+If the configuration file is not specified, the program will run with a set of default parameters.
+\begin{itemize}
+	\item{\textsc{depthInfo}} - 0 (No Depth), 2 (Kinect Depth), 3 (Stereo Point Clouds)
+	\item{\textsc{pointCloudFilename}} - file containing filenames for all point cloud files
+	\item{\textsc{kinectDepthFilename}} - file containing list of kinect depth filenames
+	\item{\textsc{minMatches}} - minimum number of matches in order to do pose estimation
+	\item{\textsc{detThresh}} - small threshold for determinant of R in order to do SVD
+	\item{\textsc{featureMethod}} - 0 (SURF), 1 (ORB), 2 (SIFT)
+	\item{\textsc{poseEstimationType}} - 0 (Pairs of frames for Pose Estimation), 1 (SBA)
+	\item{\textsc{nndrRatio}} - ratio for determining good matches
+	\item{\textsc{numNN}} - number of nearest neighbors to save for each key point
+	\item{\textsc{zDist}} - maximum distance between z coordinates for good matches
+	\item{\textsc{xDist}} - maximum distance between x coordinates for good matches
+	\item{\textsc{yDist}} - maximum distance between y coordinates for good matches
+	\item{\textsc{nbMatches}} - minimum number of matches for homography
+	\item{\textsc{homographyMethod}} - 0 (Default OpenCV Method), 4 (Least Median Method), 8 (RANSAC Method)
+	\item{\textsc{flannCheck}} - number of elements to visit in NN search
+	\item{\textsc{ransacPixels}} - maximum number of pixels the match can be from the epipolar line
+	\item{\textsc{ransacAccuracy}} - accuracy of homography before stopping iterations
+	\item{\textsc{tileWidth}} - width of each tile in image
+	\item{\textsc{tileHeight}} - height of each tile in image
+	\item{\textsc{xOverlap}} - amount of overlap in the x direction between consecutive tiles
+	\item{\textsc{yOverlap}} - amount of overlap in the y direction between consecutive tiles
+	\item{\textsc{tileScaleX}} - scale from reference tile to matching tile in the x direction
+	\item{\textsc{tileScaleY}} - scale from reference tile to matching tile in the y direction
+	\item{\textsc{pointProjFilename}} - file where point projections are saved for later use by SBA
+	\item{\textsc{weightedPortion}} - weights this portion of the image to the bottom of the image (work in progress \ldots)
+\end{itemize}
+
+
+%=======
+%\section{Installation of SFM}
+
+%This is complete installation procedure for Mac OS X.
+
+%\begin{lstlisting}
+%- install prerequisites
+%1) install Macport (http://www.macports.org/install.php) 
+%2) install dependencies (http://pointclouds.org/downloads/macosx.html)
+%3) install PCL (http://pointclouds.org/downloads/macosx.html)
+%4) sudo port install opencv
+%5) sudo port install cmake
+%6) install gfortran (http://gcc.gnu.org/wiki/GFortranBinaries)
+%7) install lapack(http://gcc.gnu.org/testing/testing-lapack.html)
+%7.1) download lapack.tgz and unzip it
+%7.2) rename make.inc.example to make.inc in the root directory of lapack 
+%7.3) make blaslib && make
+%8) install sba (http://www.ics.forth.gr/~lourakis/sba/) 
+%8.1) edit demo/CMakeLists.txt
+
+%# CMake file for sba's demo program
+
+%INCLUDE_DIRECTORIES(..)
+%LINK_DIRECTORIES(.. ${LAPACKBLAS_DIR})
+
+%ADD_EXECUTABLE(eucsbademo eucsbademo.c imgproj.c readparams.c eucsbademo.h readparams.h)
+%# libraries the demo depends on
+%IF(HAVE_F2C)
+%  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB} ${BLAS_LIB} ${F2C_LIB})
+%ELSE(HAVE_F2C)
+%  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB})
+%ENDIF(HAVE_F2C)
+
+%# make sure that the library is built before the demo
+%ADD_DEPENDENCIES(eucsbademo sba)
+
+%8.2) mkdir build && cd build
+%8.3) ccmake ..
+%8.3.1) turn HAVE_F2C OFF
+%8.3.2) LAPACK_LIB = -framework vecLib
+%8.4) make
+%8.5) set PATH for the libsba.a
+
+%For beginner, check opt/local if you install them with "sudo port install." Otherwise, usr/local
+
+%- Initialize SFM
+%1) svn co https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/sfm/
+%2) cd sfm
+%3) mkdir build
+%4) cd build
+%5) cmake .. (here is big double dots)
+%6) make -j2 && make install
+
+%- Configure SFM
+%1) cd sfm\build
+%2) ccmake ..
+%[Press 'c' to configure]
+%[Select option 'BUILD_TESTS']
+%[Press 'c' to reconfigure]
+%[Press 'g' to generate]
+
+%# Test SFM
+%1) cd sfm/build
+%2) make test
+%3) view the file in sfm/build/Testing/Tempory/LastTest.log
+
+%# Run SFM with an Example
+%1) cd sfm/examples
+%2) scp <username>@<machinename>:/irg/data/kinect/<directory> .
+%3) cd <directory>
+%4) cp ../sfm_config_example.txt sfm_config.txt
+%5) cp ../camera_calibration_example.txt camera_calibration.txt
+%6) open sfm_config.txt to change the value of inputDataName by <directory>
+%7) sfm
+%8) pc_vis <directory>.txt
+
+%for example <directory>=2011_1202_bldg_269_2, <machinename>=pesto
+%1) cd sfm/examples
+%2) scp <username>@pesto:/irg/data/kinect/2011_1202_bldg_269_2 .
+%3) cd 2011_1202_bldg_269_2
+%4) cp ../sfm_config_example.txt sfm_config.txt
+%5) cp ../camera_calibration_example.txt camera_calibration.txt
+%6) open sfm_config.txt: inputDataName 2011_1202_bldg_269_2
+%7) sfm
+%8) pc_vis 2011_1202_bldg_269_2.txt
+
+%# troubleshooting
+%If any problem to link dependencies,
+%Download PCL sources from http://pointclouds.org/downloads/ 
+%- compile and install PCL
+%1) cd PCL-<ver>-Source
+%2) cmake .
+%3) make
+%4) make install
+
+%Add the following to ~/.bash_profile file
+%export DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib:/usr/lib
+%\end{lstlisting}
+
+%\end{document}
