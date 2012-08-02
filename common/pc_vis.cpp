@@ -26,7 +26,7 @@ int CountEntries(string pointCloudFilename)
 		{
 			getline (myfile,line);
 			//cout << line << endl;
-			float x = 0, y = 0, z = 0, r = 0, g = 0, b = 0;
+			float x = 0, y = 0, z = 0, r = 255, g = 0, b = 0;
 			sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &r, &g, &b);
 			if ((x!=0.0)||(y!=0.0)||(z!=0.0))
 			{
