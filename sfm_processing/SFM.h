@@ -82,7 +82,7 @@ public:
 	void printWarning(string& filename);
 	void readConfigurationFile(string& configurationFilename);
 	void printConfigParams();
-	int readCameraCalibrationFile();
+	int  readCameraCalibrationFile();
 	int  readStereoCalibrationFile();
 	void restoreDefaultParameters();
 	void readImageFilenames(string& inputFile);

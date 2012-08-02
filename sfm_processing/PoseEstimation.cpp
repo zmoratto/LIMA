@@ -77,6 +77,8 @@ PoseEstimation::~PoseEstimation()
 	cvReleaseMat(&relative_T);
 }
 
+//estimates the rotation and translation between two point clouds
+//strored in globalPrevMatchedPts and globalCurrMatchedPts
 int PoseEstimation::estimateRelativePose()
 {
 	cv::Point3f translation;
@@ -94,7 +96,8 @@ int PoseEstimation::estimateRelativePose()
 	for (i = 0; i < numMatches; i++)
 	{
 		
-		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
+		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
+                    (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
 		{
 			translation = translation + matchWeights[i]*(globalCurrMatchedPts[i]-globalPrevMatchedPts[i]);
 			if(matchWeights[i] != NO_WEIGHT)
@@ -145,24 +148,25 @@ int PoseEstimation::estimateRelativePose()
 	float a12 = 0.0; 
 	float a22 = 0.0;
 
-	//Compute Relative_R
+	//Compute the rotation matrix Relative_R
 	for (i = 0; i < numMatches; i++)
 	{
-		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
+		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
+                    (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
 		{
 			if(matchWeights[i] != NO_WEIGHT)
 			{
-				a00 = a00 + (globalPrevMatchedPts[i].x-prevCenter.x)*(globalCurrMatchedPts[i].x - currCenter.x);
-				a10 = a10 + (globalPrevMatchedPts[i].y-prevCenter.y)*(globalCurrMatchedPts[i].x - currCenter.x);
-				a20 = a20 + (globalPrevMatchedPts[i].z-prevCenter.z)*(globalCurrMatchedPts[i].x - currCenter.x);
+				a00 = a00 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].x - currCenter.x);
+				a10 = a10 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].x - currCenter.x);
+				a20 = a20 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].x - currCenter.x);
 
-				a01 = a01 + (globalPrevMatchedPts[i].x-prevCenter.x)*(globalCurrMatchedPts[i].y - currCenter.y);
-				a11 = a11 + (globalPrevMatchedPts[i].y-prevCenter.y)*(globalCurrMatchedPts[i].y - currCenter.y);
-				a21 = a21 + (globalPrevMatchedPts[i].z-prevCenter.z)*(globalCurrMatchedPts[i].y - currCenter.y);
+				a01 = a01 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].y - currCenter.y);
+				a11 = a11 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].y - currCenter.y);
+				a21 = a21 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].y - currCenter.y);
 
-				a02 = a02 + (globalPrevMatchedPts[i].x-prevCenter.x)*(globalCurrMatchedPts[i].z - currCenter.z);
-				a12 = a12 + (globalPrevMatchedPts[i].y-prevCenter.y)*(globalCurrMatchedPts[i].z - currCenter.z);
-				a22 = a22 + (globalPrevMatchedPts[i].z-prevCenter.z)*(globalCurrMatchedPts[i].z - currCenter.z);
+				a02 = a02 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].z - currCenter.z);
+				a12 = a12 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].z - currCenter.z);
+				a22 = a22 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].z - currCenter.z);
 			}
 		}
 	}
@@ -237,7 +241,7 @@ int PoseEstimation::estimateRelativePose()
 }
 
 
-//ComposePose
+//determines the overall rotation matrix and translation vector relative to the first frame
 void PoseEstimation::composePose()
 {
 	//Compute Global R and Global T using relative R and relative T.
@@ -443,6 +447,8 @@ void PoseEstimation::depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsi
 	}
 }
 
+//generates point clouds from a disparity image
+//this function will be removed form PoseEstimation class
 void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 {
 	cv::Mat xyz;
@@ -454,8 +460,8 @@ void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 		for (int j = 0; j < dispMat.cols; j++)
 		{
 			cv::Vec3f point = xyz.at<cv::Vec3f>(i, j);
-			curr_x[index] = 0.001*point[0];
-			curr_y[index] = 0.001*point[1];
+			curr_x[index] =  0.001*point[0];
+			curr_y[index] =  0.001*point[1];
 			curr_z[index] = -0.001*point[2];
 			index++;
 		}
@@ -463,6 +469,8 @@ void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 	Q.release();
 }
 
+//this function will be removed form PoseEstimation class
+//it is assumed that the point clouds are available at this moment
 void PoseEstimation::readDepthFiles(string& filename, vector<string>& depthFiles)
 {
 	string temp;
@@ -646,7 +654,9 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 		//Remove those not within 1 STD DEV of the NORM
 		for(i=0; i<globalCurrMatchedPix.size(); i++)
 		{
-			if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
+			if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && 
+                           (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && 
+                           (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
 			{
 				currPts.push_back(globalCurrMatchedPts[i]);
 				currPix.push_back(globalCurrMatchedPix[i]);
@@ -704,14 +714,14 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 		//Remove those not within 1 STD DEV of the NORM
 		for(i=0; i<globalCurrMatchedPix.size(); i++)
 		{
-			if((fabs(globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist) < stdYDev))
+			if ((fabs(globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist) < stdYDev))
 			{
 				currPts.push_back(globalCurrMatchedPts[i]);
 				currPix.push_back(globalCurrMatchedPix[i]);
 				prevPts.push_back(globalPrevMatchedPts[i]);
 				prevPix.push_back(globalPrevMatchedPix[i]);
 
-				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
+				if (globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
 				{
 					matchWeights.push_back(DOUBLE_WEIGHT);
 				}
