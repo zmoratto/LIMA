@@ -123,6 +123,7 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> feat.upright;
 		fin >> identifier >> feat.octaves;
 		fin >> identifier >> feat.octaveLayers;
+		fin >> identifier >> pose.matchingMethod;
 		fin.close();
 	}
 	else 
@@ -136,11 +137,14 @@ void SFM::printConfigParams()
 {
 	cout<<"firstFrame="<<configParams.firstFrame<<endl;
 	cout<<"lastFrame="<<configParams.lastFrame<<endl;
+	cout<<"frameStep="<<configParams.frameStep<<endl;
 	cout<<"depthInfo="<<configParams.depthInfo<<endl;
 	cout<<"showResultsFlag="<<configParams.showResultsFlag<<endl;
 	cout<<"saveResultsFlag="<<configParams.saveResultsFlag<<endl;
 	cout<<"cameraCalibrationFilename="<<configParams.cameraCalibrationFilename<<endl;
 	cout<<"stereoCalibrationFilename="<<configParams.stereoCalibrationFilename<<endl;
+	cout<<"pointCloudFilename="<<configParams.pointCloudFilename<<endl;
+	cout<<"kinectDepthFilename="<<configParams.kinectDepthFilename;
 	cout<<"minMatches="<<pose.minMatches<<endl;
 	cout<<"detThresh="<<pose.detThresh<<endl;
 	cout<<"featureMethod="<<feat.featureMethod<<endl;
@@ -148,6 +152,8 @@ void SFM::printConfigParams()
 	cout<<"nndrRatio="<<pose.nndrRatio<<endl;
 	cout<<"numNN="<<pose.numNN<<endl;
 	cout<<"zDist="<<pose.zDist<<endl;
+	cout<<"xDist="<<pose.xDist<<endl;
+	cout<<"yDist="<<pose.yDist<<endl;
 	cout<<"nbMatches="<<pose.nbMatches<<endl;
 	cout<<"homographyMethod="<<pose.homographyMethod<<endl;
 	cout<<"flannCheck="<<pose.flannCheck << endl;
@@ -159,6 +165,17 @@ void SFM::printConfigParams()
 	cout << "yOverlap=" << referenceTile.tileParams.yOverlap << endl;
 	cout << "tileScaleX=" << referenceTile.tileParams.tileScaleX << endl;
 	cout << "tileScaleY=" << referenceTile.tileParams.tileScaleY << endl;
+	cout << "pointProjFilename=" << configParams.pointProjFilename << endl;
+	cout << "weightedPortion=" << pose.weightedPortion << endl;
+	cout << "resultImageFilename=" << configParams.resultImageFilename << endl;
+	cout << "hessianThresh=" << feat.hessianThresh <<endl;
+	cout << "nOctaves=" << feat.nOctaves << endl;
+	cout << "nOctaveLayers=" << feat.nOctaveLayers << endl;
+	cout << "extended=" << feat.extended << endl;
+	cout << "upright=" << feat.upright << endl;
+	cout << "octaves=" << feat.octaves << endl;
+	cout << "octaveLayers=" << feat.octaveLayers << endl;
+	cout << "matchingMethod=" << pose.matchingMethod << endl;
 }
 
 
@@ -200,28 +217,47 @@ int SFM::readStereoCalibrationFile()
 
 void SFM::restoreDefaultParameters()
 {
-	configParams.firstFrame = 100;
-	configParams.lastFrame = 1200;
+	configParams.firstFrame = 0;
+	configParams.lastFrame = 10;
+	configParams.frameStep = 1;
 	configParams.depthInfo = 0;
 	configParams.showResultsFlag = 1;
 	configParams.saveResultsFlag = 1;
 	configParams.cameraCalibrationFilename = "camera_calibration.txt";
 	configParams.stereoCalibrationFilename = "stereo_calibration.txt";
-	configParams.pointCloudFilename = "rectified_left_list.txt";
+	configParams.pointCloudFilename = "point_cloud_list.txt";
+	configParams.kinectDepthFilename = "kinect_depth_list.txt";
 	pose.minMatches = 8;
 	pose.detThresh = 0.0000001;
 	feat.featureMethod = 0;
 	configParams.poseEstimationType = 0;
-	pose.nndrRatio = 0.5;
+	pose.nndrRatio = 0.55;
 	pose.numNN = 2;
-	pose.zDist = 100;
+	pose.zDist = 800;
 	pose.xDist = 1000;
 	pose.yDist = 1000;
 	pose.nbMatches = 8;
-	pose.homographyMethod = 8; //RANSAC
-	pose.flannCheck = 1024;
-	pose.ransacPix = 50;
+	pose.homographyMethod = 8;
+	pose.flannCheck = 64;
+	pose.ransacPix = 3;
 	pose.ransacAccuracy = 0.99;
+	referenceTile.tileParams.tileWidth = 500;
+	referenceTile.tileParams.tileHeight = 500;
+	referenceTile.tileParams.xOverlap = 0;
+	referenceTile.tileParams.yOverlap = 0;
+	referenceTile.tileParams.tileScaleX = 0;
+	referenceTile.tileParams.tileScaleY = 0;
+	configParams.pointProjFilename = "results/pointProj.txt";
+	pose.weightedPortion = 0.5;
+	configParams.resultImageFilename = "results/composedImage";
+	feat.hessianThresh = 800.0;
+	feat.nOctaves = 4;
+	feat.nOctaveLayers = 2;
+	feat.extended = 0;
+	feat.upright = 1;
+	feat.octaves = 3;
+	feat.octaveLayers = 4;
+	pose.matchingMethod = 1;
 }
 
 void SFM::readImageFilenames(string& inputFile)

@@ -1,5 +1,6 @@
 firstFrame 0
 lastFrame 2
+frameStep 1
 depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
@@ -30,3 +31,11 @@ tileScaleY 0
 pointProjFilename results/pointProj.txt
 weightedPortion 0.5
 resultImageFilename results/composedImage
+hessianThresh 800.0
+nOctaves 4
+nOctaveLayers 2
+extended 0
+upright 1
+octaves 3
+octaveLayers 4
+matchingMethod 1

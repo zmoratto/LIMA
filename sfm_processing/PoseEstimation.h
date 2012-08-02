@@ -28,6 +28,7 @@ using namespace cv;
 
 using namespace std;
 
+//Point Projection struct for SBA
 struct pointProjection{
 	Point3f point;
 	vector<Point2f> pixels;
@@ -44,24 +45,28 @@ public:
 	//Destructor
 	~PoseEstimation();
 
-	//Tile Parameters
+	//Tile points, matches and descriptors
 	vector<cv::Point3f> currMatchedPoints, prevMatchedPoints;
 	vector<cv::Point2f> prevMatchedPixels, currMatchedPixels;
-	Mat prevObjectData;
+	Mat prevObjectData, currObjectData;
 	vector<KeyPoint> prevKeypoints;
-	Mat currObjectData;
 
-	//Global Parameters
+	//Global Points, matches and descriptors
 	vector<cv::Point3f> globalCurrMatchedPts, globalPrevMatchedPts;
 	vector<cv::Point2f> globalPrevMatchedPix, globalCurrMatchedPix;
 	vector<KeyPoint> globalCurrKeyPoints, globalPrevKeyPoints;
 	Mat globalCurrDescriptors, globalPrevDescriptors;
+
+	//Vector with index locations of globalMatchedPix which says which matches are valid
 	vector<int> validPix;
 
+	//Vector with floats telling which matches have which weights
 	vector<float> matchWeights;
 
+	//Mask which says which matches are inliers and which are outliers
 	Mat outlierMask;
 
+	//Point projections for SBA
 	vector<pointProjection> projectedPoints;
 
 	//Rotation and Translation
@@ -94,6 +99,7 @@ public:
 	float ransacPix;
 	float ransacAccuracy;
 	float weightedPortion;
+	int matchingMethod;
 
 	//Methods
 	int estimateRelativePose();
@@ -118,12 +124,11 @@ public:
 	void collect3DMatches(int width);
 	void process(int depthInfo, IplImage* image);
 	void clear();
+	void removeDuplicates(IplImage* image);
 
 	//Point Projection -- For SBA
 	int searchPointProj(Point2f find);
 	void appendPointProj(Point2f pix, Point3f pt, int loc, int frameIndex);
 	void savePointProj(int frameIndex, int firstFrame);
 	void writePointProj(string& pointProjFile);
-
-	void removeDuplicates(IplImage* image);
 };

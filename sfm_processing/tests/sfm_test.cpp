@@ -9,8 +9,7 @@ using namespace std;
 int main (int argc, char** argv)
 {
 	IplImage* image = NULL;
-	clock_t t1, t2;
-	int oldRow;
+	clock_t t1, t2; //Used to time the algorithm
 
 	//Read Command Line Arguments
 	if(argc != 4)
@@ -38,6 +37,7 @@ int main (int argc, char** argv)
 		cout << endl << "******************************************" << endl << endl;
 	}
 
+	//Write point projections for SBA
 	sfmTest.pose.writePointProj(sfmTest.configParams.pointProjFilename);
 
 	return (0);

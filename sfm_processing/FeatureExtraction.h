@@ -32,6 +32,8 @@ public:
 	DescriptorExtractor * extractor;
 	Mat point_descriptors;
 	int featureMethod;
+
+	//Surf Parameters
 	double hessianThresh;
 	int nOctaves;
 	int nOctaveLayers;

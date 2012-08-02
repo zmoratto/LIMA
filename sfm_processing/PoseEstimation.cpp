@@ -31,12 +31,20 @@ PoseEstimation::PoseEstimation()
 	//Clear Point Vectors
 	currMatchedPoints.clear();
 	prevMatchedPoints.clear();
+	prevMatchedPixels.clear();
+	currMatchedPixels.clear();
+	prevKeypoints.clear();
+	globalCurrMatchedPts.clear();
+	globalPrevMatchedPts.clear();
+	globalPrevMatchedPix.clear();
+	globalCurrMatchedPix.clear();
+	globalCurrKeyPoints.clear();
+	globalPrevKeyPoints.clear();
 
-	//Previous Global
+	//Previous Global R and T With First Frame
 	prevGlobal_R = cvCreateMat(3,3,CV_32F);
 	prevGlobal_T = cvCreateMat(3,1,CV_32F);
-
-	//Initialize with first frame
+	//R
 	cvSetReal2D(prevGlobal_R, 0, 0, 1.0);
 	cvSetReal2D(prevGlobal_R, 0, 1, 0.0);
 	cvSetReal2D(prevGlobal_R, 0, 2, 0.0);
@@ -46,59 +54,85 @@ PoseEstimation::PoseEstimation()
 	cvSetReal2D(prevGlobal_R, 2, 0, 0.0);
 	cvSetReal2D(prevGlobal_R, 2, 1, 0.0);
 	cvSetReal2D(prevGlobal_R, 2, 2, 1.0);
-
+	//T
 	cvSetReal2D(prevGlobal_T, 0, 0, 0.0);
 	cvSetReal2D(prevGlobal_T, 1, 0, 0.0);
 	cvSetReal2D(prevGlobal_T, 2, 0, 0.0);	
 
-	//Current Global
+	//Current Global R and T
 	currGlobal_R = cvCreateMat(3,3,CV_32F);
 	currGlobal_T = cvCreateMat(3,1,CV_32F);
 
-	//Relative R & T
+	//Relative R and T
 	relative_R = cvCreateMat (3, 3, CV_32FC1);
 	relative_T = cvCreateMat(3,1,CV_32F);
 
+	//Clear All Other Vectors
 	projectedPoints.clear();
-
+	validPix.clear();
+	matchWeights.clear();
+	curr_x.clear();
+	curr_y.clear();
+	curr_z.clear();
+	prev_x.clear();
+	prev_y.clear();
+	prev_z.clear();
 }
 
 PoseEstimation::~PoseEstimation()
 {
+	//Release all Mats
 	outlierMask.release();
-
 	cvReleaseMat(&prevGlobal_R);
 	cvReleaseMat(&prevGlobal_T);
-	
 	cvReleaseMat(&currGlobal_R);
 	cvReleaseMat(&currGlobal_T);
-
 	cvReleaseMat(&relative_R);
 	cvReleaseMat(&relative_T);
+
+	//Release all Vectors
+	currMatchedPoints.clear();
+	prevMatchedPoints.clear();
+	prevMatchedPixels.clear();
+	currMatchedPixels.clear();
+	prevKeypoints.clear();
+	globalCurrMatchedPts.clear();
+	globalPrevMatchedPts.clear();
+	globalPrevMatchedPix.clear();
+	globalCurrMatchedPix.clear();
+	globalCurrKeyPoints.clear();
+	globalPrevKeyPoints.clear();
+	projectedPoints.clear();
+	validPix.clear();
+	matchWeights.clear();
+	curr_x.clear();
+	curr_y.clear();
+	curr_z.clear();
+	prev_x.clear();
+	prev_y.clear();
+	prev_z.clear();
 }
 
-//estimates the rotation and translation between two point clouds
-//strored in globalPrevMatchedPts and globalCurrMatchedPts
+//Estimates relative R and T between two point cloud sets. These point cloud matches are in globalMatchedPts.
 int PoseEstimation::estimateRelativePose()
 {
 	cv::Point3f translation;
 	cv::Point3f currCenter;
 	cv::Point3f prevCenter;
 	int i=0;
-
 	int numValidMatches = 0;
 	float numWeightedMatches = 0.0;
 	int numMatches = globalCurrMatchedPts.size();
-
 	validPix.clear();
 
-	//Find Translation, Previous Center, and Current Center
+	//Find Translation, Previous Center, and Current Center of Point Clouds
 	for (i = 0; i < numMatches; i++)
 	{
-		
+		//If not an outlier and the matching coordinates are within given thresholds of each other, they are a valid match.
 		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
                     (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
 		{
+			//Weight the translation matrix by where the match is located. More weight if the match is closer to the camera.
 			translation = translation + matchWeights[i]*(globalCurrMatchedPts[i]-globalPrevMatchedPts[i]);
 			if(matchWeights[i] != NO_WEIGHT)
 			{
@@ -107,15 +141,15 @@ int PoseEstimation::estimateRelativePose()
 				validPix.push_back(i);
 				numValidMatches++;
 			}
-
-			numWeightedMatches+=matchWeights[i];
+			numWeightedMatches+=matchWeights[i]; //Collect the weighted values of the matches
 		}
 	}
 
-	cout << "NumMatches: " << numMatches << endl;
-	cout << "NumValidMatches: " << numValidMatches << endl;
-	cout << "NumWeights: " << numWeightedMatches << endl;
+	cout << "NumMatches: " << numMatches << endl; //Total number of matches
+	cout << "NumValidMatches: " << numValidMatches << endl; //Number of matches that were used to calculate T and the centers.
+	cout << "NumWeights: " << numWeightedMatches << endl; //Collected weights of the matches used.
 
+	//Normalize the translation and centers.
 	if (numValidMatches > 0)
 	{
 		translation.x = translation.x/numWeightedMatches;
@@ -135,7 +169,7 @@ int PoseEstimation::estimateRelativePose()
 	}
 	else
 	{
-		return 1; //Return ERROR
+		return 1; //Return ERROR, not enough matches.
 	}
 
 	float a00 = 0.0;
@@ -151,9 +185,11 @@ int PoseEstimation::estimateRelativePose()
 	//Compute the rotation matrix Relative_R
 	for (i = 0; i < numMatches; i++)
 	{
+		//If the match is a valid match.
 		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
                     (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
 		{
+			//Subtract the centers from each matched point and compute the A matrix.
 			if(matchWeights[i] != NO_WEIGHT)
 			{
 				a00 = a00 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].x - currCenter.x);
@@ -183,9 +219,9 @@ int PoseEstimation::estimateRelativePose()
 	cvSetReal2D(AMat, 1, 2, a12);
 	cvSetReal2D(AMat, 2, 2, a22);
 
+	//If we have enough valid matches, we can compute SVD of A.
 	if (numValidMatches >= minMatches)
 	{
-
 		CvMat *WMat = cvCreateMat (3, 1, CV_32FC1);
 		CvMat *UMat = cvCreateMat (3, 3, CV_32FC1);
 		CvMat *VMat = cvCreateMat (3, 3, CV_32FC1);
@@ -199,12 +235,13 @@ int PoseEstimation::estimateRelativePose()
 			cvReleaseMat(&WMat);
 			cvReleaseMat(&UMat);
 			cvReleaseMat(&AMat);
-			return 1; //ERROR
+			return 1; //ERROR, determinant == 0.
 		}
-		else
+		else //Use Kabsh Algorithm for determining the rotation matrix between two sets of point clouds.
 		{
 			if (det > 0)
 			{
+				//Use the decomposition of A to compute the relative_R matrix
 				cvGEMM(UMat, VMat, 1, NULL, 0, relative_R);
 			}
 			if (det < 0)
@@ -236,12 +273,11 @@ int PoseEstimation::estimateRelativePose()
 	else
 	{
 		cvReleaseMat(&AMat);
-		return 1; //ERROR
+		return 1; //ERROR, not enough valid matches
 	}
 }
 
-
-//determines the overall rotation matrix and translation vector relative to the first frame
+//Uses relative R and T and prevGlobal R and T to compute the currGlobal R and T with respect to the first frame.
 void PoseEstimation::composePose()
 {
 	//Compute Global R and Global T using relative R and relative T.
@@ -270,6 +306,7 @@ void PoseEstimation::clearMatchedPixels()
 	prevMatchedPixels.clear();
 }
 
+//Push a 3D pt match onto the global collection variable.
 void PoseEstimation::push_prev3Dpt(int index)
 {
 	cv::Point3f pt3;
@@ -279,7 +316,7 @@ void PoseEstimation::push_prev3Dpt(int index)
 	globalPrevMatchedPts.push_back(pt3);
 }
 
-
+//Push a 3D pt match onto the global collection variable.
 void PoseEstimation::push_curr3Dpt(int index)
 {
 	cv::Point3f pt3;
@@ -289,6 +326,7 @@ void PoseEstimation::push_curr3Dpt(int index)
 	globalCurrMatchedPts.push_back(pt3);
 }
 
+//Find 1D index of 2D pixel in order to index into vector containing 3D points.
 int PoseEstimation::find_prev_index(int loc, int width)
 {
 	int prevCol = globalPrevMatchedPix[loc].x;
@@ -298,6 +336,7 @@ int PoseEstimation::find_prev_index(int loc, int width)
 	return prevIndex;
 }
 
+//Find 1D index of 2D pixel in order to index into vector containing 3D points.
 int PoseEstimation::find_curr_index(int loc, int width)
 {
 	int currCol = globalCurrMatchedPix[loc].x;
@@ -307,6 +346,7 @@ int PoseEstimation::find_curr_index(int loc, int width)
 	return currIndex;
 }
 
+//Wrapper for OpenCV findHomography and findFundamentalMat
 void PoseEstimation::find_homography()
 {
 	cv::Mat H;
@@ -320,6 +360,7 @@ void PoseEstimation::find_homography()
 	H.release();
 }
 
+//Takes global R and T and applies them to the point clouds to get aligned point clouds.
 void PoseEstimation::mapping(string& filename, IplImage* image)
 {
 	ofstream fout;
@@ -332,6 +373,7 @@ void PoseEstimation::mapping(string& filename, IplImage* image)
 	CvMat* temp_R = cvCreateMat(3,3,CV_32FC1);
 	int numChannels = image->nChannels;
 
+	//Split the image into 3 separate channels to get the colors for the point cloud visualization.
 	IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
 	IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
 	IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
@@ -343,17 +385,18 @@ void PoseEstimation::mapping(string& filename, IplImage* image)
 		gData = (uchar*)g->imageData;
 		bData = (uchar*)b->imageData;
 	}
+
 	int numPoints = curr_x.size();
 	int counter = 0;
-	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1);
-	CvMat *outPointMat = cvCreateMat (3, 1, CV_32FC1);
+	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1); //Used to hold each 3D point for the matrix multiplication
+	CvMat *outPointMat = cvCreateMat (3, 1, CV_32FC1); //Holds the output of each 3D point matrix multiplication
 
-	//Opposite globalT
+	//Compute the opposite of globalT to apply to the point clouds
 	temp_T->data.fl[0] = -1*currGlobal_T->data.fl[0];
 	temp_T->data.fl[1] = -1*currGlobal_T->data.fl[1];
 	temp_T->data.fl[2] = -1*currGlobal_T->data.fl[2];
 
-	//R Transpose (opposite globalR)
+	//Compute the transpose of globalR to apply to the point clouds
 	temp_R->data.fl[0] = currGlobal_R->data.fl[0];
 	temp_R->data.fl[1] = currGlobal_R->data.fl[3];
 	temp_R->data.fl[2] = currGlobal_R->data.fl[6];
@@ -366,12 +409,17 @@ void PoseEstimation::mapping(string& filename, IplImage* image)
 
 	for (int i = 0; i < numPoints; i++)
 	{
-		if(curr_z[i] > 0)
+		if(curr_z[i] > 0) //If the point is in front of the camera, apply the R and T to the point
 		{
+			//Save the current 3D point into pointMat
 			cvSetReal2D(pointMat, 0, 0, curr_x[i]);
 			cvSetReal2D(pointMat, 1, 0, curr_y[i]);
 			cvSetReal2D(pointMat, 2, 0, curr_z[i]);
+
+			//Apply globalR Transpose and negative globalT to the current point
 			cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
+
+			//Write out each mapped point and the color information associated with it.
 			if(numChannels == 1)
 				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(data[i]) << " " << int(data[i]) << " " << int(data[i]) << '\n';
 			else if(numChannels == 3)
@@ -383,6 +431,7 @@ void PoseEstimation::mapping(string& filename, IplImage* image)
 		}
 	}
 
+	//Clean up
 	cvReleaseMat(&pointMat);
 	cvReleaseMat(&outPointMat);
 	cvReleaseImage(&r);
@@ -396,12 +445,14 @@ void PoseEstimation::mapping(string& filename, IplImage* image)
 
 void PoseEstimation::copyGlobal_R_T()
 {
+	//Copy global R and T to previous Global R and T
 	cvCopy(currGlobal_R, prevGlobal_R);
 	cvCopy(currGlobal_T, prevGlobal_T);
 }
 
 void PoseEstimation::resetPrevPos()
 {
+	//Copy the current 3D points to the previous 3D points and clean out current points.
 	prev_x.clear();
 	prev_y.clear();
 	prev_z.clear();
@@ -411,12 +462,15 @@ void PoseEstimation::resetPrevPos()
 		prev_x.push_back(curr_x[k]);
 		prev_y.push_back(curr_y[k]);
 		prev_z.push_back(curr_z[k]);
+		curr_x[k] = 0.0;
+		curr_y[k] = 0.0;
+		curr_z[k] = 0.0;
 	}
 }
 
+//Compute depth from kinect depth image
 void PoseEstimation::depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsicMatrix)
 {
-	//compute point cloud from kinect depth - START
 	const int GAMMASIZE =  2048;
 	float gamma[GAMMASIZE];
 	const float k1 = 1.1863;
@@ -426,12 +480,11 @@ void PoseEstimation::depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsi
 	for (size_t i = 0; i < GAMMASIZE; i++)
 		gamma[i] = k3 * tan(i/k2 + k1);
 
-
 	// camera intrinsic parameters, representative values, see http://nicolas.burrus.name/index.php/Research/KinectCalibration for more info
-	float cx = camIntrinsicMatrix.at<double>(0,2);//331.91; //center of projection
-	float cy = camIntrinsicMatrix.at<double>(1,2);//259.48; //center of projection
-	float fx = camIntrinsicMatrix.at<double>(0,0);//529.24; //focal length in pixels
-	float fy = camIntrinsicMatrix.at<double>(1,1);//528.35; //focal length in pixels
+	float cx = camIntrinsicMatrix.at<double>(0,2);
+	float cy = camIntrinsicMatrix.at<double>(1,2);
+	float fx = camIntrinsicMatrix.at<double>(0,0);
+	float fy = camIntrinsicMatrix.at<double>(1,1);
 
 	unsigned char *depthData = (unsigned char*)(depthImage->imageData);
 	for (int i = 0; i < depthImage->height; i++)
@@ -447,8 +500,7 @@ void PoseEstimation::depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsi
 	}
 }
 
-//generates point clouds from a disparity image
-//this function will be removed form PoseEstimation class
+//Generates point clouds from disparity information
 void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 {
 	cv::Mat xyz;
@@ -469,8 +521,7 @@ void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
 	Q.release();
 }
 
-//this function will be removed form PoseEstimation class
-//it is assumed that the point clouds are available at this moment
+//Reads depth filenames from input file (kinect and point clouds)
 void PoseEstimation::readDepthFiles(string& filename, vector<string>& depthFiles)
 {
 	string temp;
@@ -487,6 +538,7 @@ void PoseEstimation::readDepthFiles(string& filename, vector<string>& depthFiles
 	fin.close();
 }
 
+//Saves individual point clouds from the file into memory
 void PoseEstimation::savePointCloud(vector<string>& filenames, int iteration, IplImage* image)
 {
 	ifstream fin;
@@ -540,30 +592,80 @@ void PoseEstimation::nearestNeighborMatching()
 {
 	int numMatches;
 	int size;
-
-	cv::flann::Index treeFlannIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
-
+	cv::KeyPoint pPt, cPt;
+	float cX, cY, pX, pY;
+	bool match = false;
 	int k=numNN; // find the 2 nearest neighbors
-	cv::Mat results(globalPrevDescriptors.rows, k, CV_32SC1);
-	cv::Mat dists(globalPrevDescriptors.rows, k, CV_32FC1);
-	treeFlannIndex.knnSearch(globalPrevDescriptors, results, dists, k, cv::flann::SearchParams(flannCheck) ); 
 
-	// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
-	for(int i=0; i < globalPrevKeyPoints.size(); ++i)
+	//NNDR Matching
+	if(matchingMethod == 0)
 	{
-		// Apply NNDR
-		if(dists.at<float>(i,0) <= nndrRatio * dists.at<float>(i,1))
-		{
-			//prev frame pixel coordinates for selected matches with prevFrame
-			globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
-						  
-			//curr pixel coordinates for selected matches with prevFrame
-			globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(results.at<int>(i,0)).pt);
-		}
-	}
 
-	results.release();
-	dists.release();
+		cv::flann::Index treeFlannIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
+		cv::Mat results(globalPrevDescriptors.rows, k, CV_32SC1);
+		cv::Mat dists(globalPrevDescriptors.rows, k, CV_32FC1);
+		treeFlannIndex.knnSearch(globalPrevDescriptors, results, dists, k, cv::flann::SearchParams(flannCheck) ); 
+
+		// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
+		for(int i=0; i < globalPrevKeyPoints.size(); ++i)
+		{
+			// Apply NNDR
+			if(dists.at<float>(i,0) <= nndrRatio * dists.at<float>(i,1))
+			{
+				//prev frame pixel coordinates for selected matches with prevFrame
+				globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
+							  
+				//curr pixel coordinates for selected matches with prevFrame
+				globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(results.at<int>(i,0)).pt);
+			}
+		}
+
+		results.release();
+		dists.release();
+	}
+	else //Marrying Matches
+	{
+		//Backward
+		cv::flann::Index backwardIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
+
+		int k=numNN; // find the 2 nearest neighbors
+		cv::Mat resultsBack(globalPrevDescriptors.rows, k, CV_32SC1);
+		cv::Mat distsBack(globalPrevDescriptors.rows, k, CV_32FC1);
+		backwardIndex.knnSearch(globalPrevDescriptors, resultsBack, distsBack, k, cv::flann::SearchParams(flannCheck)); 
+
+		//Forward
+		cv::flann::Index forwardIndex(globalPrevDescriptors, cv::flann::KDTreeIndexParams());
+		cv::Mat resultsForward(globalCurrDescriptors.rows, k, CV_32SC1);
+		cv::Mat distsForward(globalCurrDescriptors.rows, k, CV_32FC1);
+		forwardIndex.knnSearch(globalCurrDescriptors, resultsForward, distsForward, k, cv::flann::SearchParams(flannCheck));
+	
+		// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
+		for(int i=0; i < globalPrevKeyPoints.size(); ++i)
+		{
+			pPt = globalPrevKeyPoints.at(i);
+			pX = pPt.pt.x;
+			pY = pPt.pt.y;
+
+			cPt = globalCurrKeyPoints.at(resultsBack.at<int>(i,0));
+			cX = cPt.pt.x;
+			cY = cPt.pt.y;
+
+			for(int j=0; j<globalCurrKeyPoints.size(); j++)
+			{
+				if((globalCurrKeyPoints.at(j).pt.x == cX) && (globalCurrKeyPoints.at(j).pt.y == cY) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.x == pX) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.y == pY))
+				{
+					globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
+					globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(resultsBack.at<int>(i,0)).pt);
+					break;
+				}
+			}
+		}
+
+		resultsBack.release();
+		distsBack.release();
+		resultsForward.release();
+		distsForward.release();
+	}
 }
 
 void PoseEstimation::collect3DMatches(int width)
@@ -663,12 +765,12 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 				prevPts.push_back(globalPrevMatchedPts[i]);
 				prevPix.push_back(globalPrevMatchedPix[i]);
 
-				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
+/*				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
 				{
 					matchWeights.push_back(DOUBLE_WEIGHT);
 				}
 				else
-					matchWeights.push_back(SINGLE_WEIGHT);
+*/					matchWeights.push_back(SINGLE_WEIGHT);
 			}
 		}
 
