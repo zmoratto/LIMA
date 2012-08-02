@@ -285,67 +285,6 @@ void PoseEstimation::composePose()
 	cvMatMulAdd(prevGlobal_R, relative_T, prevGlobal_T, currGlobal_T);
 }
 
-void PoseEstimation::printCurrentGlobal_R_T()
-{
-	cout<<"global_R=["<<currGlobal_R->data.fl[0]<<" "<<currGlobal_R->data.fl[1]<<" "<<currGlobal_R->data.fl[2]<<"]"<<endl;
-	cout<<"         ["<<currGlobal_R->data.fl[3]<<" "<<currGlobal_R->data.fl[4]<<" "<<currGlobal_R->data.fl[5]<<"]"<<endl;
-	cout<<"         ["<<currGlobal_R->data.fl[6]<<" "<<currGlobal_R->data.fl[7]<<" "<<currGlobal_R->data.fl[8]<<"]"<<endl;
-	cout << endl;
-	cout<<"global_T=["<<currGlobal_T->data.fl[0]<<" "<<currGlobal_T->data.fl[1]<<" "<<currGlobal_T->data.fl[2]<<"]"<<endl;
-}
-
-void PoseEstimation::clearMatchedPoints()
-{
-	currMatchedPoints.clear();
-	prevMatchedPoints.clear();
-}
-
-void PoseEstimation::clearMatchedPixels()
-{
-	currMatchedPixels.clear();
-	prevMatchedPixels.clear();
-}
-
-//Push a 3D pt match onto the global collection variable.
-void PoseEstimation::push_prev3Dpt(int index)
-{
-	cv::Point3f pt3;
-	pt3.x = prev_x[index];
-	pt3.y = prev_y[index];  
-	pt3.z = prev_z[index];
-	globalPrevMatchedPts.push_back(pt3);
-}
-
-//Push a 3D pt match onto the global collection variable.
-void PoseEstimation::push_curr3Dpt(int index)
-{
-	cv::Point3f pt3;
-	pt3.x = curr_x[index];
-	pt3.y = curr_y[index];  
-	pt3.z = curr_z[index];
-	globalCurrMatchedPts.push_back(pt3);
-}
-
-//Find 1D index of 2D pixel in order to index into vector containing 3D points.
-int PoseEstimation::find_prev_index(int loc, int width)
-{
-	int prevCol = globalPrevMatchedPix[loc].x;
-	int prevRow = globalPrevMatchedPix[loc].y;
-	int prevIndex = prevRow*width + prevCol;
-
-	return prevIndex;
-}
-
-//Find 1D index of 2D pixel in order to index into vector containing 3D points.
-int PoseEstimation::find_curr_index(int loc, int width)
-{
-	int currCol = globalCurrMatchedPix[loc].x;
-	int currRow = globalCurrMatchedPix[loc].y;
-	int currIndex = currRow*width + currCol;
-
-	return currIndex;
-}
-
 //Wrapper for OpenCV findHomography and findFundamentalMat
 void PoseEstimation::find_homography()
 {
@@ -358,89 +297,6 @@ void PoseEstimation::find_homography()
 	if(homographyMethod == 0)
 		H = cv::findHomography(globalPrevMatchedPix, globalCurrMatchedPix, outlierMask, 0);
 	H.release();
-}
-
-//Takes global R and T and applies them to the point clouds to get aligned point clouds.
-void PoseEstimation::mapping(string& filename, IplImage* image)
-{
-	ofstream fout;
-	stringstream ss;
-	int width = image->width;
-	float rgb;
-	uchar* data = (uchar*)image->imageData;
-	uchar *rData, *gData, *bData;
-	CvMat* temp_T = cvCreateMat(3,1,CV_32FC1);
-	CvMat* temp_R = cvCreateMat(3,3,CV_32FC1);
-	int numChannels = image->nChannels;
-
-	//Split the image into 3 separate channels to get the colors for the point cloud visualization.
-	IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
-	IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
-	IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
-
-	if(numChannels == 3)
-	{
-		cvSplit(image,b,g,r,NULL);
-		rData = (uchar*)r->imageData;
-		gData = (uchar*)g->imageData;
-		bData = (uchar*)b->imageData;
-	}
-
-	int numPoints = curr_x.size();
-	int counter = 0;
-	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1); //Used to hold each 3D point for the matrix multiplication
-	CvMat *outPointMat = cvCreateMat (3, 1, CV_32FC1); //Holds the output of each 3D point matrix multiplication
-
-	//Compute the opposite of globalT to apply to the point clouds
-	temp_T->data.fl[0] = -1*currGlobal_T->data.fl[0];
-	temp_T->data.fl[1] = -1*currGlobal_T->data.fl[1];
-	temp_T->data.fl[2] = -1*currGlobal_T->data.fl[2];
-
-	//Compute the transpose of globalR to apply to the point clouds
-	temp_R->data.fl[0] = currGlobal_R->data.fl[0];
-	temp_R->data.fl[1] = currGlobal_R->data.fl[3];
-	temp_R->data.fl[2] = currGlobal_R->data.fl[6];
-	temp_R->data.fl[3] = currGlobal_R->data.fl[1];
-	temp_R->data.fl[4] = currGlobal_R->data.fl[4];
-	temp_R->data.fl[5] = currGlobal_R->data.fl[7];
-	temp_R->data.fl[6] = currGlobal_R->data.fl[2];
-	temp_R->data.fl[7] = currGlobal_R->data.fl[5];
-	temp_R->data.fl[8] = currGlobal_R->data.fl[8];
-
-	for (int i = 0; i < numPoints; i++)
-	{
-		if(curr_z[i] > 0) //If the point is in front of the camera, apply the R and T to the point
-		{
-			//Save the current 3D point into pointMat
-			cvSetReal2D(pointMat, 0, 0, curr_x[i]);
-			cvSetReal2D(pointMat, 1, 0, curr_y[i]);
-			cvSetReal2D(pointMat, 2, 0, curr_z[i]);
-
-			//Apply globalR Transpose and negative globalT to the current point
-			cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
-
-			//Write out each mapped point and the color information associated with it.
-			if(numChannels == 1)
-				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(data[i]) << " " << int(data[i]) << " " << int(data[i]) << '\n';
-			else if(numChannels == 3)
-			{
-				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(rData[i]) << " " << int(gData[i]) << " " << int(bData[i]) << '\n';
-			}
-			counter++;
-
-		}
-	}
-
-	//Clean up
-	cvReleaseMat(&pointMat);
-	cvReleaseMat(&outPointMat);
-	cvReleaseImage(&r);
-	cvReleaseImage(&g);
-	cvReleaseImage(&b);
-	fout.open (filename.c_str(), ios::app);
-	fout << ss.str();
-	fout.close();
-	ss.str("");
 }
 
 void PoseEstimation::copyGlobal_R_T()
@@ -468,113 +324,6 @@ void PoseEstimation::resetPrevPos()
 	}
 }
 
-//Compute depth from kinect depth image
-void PoseEstimation::depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsicMatrix)
-{
-	const int GAMMASIZE =  2048;
-	float gamma[GAMMASIZE];
-	const float k1 = 1.1863;
-	const float k2 = 2842.5;
-	const float k3 = 0.1236;
-
-	for (size_t i = 0; i < GAMMASIZE; i++)
-		gamma[i] = k3 * tan(i/k2 + k1);
-
-	// camera intrinsic parameters, representative values, see http://nicolas.burrus.name/index.php/Research/KinectCalibration for more info
-	float cx = camIntrinsicMatrix.at<double>(0,2);
-	float cy = camIntrinsicMatrix.at<double>(1,2);
-	float fx = camIntrinsicMatrix.at<double>(0,0);
-	float fy = camIntrinsicMatrix.at<double>(1,1);
-
-	unsigned char *depthData = (unsigned char*)(depthImage->imageData);
-	for (int i = 0; i < depthImage->height; i++)
-	{
-		for (int j = 0; j < depthImage->width; j++)
-		{
-			float gamma_depth_data = gamma[((short*)depthData)[i*depthImage->width+j]];
-			int index = i*depthImage->width+j;
-			curr_x[index] = (j - cx) * gamma_depth_data / fx;
-			curr_y[index] = (i - cy) * gamma_depth_data / fy;
-			curr_z[index] = gamma_depth_data;
-		}
-	}
-}
-
-//Generates point clouds from disparity information
-void PoseEstimation::dispToPointCloud(cv::Mat dispMat,  cv::Mat Q)
-{
-	cv::Mat xyz;
-	reprojectImageTo3D(dispMat, xyz, Q, true);
-
-	int index = 0;
-	for (int i = 0; i < dispMat.rows; i++)
-	{
-		for (int j = 0; j < dispMat.cols; j++)
-		{
-			cv::Vec3f point = xyz.at<cv::Vec3f>(i, j);
-			curr_x[index] =  0.001*point[0];
-			curr_y[index] =  0.001*point[1];
-			curr_z[index] = -0.001*point[2];
-			index++;
-		}
-	}
-	Q.release();
-}
-
-//Reads depth filenames from input file (kinect and point clouds)
-void PoseEstimation::readDepthFiles(string& filename, vector<string>& depthFiles)
-{
-	string temp;
-	ifstream fin;
-
-	fin.open(filename.c_str());
-
-	while(fin.good())
-	{
-		fin >> temp;
-		depthFiles.push_back(temp);
-	}
-
-	fin.close();
-}
-
-//Saves individual point clouds from the file into memory
-void PoseEstimation::savePointCloud(vector<string>& filenames, int iteration, IplImage* image)
-{
-	ifstream fin;
-	string filename;
-	int index = 0;
-	float x, y, z;
-	int width = image->width;
-	float xPos, yPos;
-	stringstream ss;
-	ss<<iteration;
-	filename = filenames[iteration];
-	fin.open(filename.c_str());
-	string line;
-
-	for(int i=0; i<image->width*image->height; i++)
-	{
-		curr_x[i] = 0;
-		curr_y[i] = 0;
-		curr_z[i] = 0;
-	}
-
-	while(fin.good())
-	{
-		getline(fin, line);
-
-		sscanf(line.c_str(), "%f %f %f %f %f", &yPos, &xPos, &x, &y, &z);
-
-		index = yPos*width + xPos;
-
-		curr_x[index] = x;
-		curr_y[index] = y;
-		curr_z[index] = z;
-	}
-
-	fin.close();
-}
 
 void PoseEstimation::resizeXYZVectors(int width, int height)
 {
@@ -588,7 +337,7 @@ void PoseEstimation::resizeXYZVectors(int width, int height)
 }
 
 
-void PoseEstimation::nearestNeighborMatching()
+void PoseEstimation::nearestNeighborMatching(IplImage* image)
 {
 	int numMatches;
 	int size;
@@ -666,23 +415,37 @@ void PoseEstimation::nearestNeighborMatching()
 		resultsForward.release();
 		distsForward.release();
 	}
+
+	//Collect 3D Point Matches
+	if(globalCurrMatchedPix.size() >= nbMatches)
+		collect3DMatches(image->width);
 }
 
 void PoseEstimation::collect3DMatches(int width)
 {
 	int currIndex, prevIndex;
-	clearMatchedPoints();
+	currMatchedPoints.clear();
+	prevMatchedPoints.clear();
+
 	for (int jj=0; jj<globalCurrMatchedPix.size(); jj++)
 	{
 		//curr frame points
-		currIndex = find_curr_index(jj, width);
+		currIndex = int(globalCurrMatchedPix[jj].x)+int(globalCurrMatchedPix[jj].y)*width;//find_curr_index(jj, width);
 		
 		//previous frame points
-		prevIndex = find_prev_index(jj, width);
+		prevIndex = int(globalPrevMatchedPix[jj].x)+int(globalPrevMatchedPix[jj].y)*width;//find_prev_index(jj, width);
 		
 		//fill in the 3D point information
-		push_prev3Dpt(prevIndex);
-		push_curr3Dpt(currIndex);
+		cv::Point3f pt3;
+		pt3.x = prev_x[prevIndex];
+		pt3.y = prev_y[prevIndex];  
+		pt3.z = prev_z[prevIndex];
+		globalPrevMatchedPts.push_back(pt3);
+
+		pt3.x = curr_x[currIndex];
+		pt3.y = curr_y[currIndex];  
+		pt3.z = curr_z[currIndex];
+		globalCurrMatchedPts.push_back(pt3);
 	}
 }
 
@@ -690,195 +453,32 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 {
 	int relativePoseError = 1;
 	int i;
-	vector<cv::Point3f> currPts, prevPts;
-	vector<cv::Point2f> currPix, prevPix;
-	float normXDist = 0.0, normYDist = 0.0, normZDist = 0.0;
-	float stdXDev = 0.0, stdYDev = 0.0, stdZDev = 0.0;
-	bool xTrue, yTrue;
-	int numX = 0, numY = 0;
-	int counter = 0;
 	Mat currTemp, prevTemp;
 	clock_t t1, t2;
 
-	if(globalCurrDescriptors.type() !=CV_32F)
-	{
-		globalCurrDescriptors.convertTo(currTemp, CV_32F);
-		globalCurrDescriptors.release();
-		globalCurrDescriptors = currTemp;
-	}
-	
-	if(globalPrevDescriptors.type() != CV_32F)
-	{
-		globalPrevDescriptors.convertTo(prevTemp, CV_32F);
-		globalPrevDescriptors.release();
-		globalPrevDescriptors = prevTemp;
-	}
-
 	//Nearest Neighbor Matching
-	nearestNeighborMatching();
+	nearestNeighborMatching(image);
 
-	//Collect 3D Point Matches
-	if(globalCurrMatchedPix.size() >= nbMatches)
-		collect3DMatches(image->width);
-
-	matchWeights.clear();
-
-	if(depthInfo != NO_DEPTH)
-	{
-		//Calculate Norm
-		for(i=0; i<globalCurrMatchedPts.size(); i++)
-		{
-			normXDist += globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x;
-			normYDist += globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y;
-			normZDist += globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z;
-		}
-		normXDist/=globalCurrMatchedPts.size();
-		normYDist/=globalCurrMatchedPts.size();
-		normZDist/=globalCurrMatchedPts.size();
-
-		//Calculate Standard Deviation
-		for(i=0; i<globalCurrMatchedPts.size(); i++)
-		{
-			stdXDev += pow((globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist), 2);
-			stdYDev += pow((globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist), 2);
-			stdZDev += pow((globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist), 2);
-		}
-		stdXDev/=globalCurrMatchedPix.size();
-		stdYDev/=globalCurrMatchedPix.size();
-		stdZDev/=globalCurrMatchedPix.size();
-
-		stdXDev = sqrt(stdXDev);
-		stdYDev = sqrt(stdYDev);
-		stdZDev = sqrt(stdZDev);
-
-		cout << "Matches Before STD DEV: " << globalCurrMatchedPts.size() << endl;
-
-		//Remove those not within 1 STD DEV of the NORM
-		for(i=0; i<globalCurrMatchedPix.size(); i++)
-		{
-			if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && 
-                           (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && 
-                           (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
-			{
-				currPts.push_back(globalCurrMatchedPts[i]);
-				currPix.push_back(globalCurrMatchedPix[i]);
-				prevPts.push_back(globalPrevMatchedPts[i]);
-				prevPix.push_back(globalPrevMatchedPix[i]);
-
-/*				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
-				{
-					matchWeights.push_back(DOUBLE_WEIGHT);
-				}
-				else
-*/					matchWeights.push_back(SINGLE_WEIGHT);
-			}
-		}
-
-		globalCurrMatchedPts.clear();
-		globalPrevMatchedPts.clear();
-		globalCurrMatchedPix.clear();
-		globalPrevMatchedPix.clear();
-		globalCurrMatchedPts = currPts;
-		globalPrevMatchedPts = prevPts;
-		globalCurrMatchedPix = currPix;
-		globalPrevMatchedPix = prevPix;
-		currPts.clear();
-		prevPts.clear();
-		currPix.clear();
-		prevPix.clear();
-
-	}
-	else
-	{
-		//Calculate Norm
-		for(i=0; i<globalCurrMatchedPix.size(); i++)
-		{
-			normXDist += globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x;
-			normYDist += globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y;
-		}
-		normXDist/=globalCurrMatchedPix.size();
-		normYDist/=globalCurrMatchedPix.size();
-
-		//Calculate Standard Deviation
-		for(i=0; i<globalCurrMatchedPts.size(); i++)
-		{
-			stdXDev += pow((globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist), 2);
-			stdYDev += pow((globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist), 2);
-		}
-		stdXDev/=globalCurrMatchedPix.size();
-		stdYDev/=globalCurrMatchedPix.size();
-
-		stdXDev = sqrt(stdXDev);
-		stdYDev = sqrt(stdYDev);
-
-		cout << "Matches Before STD DEV: " << globalCurrMatchedPix.size() << endl;
-
-		//Remove those not within 1 STD DEV of the NORM
-		for(i=0; i<globalCurrMatchedPix.size(); i++)
-		{
-			if ((fabs(globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist) < stdYDev))
-			{
-				currPts.push_back(globalCurrMatchedPts[i]);
-				currPix.push_back(globalCurrMatchedPix[i]);
-				prevPts.push_back(globalPrevMatchedPts[i]);
-				prevPix.push_back(globalPrevMatchedPix[i]);
-
-				if (globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
-				{
-					matchWeights.push_back(DOUBLE_WEIGHT);
-				}
-				else
-					matchWeights.push_back(SINGLE_WEIGHT);
-			}
-		}
-
-		globalCurrMatchedPts.clear();
-		globalPrevMatchedPts.clear();
-		globalCurrMatchedPix.clear();
-		globalPrevMatchedPix.clear();
-		globalCurrMatchedPts = currPts;
-		globalPrevMatchedPts = prevPts;
-		globalCurrMatchedPix = currPix;
-		globalPrevMatchedPix = prevPix;
-		currPts.clear();
-		prevPts.clear();
-		currPix.clear();
-		prevPix.clear();
-	}
-
-	cout << "Matches After STD DEV: " << globalCurrMatchedPts.size() << endl;
+	//remove outliers
+	removeOutliers(depthInfo, image);
 
 	if (globalCurrMatchedPix.size() >= nbMatches)
 	{
 		find_homography();
 
 		if(depthInfo == NO_DEPTH)
-		{
-			cout << endl;
-			cout << "*****************************************************************" << endl;
-			cout << "* WARNING: Trying to use depth info for estimateRelativePose... *" << endl;
-			cout << "* Continuing on without pose information...                     *" << endl;
-			cout << "*****************************************************************" << endl;
-			cout << endl;
-
 			relativePoseError = 1;
-		}
 		else
-		{
 			relativePoseError = estimateRelativePose();
-		}
 	}
 	else
 	{
-		cout << "~~~~~~~~~~ NO POSE ESTIMATION! NOT ENOUGH GOOD POINTS ~~~~~~~~~~" << endl;
+		cout << "* NO POSE ESTIMATION! NOT ENOUGH GOOD POINTS *" << endl;
 	}
 
 	if (relativePoseError == 0)
 	{
 		composePose();
-		printCurrentGlobal_R_T();
-		string resultsString = string("results/PointCloud.txt");
-		//mapping(resultsString, image);
 		copyGlobal_R_T();
 	}
 }
@@ -1020,4 +620,119 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 	tempMat.release();
 }
 
+
+void PoseEstimation::removeOutliers(int depthInfo, IplImage* image)
+{
+	vector<cv::Point3f> currPts, prevPts;
+	vector<cv::Point2f> currPix, prevPix;
+	float normXDist = 0.0, normYDist = 0.0, normZDist = 0.0;
+	float stdXDev = 0.0, stdYDev = 0.0, stdZDev = 0.0;
+	bool xTrue, yTrue;
+	int numX = 0, numY = 0;
+	int counter = 0;
+	int i;
+
+	if(depthInfo != NO_DEPTH)
+	{
+		//Calculate Norm
+		for(i=0; i<globalCurrMatchedPts.size(); i++)
+		{
+			normXDist += globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x;
+			normYDist += globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y;
+			normZDist += globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z;
+		}
+		normXDist/=globalCurrMatchedPts.size();
+		normYDist/=globalCurrMatchedPts.size();
+		normZDist/=globalCurrMatchedPts.size();
+
+		//Calculate Standard Deviation
+		for(i=0; i<globalCurrMatchedPts.size(); i++)
+		{
+			stdXDev += pow((globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist), 2);
+			stdYDev += pow((globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist), 2);
+			stdZDev += pow((globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist), 2);
+		}
+		stdXDev/=globalCurrMatchedPix.size();
+		stdYDev/=globalCurrMatchedPix.size();
+		stdZDev/=globalCurrMatchedPix.size();
+
+		stdXDev = sqrt(stdXDev);
+		stdYDev = sqrt(stdYDev);
+		stdZDev = sqrt(stdZDev);
+
+		cout << "Matches Before STD DEV: " << globalCurrMatchedPts.size() << endl;
+
+		//Remove those not within 1 STD DEV of the NORM
+		for(i=0; i<globalCurrMatchedPix.size(); i++)
+		{
+			if((fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x-normXDist) < stdXDev) && 
+                           (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y-normYDist) < stdYDev) && 
+                           (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z-normZDist) < stdZDev))
+			{
+				currPts.push_back(globalCurrMatchedPts[i]);
+				currPix.push_back(globalCurrMatchedPix[i]);
+				prevPts.push_back(globalPrevMatchedPts[i]);
+				prevPix.push_back(globalPrevMatchedPix[i]);
+
+				//WEIGHTING
+/*				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
+				{
+					matchWeights.push_back(DOUBLE_WEIGHT);
+				}
+				else
+*/					matchWeights.push_back(SINGLE_WEIGHT);
+			}
+		}
+	}
+	else
+	{
+		//Calculate Norm
+		for(i=0; i<globalCurrMatchedPix.size(); i++)
+		{
+			normXDist += globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x;
+			normYDist += globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y;
+		}
+		normXDist/=globalCurrMatchedPix.size();
+		normYDist/=globalCurrMatchedPix.size();
+
+		//Calculate Standard Deviation
+		for(i=0; i<globalCurrMatchedPts.size(); i++)
+		{
+			stdXDev += pow((globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist), 2);
+			stdYDev += pow((globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist), 2);
+		}
+		stdXDev/=globalCurrMatchedPix.size();
+		stdYDev/=globalCurrMatchedPix.size();
+
+		stdXDev = sqrt(stdXDev);
+		stdYDev = sqrt(stdYDev);
+
+		cout << "Matches Before STD DEV: " << globalCurrMatchedPix.size() << endl;
+
+		//Remove those not within 1 STD DEV of the NORM
+		for(i=0; i<globalCurrMatchedPix.size(); i++)
+		{
+			if ((fabs(globalCurrMatchedPix[i].x-globalPrevMatchedPix[i].x-normXDist) < stdXDev) && (fabs(globalCurrMatchedPix[i].y-globalPrevMatchedPix[i].y-normYDist) < stdYDev))
+			{
+				currPts.push_back(globalCurrMatchedPts[i]);
+				currPix.push_back(globalCurrMatchedPix[i]);
+				prevPts.push_back(globalPrevMatchedPts[i]);
+				prevPix.push_back(globalPrevMatchedPix[i]);
+			}
+		}
+	}
+
+	globalCurrMatchedPts.clear();
+	globalPrevMatchedPts.clear();
+	globalCurrMatchedPix.clear();
+	globalPrevMatchedPix.clear();
+	globalCurrMatchedPts = currPts;
+	globalPrevMatchedPts = prevPts;
+	globalCurrMatchedPix = currPix;
+	globalPrevMatchedPix = prevPix;
+	currPts.clear();
+	prevPts.clear();
+	currPix.clear();
+	prevPix.clear();
+}
 

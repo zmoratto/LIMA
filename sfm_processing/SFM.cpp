@@ -34,15 +34,11 @@ SFM::SFM(char* configFile, char* inputFilename)
 	if (configParams.depthInfo == KINECT_DEPTH && depthFiles.size() == 0)
 	{
 		int cameraCalibrationFileReadError= readCameraCalibrationFile();
-		pose.readDepthFiles(configParams.kinectDepthFilename, depthFiles);
-	}
-	if (configParams.depthInfo == STEREO_DISP && sfmInit)
-	{
-		int stereoCalibrationFileReadError = readStereoCalibrationFile();
+		readDepthFiles(configParams.kinectDepthFilename);
 	}
 	if(configParams.depthInfo == POINT_CLOUD && depthFiles.size() == 0)
 	{
-		pose.readDepthFiles(configParams.pointCloudFilename, depthFiles);
+		readDepthFiles(configParams.pointCloudFilename);
 	}
 
 	//Set up 3D Point Vectors
@@ -90,7 +86,6 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> configParams.showResultsFlag;
 		fin >> identifier >> configParams.saveResultsFlag;
 		fin >> identifier >> configParams.cameraCalibrationFilename;
-		fin >> identifier >> configParams.stereoCalibrationFilename;
 		fin >> identifier >> configParams.pointCloudFilename;
 		fin >> identifier >> configParams.kinectDepthFilename;
 		fin >> identifier >> pose.minMatches;
@@ -142,7 +137,6 @@ void SFM::printConfigParams()
 	cout<<"showResultsFlag="<<configParams.showResultsFlag<<endl;
 	cout<<"saveResultsFlag="<<configParams.saveResultsFlag<<endl;
 	cout<<"cameraCalibrationFilename="<<configParams.cameraCalibrationFilename<<endl;
-	cout<<"stereoCalibrationFilename="<<configParams.stereoCalibrationFilename<<endl;
 	cout<<"pointCloudFilename="<<configParams.pointCloudFilename<<endl;
 	cout<<"kinectDepthFilename="<<configParams.kinectDepthFilename;
 	cout<<"minMatches="<<pose.minMatches<<endl;
@@ -193,13 +187,13 @@ int SFM::readCameraCalibrationFile()
 		getline (calibrationFile,line);
 		sline<<line;
 		sline >> identifier >> a00 >> a01 >> a02 >> a10 >> a11>> a12 >> a20 >> a21 >> a22;
-		camera_matrix = (cv::Mat_<double>(3,3)<<a00, a01, a02, a10, a11, a12, a20, a21, a22);
+		cameraMatrix = (cv::Mat_<double>(3,3)<<a00, a01, a02, a10, a11, a12, a20, a21, a22);
 
 		stringstream sline1; 
 		getline (calibrationFile,line);
 		sline1 << line;
 		sline1 >> identifier >> a00 >> a01 >> a02 >> a10;
-		dist_coeffs = (cv::Mat_<double>(4,1)<<a00, a01, a02, a10);
+		distCoeffs = (cv::Mat_<double>(4,1)<<a00, a01, a02, a10);
 	 
 		calibrationFile.close();
 		return 1;
@@ -211,10 +205,6 @@ int SFM::readCameraCalibrationFile()
 	}
 }
 
-int SFM::readStereoCalibrationFile()
-{
-}
-
 void SFM::restoreDefaultParameters()
 {
 	configParams.firstFrame = 0;
@@ -224,7 +214,6 @@ void SFM::restoreDefaultParameters()
 	configParams.showResultsFlag = 1;
 	configParams.saveResultsFlag = 1;
 	configParams.cameraCalibrationFilename = "camera_calibration.txt";
-	configParams.stereoCalibrationFilename = "stereo_calibration.txt";
 	configParams.pointCloudFilename = "point_cloud_list.txt";
 	configParams.kinectDepthFilename = "kinect_depth_list.txt";
 	pose.minMatches = 8;
@@ -287,7 +276,8 @@ void SFM::readImageFilenames(string& inputFile)
 void SFM::processTile(IplImage *image, int frameIndex)
 {
 	int index, cnt = 0;
-	pose.clearMatchedPixels();
+	pose.currMatchedPixels.clear();
+	pose.prevMatchedPixels.clear();
 	vector<KeyPoint> temp;
 	temp.clear();
 	vector<int> loc;
@@ -353,13 +343,14 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	cvSetImageROI(copy, mask);
 
 	//Feature Extraction
-	clock_t t1, t2;
-	t1 = clock();
 	feat.process(copy);
-	t2 = clock();
-	cout << "Feature Extraction Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
-
 	cvResetImageROI(copy);
+
+	//FLANN Formatting
+	if(feat.point_descriptors.type()!=CV_32F) 
+		feat.point_descriptors.convertTo(pose.currObjectData, CV_32F);
+	else 
+		pose.currObjectData = feat.point_descriptors;
 
 	for(int i=0; i<feat.key_points.size(); i++)
 	{
@@ -368,7 +359,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	}
 
 	if(pose.globalCurrDescriptors.cols == 0)
-		pose.globalCurrDescriptors.create(0, feat.point_descriptors.cols, feat.point_descriptors.type());
+		pose.globalCurrDescriptors.create(0, pose.currObjectData.cols, CV_32F);
 
 	//Remove KeyPoints with No Depth
 	tileY = referenceTile.tiles[currTile].y;
@@ -382,7 +373,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 			loc.push_back(i);
 		}
 	}
-	tempMat.create(temp.size(), feat.point_descriptors.cols, feat.point_descriptors.type());
+	tempMat.create(temp.size(), pose.currObjectData.cols, CV_32F);
 
 	cnt = 0;
 	for(int i=0; i<feat.key_points.size(); i++)
@@ -391,22 +382,16 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		if(pose.curr_z[index] > 0)
 		{
 			Mat dest(tempMat.rowRange(cnt, cnt+1));
-			feat.point_descriptors.row(i).copyTo(dest);
+			pose.currObjectData.row(i).copyTo(dest);
 			cnt++;
 		}
 	}
 
-	feat.point_descriptors.release();
+	pose.currObjectData.release();
 	feat.key_points.clear();
 
-	feat.point_descriptors = tempMat.clone();
+	pose.currObjectData = tempMat.clone();
 	feat.key_points = temp;
-
-	//FLANN Formatting
-	if(feat.point_descriptors.type()!=CV_32F) 
-		feat.point_descriptors.convertTo(pose.currObjectData, CV_32F);
-	else 
-		pose.currObjectData = feat.point_descriptors;
 
 	for(int i=0; i<feat.key_points.size(); i++)
 	{
@@ -415,7 +400,6 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		tilePt.pt.y = feat.key_points[i].pt.y + referenceTile.tiles[currTile].y;
 		pose.globalCurrKeyPoints.push_back(tilePt);
 	}
-
 
 	//Collect All Descriptors
 	oldRow = pose.globalCurrDescriptors.rows;
@@ -433,30 +417,19 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 	if (configParams.depthInfo == KINECT_DEPTH)
 	{
 		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-		pose.depthToPointCloud(currDepth, camera_matrix);
-	}
-	else if (configParams.depthInfo == STEREO_DISP)
-	{
-		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-		Mat currDispMat = &(*currDepth);
-		pose.dispToPointCloud(currDispMat, Q);
-		currDispMat.release();
+		depthToPointCloud();
 	}
 	else if(configParams.depthInfo == POINT_CLOUD)
 	{
-		pose.savePointCloud(depthFiles, frameIndex, image);
+		savePointCloud(frameIndex, image);
 	}
 }
 
 void SFM::process(IplImage* image, int frameIndex)
 {
 	clock_t t1, t2;
-	t1 = clock();
 	preprocessing(image, frameIndex); //Read PC
-	t2 = clock();
 	referenceTile.process(image);
-
-	cout << "PreProcessing Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 	t1 = clock();
 
@@ -474,7 +447,14 @@ void SFM::process(IplImage* image, int frameIndex)
 		pose.process(configParams.depthInfo, image);
 		t2 = clock();
 		cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
-		showGlobalMatches(prevImage, image, frameIndex);
+
+		if(configParams.saveResultsFlag)
+		{
+			printCurrentGlobal_R_T();
+			string resultsString = string("results/PointCloud.txt");
+			mapping(resultsString, image);
+			showGlobalMatches(prevImage, image, frameIndex);
+		}
 	}
 
 	pose.savePointProj(frameIndex, configParams.firstFrame);
@@ -486,13 +466,7 @@ void SFM::process(IplImage* image, int frameIndex)
 
 void SFM::update(IplImage* image)
 {
-	pose.prevMatchedPoints.clear();
-	pose.currMatchedPoints.clear();
-	pose.prevMatchedPixels.clear();
-	pose.currMatchedPixels.clear();
-	pose.prevObjectData.release();
-	pose.currObjectData.release();
-	pose.prevKeypoints.clear();
+	pose.clear();
 
 	//Global Parameters
 	pose.globalPrevMatchedPts.clear();
@@ -525,6 +499,7 @@ void SFM::update(IplImage* image)
 	sfmInit = 0;
 
 	referenceTile.clear();
+	pose.matchWeights.clear();
 
 	cvReleaseImage(&image);
 	image = NULL;
@@ -547,7 +522,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	int validIndex = 0;
 	int validSize = pose.validPix.size();
 
-	//Show all keypoints
+	//Show All Key Points
 	CvPoint pt1, pt2;
 	for(int m=0; m<pose.globalPrevKeyPoints.size(); m++)
 	{
@@ -558,7 +533,6 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.y = pose.globalPrevKeyPoints[index].pt.y+1;
 		cvRectangle(image1, pt1, pt2, CV_RGB(0, 0, 0), 3, 8, 0 );
 	}
-	//Show KeyPoints Image2
 	for(int m=0; m<pose.globalCurrKeyPoints.size(); m++)
 	{
 		index = m;
@@ -570,8 +544,7 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	}
 
 
-	//Show KeyPoints Image 1
-	//CvPoint pt1, pt2;
+	//Matching Key Points
 	for(int m=0; m<pose.globalPrevMatchedPix.size(); m++)
 	{
 		index = m;
@@ -581,7 +554,6 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 		pt2.y = pose.globalPrevMatchedPix[index].y+1;
 		cvRectangle(image1, pt1, pt2, CV_RGB(255, 255, 255), 3, 8, 0 );
 	}
-	//Show KeyPoints Image2
 	for(int m=0; m<pose.globalPrevMatchedPix.size(); m++)
 	{
 		index = m;
@@ -659,3 +631,181 @@ void SFM::cleanUp(IplImage*& im1, IplImage*& im2)
 	prevImage = NULL;
 }
 
+//Takes global R and T and applies them to the point clouds to get aligned point clouds.
+void SFM::mapping(string& filename, IplImage* image)
+{
+	ofstream fout;
+	stringstream ss;
+	int width = image->width;
+	float rgb;
+	uchar* data = (uchar*)image->imageData;
+	uchar *rData, *gData, *bData;
+	CvMat* temp_T = cvCreateMat(3,1,CV_32FC1);
+	CvMat* temp_R = cvCreateMat(3,3,CV_32FC1);
+	int numChannels = image->nChannels;
+
+	//Split the image into 3 separate channels to get the colors for the point cloud visualization.
+	IplImage* r = cvCreateImage( cvGetSize(image), image->depth,1 );
+	IplImage* g = cvCreateImage( cvGetSize(image), image->depth,1 );
+	IplImage* b = cvCreateImage( cvGetSize(image), image->depth,1 );
+
+	if(numChannels == 3)
+	{
+		cvSplit(image,b,g,r,NULL);
+		rData = (uchar*)r->imageData;
+		gData = (uchar*)g->imageData;
+		bData = (uchar*)b->imageData;
+	}
+
+	int numPoints = pose.curr_x.size();
+	int counter = 0;
+	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1); //Used to hold each 3D point for the matrix multiplication
+	CvMat *outPointMat = cvCreateMat (3, 1, CV_32FC1); //Holds the output of each 3D point matrix multiplication
+
+	//Compute the opposite of globalT to apply to the point clouds
+	temp_T->data.fl[0] = -1*pose.currGlobal_T->data.fl[0];
+	temp_T->data.fl[1] = -1*pose.currGlobal_T->data.fl[1];
+	temp_T->data.fl[2] = -1*pose.currGlobal_T->data.fl[2];
+
+	//Compute the transpose of globalR to apply to the point clouds
+	temp_R->data.fl[0] = pose.currGlobal_R->data.fl[0];
+	temp_R->data.fl[1] = pose.currGlobal_R->data.fl[3];
+	temp_R->data.fl[2] = pose.currGlobal_R->data.fl[6];
+	temp_R->data.fl[3] = pose.currGlobal_R->data.fl[1];
+	temp_R->data.fl[4] = pose.currGlobal_R->data.fl[4];
+	temp_R->data.fl[5] = pose.currGlobal_R->data.fl[7];
+	temp_R->data.fl[6] = pose.currGlobal_R->data.fl[2];
+	temp_R->data.fl[7] = pose.currGlobal_R->data.fl[5];
+	temp_R->data.fl[8] = pose.currGlobal_R->data.fl[8];
+
+	for (int i = 0; i < numPoints; i++)
+	{
+		if(pose.curr_z[i] > 0) //If the point is in front of the camera, apply the R and T to the point
+		{
+			//Save the current 3D point into pointMat
+			cvSetReal2D(pointMat, 0, 0, pose.curr_x[i]);
+			cvSetReal2D(pointMat, 1, 0, pose.curr_y[i]);
+			cvSetReal2D(pointMat, 2, 0, pose.curr_z[i]);
+
+			//Apply globalR Transpose and negative globalT to the current point
+			cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
+
+			//Write out each mapped point and the color information associated with it.
+			if(numChannels == 1)
+				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(data[i]) << " " << int(data[i]) << " " << int(data[i]) << '\n';
+			else if(numChannels == 3)
+			{
+				ss << outPointMat->data.fl[0] << " " << outPointMat->data.fl[1] << " " << outPointMat->data.fl[2] << " " << int(rData[i]) << " " << int(gData[i]) << " " << int(bData[i]) << '\n';
+			}
+			counter++;
+
+		}
+	}
+
+	//Clean up
+	cvReleaseMat(&pointMat);
+	cvReleaseMat(&outPointMat);
+	cvReleaseImage(&r);
+	cvReleaseImage(&g);
+	cvReleaseImage(&b);
+	fout.open (filename.c_str(), ios::app);
+	fout << ss.str();
+	fout.close();
+	ss.str("");
+}
+
+//Compute depth from kinect depth image
+void SFM::depthToPointCloud()
+{
+	const int GAMMASIZE =  2048;
+	float gamma[GAMMASIZE];
+	const float k1 = 1.1863;
+	const float k2 = 2842.5;
+	const float k3 = 0.1236;
+
+	for (size_t i = 0; i < GAMMASIZE; i++)
+		gamma[i] = k3 * tan(i/k2 + k1);
+
+	// camera intrinsic parameters, representative values, see http://nicolas.burrus.name/index.php/Research/KinectCalibration for more info
+	float cx = cameraMatrix.at<double>(0,2);
+	float cy = cameraMatrix.at<double>(1,2);
+	float fx = cameraMatrix.at<double>(0,0);
+	float fy = cameraMatrix.at<double>(1,1);
+
+	unsigned char *depthData = (unsigned char*)(currDepth->imageData);
+	for (int i = 0; i < currDepth->height; i++)
+	{
+		for (int j = 0; j < currDepth->width; j++)
+		{
+			float gamma_depth_data = gamma[((short*)depthData)[i*currDepth->width+j]];
+			int index = i*currDepth->width+j;
+			pose.curr_x[index] = (j - cx) * gamma_depth_data / fx;
+			pose.curr_y[index] = (i - cy) * gamma_depth_data / fy;
+			pose.curr_z[index] = gamma_depth_data;
+		}
+	}
+}
+
+//Reads depth filenames from input file (kinect and point clouds)
+void SFM::readDepthFiles(string& filename)
+{
+	string temp;
+	ifstream fin;
+
+	fin.open(filename.c_str());
+
+	while(fin.good())
+	{
+		fin >> temp;
+		depthFiles.push_back(temp);
+	}
+
+	fin.close();
+}
+
+//Saves individual point clouds from the file into memory
+void SFM::savePointCloud(int iteration, IplImage* image)
+{
+	ifstream fin;
+	string filename;
+	int index = 0;
+	float x, y, z;
+	int width = image->width;
+	float xPos, yPos;
+	stringstream ss;
+	ss<<iteration;
+	filename = depthFiles[iteration];
+	fin.open(filename.c_str());
+	string line;
+
+	for(int i=0; i<image->width*image->height; i++)
+	{
+		pose.curr_x[i] = 0;
+		pose.curr_y[i] = 0;
+		pose.curr_z[i] = 0;
+	}
+
+	while(fin.good())
+	{
+		getline(fin, line);
+
+		sscanf(line.c_str(), "%f %f %f %f %f", &yPos, &xPos, &x, &y, &z);
+
+		index = yPos*width + xPos;
+
+		pose.curr_x[index] = x;
+		pose.curr_y[index] = y;
+		pose.curr_z[index] = z;
+	}
+
+	fin.close();
+}
+
+void SFM::printCurrentGlobal_R_T()
+{
+	cout<<"global_R=["<<pose.currGlobal_R->data.fl[0]<<" "<<pose.currGlobal_R->data.fl[1]<<" "<<pose.currGlobal_R->data.fl[2]<<"]"<<endl;
+	cout<<"         ["<<pose.currGlobal_R->data.fl[3]<<" "<<pose.currGlobal_R->data.fl[4]<<" "<<pose.currGlobal_R->data.fl[5]<<"]"<<endl;
+	cout<<"         ["<<pose.currGlobal_R->data.fl[6]<<" "<<pose.currGlobal_R->data.fl[7]<<" "<<pose.currGlobal_R->data.fl[8]<<"]"<<endl;
+	cout << endl;
+	cout<<"global_T=["<<pose.currGlobal_T->data.fl[0]<<" "<<pose.currGlobal_T->data.fl[1]<<" "<<pose.currGlobal_T->data.fl[2]<<"]"<<endl;
+}

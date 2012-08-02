@@ -16,7 +16,6 @@
 #include <opencv2/features2d/features2d.hpp>
 
 #define NO_DEPTH 0
-#define STEREO_DISP 1
 #define KINECT_DEPTH 2
 #define POINT_CLOUD 3
 
@@ -104,27 +103,16 @@ public:
 	//Methods
 	int estimateRelativePose();
 	void composePose();
-	void printCurrentGlobal_R_T();
-	void clearMatchedPoints();
-	void clearMatchedPixels();
-	void push_prev3Dpt(int index);
-	void push_curr3Dpt(int index);
-	int find_curr_index(int loc, int width);
-	int find_prev_index(int loc, int width);
 	void find_homography();
-	void mapping(string &filename, IplImage* image);
 	void copyGlobal_R_T();
 	void resetPrevPos();
-	void depthToPointCloud(IplImage *depthImage, cv::Mat camIntrinsicMatrix);
-	void dispToPointCloud(cv::Mat dispMat,  cv::Mat Q);
-	void readDepthFiles(string &filename, vector<string>& depthFiles);
-	void savePointCloud(vector<string>& filenames, int iteration, IplImage* image);
 	void resizeXYZVectors(int width, int height);
-	void nearestNeighborMatching();
+	void nearestNeighborMatching(IplImage* image);
 	void collect3DMatches(int width);
 	void process(int depthInfo, IplImage* image);
 	void clear();
 	void removeDuplicates(IplImage* image);
+	void removeOutliers(int depthInfo, IplImage* image);
 
 	//Point Projection -- For SBA
 	int searchPointProj(Point2f find);

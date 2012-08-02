@@ -21,7 +21,6 @@
 #include "../common/Tiling.h"
 
 #define NO_DEPTH 0
-#define STEREO_DISP 1
 #define KINECT_DEPTH 2
 #define POINT_CLOUD 3
 
@@ -38,7 +37,6 @@ struct SFMParams{
 	string resultsDirName;
 	string inputDataName;
 	string cameraCalibrationFilename;
-	string stereoCalibrationFilename;
 	string pointCloudFilename;
 	string kinectDepthFilename;
 	int featureMethod;
@@ -61,8 +59,8 @@ public:
 	PoseEstimation pose;
 	FeatureExtraction feat;
 	SFMParams configParams;
-	Mat camera_matrix;
-	Mat dist_coeffs;
+	Mat cameraMatrix;
+	Mat distCoeffs;
 	Mat Q;
 	IplImage *prevImage;
 	IplImage *prevDepth, *currDepth;
@@ -83,7 +81,6 @@ public:
 	void readConfigurationFile(string& configurationFilename);
 	void printConfigParams();
 	int  readCameraCalibrationFile();
-	int  readStereoCalibrationFile();
 	void restoreDefaultParameters();
 	void readImageFilenames(string& inputFile);
 	void processTile(IplImage* image, int frameIndex);
@@ -93,4 +90,10 @@ public:
 	void clear();
 	void showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex);
 	void cleanUp(IplImage*& im1, IplImage*& im2);
+
+	void mapping(string &filename, IplImage* image);
+	void depthToPointCloud();
+	void readDepthFiles(string &filename);
+	void savePointCloud(int iteration, IplImage* image);
+	void printCurrentGlobal_R_T();
 };

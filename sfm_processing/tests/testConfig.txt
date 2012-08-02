@@ -5,7 +5,6 @@ depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
-stereoCalibrationFilename stereo_calibration.txt
 pointCloudFilename testPCList.txt
 kinectDepthFilename kinectDepth_list.txt
 minMatches 8
