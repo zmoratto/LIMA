@@ -234,7 +234,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
         cv::Vec3f const& point = m_points.at<cv::Vec3f>(y, x);
         //if (!(fabs(point[2] - maxZ) < FLT_EPSILON || fabs(point[2]) > maxZ)) {
         if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0){
-          ostr << point[0] << " " << point[1] << " " << point[2] << endl;
+          ostr << point[0] << " " << point[1] << " " << point[2] <<" "<< (int) m_refImgRect.at<uchar>(y,x) <<" "<< (int) m_refImgRect.at<uchar>(y,x) <<" "<< (int) m_refImgRect.at<uchar>(y,x)<<endl;
         }
       }
     }
