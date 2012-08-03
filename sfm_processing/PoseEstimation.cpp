@@ -344,7 +344,6 @@ void PoseEstimation::nearestNeighborMatching(IplImage* image)
 	//NNDR Matching
 	if(matchingMethod == 0)
 	{
-
 		cv::flann::Index treeFlannIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
 		cv::Mat results(globalPrevDescriptors.rows, k, CV_32SC1);
 		cv::Mat dists(globalPrevDescriptors.rows, k, CV_32FC1);
@@ -611,6 +610,8 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 
 	globalCurrDescriptors.release();
 	globalCurrDescriptors = tempMat.clone();
+
+	globalCurrDescriptors.convertTo(globalCurrDescriptors, CV_32F);
 
 	globalCurrKeyPoints.clear();
 	globalCurrKeyPoints = tempKeyPoints;

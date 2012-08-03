@@ -8,46 +8,20 @@ using namespace std;
 
 void printDepthWarning();
 
-SFM::SFM(char* configFile, char* inputFilename)
+SFM::SFM(char* configFile)
 {
 	prevImage = NULL;
 	currDepth = NULL;
 	sfmInit = 1;
 	string configFileString = string(configFile);
-	string inputFilenameString = string(inputFilename);
 
 	//Read Configuration Files
 	readConfigurationFile(configFileString);
-	readImageFilenames(inputFilenameString);
-
-	IplImage* image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-	imageWidth = image->width;
-	imageHeight = image->height;
-
-	//Set up tiles
-	referenceTile.setUpReferenceTiles(image);
-	numTiles = referenceTile.tiles.size();
-
-	//Read Camera/Point Information Depending on Depth Info
-	if (configParams.depthInfo == KINECT_DEPTH && depthFiles.size() == 0)
-	{
-		int cameraCalibrationFileReadError= readCameraCalibrationFile();
-		readDepthFiles(configParams.kinectDepthFilename);
-	}
-	if(configParams.depthInfo == POINT_CLOUD && depthFiles.size() == 0)
-	{
-		readDepthFiles(configParams.pointCloudFilename);
-	}
-
-	//Set up 3D Point Vectors
-	pose.allocatePCMemory(imageWidth,imageHeight);
-
-	cvReleaseImage(&image);
 }
 
 SFM::~SFM()
 {
-	cameraMatrix.release();
+/*	cameraMatrix.release();
 	distCoeffs.release();
 
 	if(prevImage != NULL)
@@ -71,6 +45,40 @@ SFM::~SFM()
 
 	inputFiles.clear();
 	depthFiles.clear();
+*/
+}
+
+void SFM::setUpSFM(char* inputFilename, IplImage* image)
+{
+	if(configParams.depthInfo != STEREO_DEPTH)
+	{
+		string inputFilenameString = string(inputFilename);
+		readImageFilenames(inputFilenameString);
+		image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
+	}
+
+	imageWidth = image->width;
+	imageHeight = image->height;
+
+	//Set up tiles
+	referenceTile.setUpReferenceTiles(image);
+	numTiles = referenceTile.tiles.size();
+
+	//Read Camera/Point Information Depending on Depth Info
+	if (configParams.depthInfo == KINECT_DEPTH && depthFiles.size() == 0)
+	{
+		int cameraCalibrationFileReadError= readCameraCalibrationFile();
+		readDepthFiles(configParams.kinectDepthFilename);
+	}
+	if(configParams.depthInfo == POINT_CLOUD && depthFiles.size() == 0)
+	{
+		readDepthFiles(configParams.pointCloudFilename);
+	}
+
+	//Set up 3D Point Vectors
+	pose.allocatePCMemory(imageWidth,imageHeight);
+
+	cvReleaseImage(&image);
 }
 
 void SFM::printUsage()
@@ -364,6 +372,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	mask.x -= referenceTile.tiles[currTile].x;
 	mask.y -= referenceTile.tiles[currTile].y;
 
+
 	cvCopy(image, copy, NULL);
 	cvSetImageROI(copy, mask);
 
@@ -431,6 +440,8 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	pose.globalCurrDescriptors.resize(oldRow+feat.key_points.size());
 	cv::Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
 	pose.currObjectData.copyTo(dest1);
+
+	cvReleaseImage(&copy);
 }
 
 void SFM::preprocessing(IplImage* image, int frameIndex)
@@ -501,8 +512,9 @@ void SFM::update(IplImage* image)
 	pose.globalCurrMatchedPix.clear();
 	pose.globalPrevKeyPoints = pose.globalCurrKeyPoints;
 	pose.globalCurrKeyPoints.clear();
-	pose.globalPrevDescriptors = pose.globalCurrDescriptors;
+	pose.globalPrevDescriptors = pose.globalCurrDescriptors.clone();
 	pose.globalCurrDescriptors.release();
+	pose.globalCurrDescriptors.create(0, pose.globalCurrDescriptors.cols, CV_32F);
 
 	//3D Points
 	pose.resetPrevPos();
@@ -527,8 +539,12 @@ void SFM::update(IplImage* image)
 	referenceTile.clear();
 	pose.matchWeights.clear();
 
-	cvReleaseImage(&image);
-	image = NULL;
+/*	if(image != NULL)
+	{
+		cvReleaseImage(&image);
+		image = NULL;
+	}
+*/
 }
 
 //Creates composed image and displays matches and keypoints

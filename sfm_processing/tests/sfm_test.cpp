@@ -7,7 +7,6 @@ using namespace std;
 int main (int argc, char** argv)
 {
 	IplImage* image = NULL;
-	clock_t t1, t2; //Used to time the algorithm
 
 	//Read Command Line Arguments
 	if(argc != 4)
@@ -21,7 +20,8 @@ int main (int argc, char** argv)
 	}
 
 	//Read Config Files and set up tiles
-	SFM sfmTest(argv[1], argv[2]);
+	SFM sfmTest(argv[1]);
+	sfmTest.setUpSFM(argv[2], image);
 
 	//Process Each Image Frame
 	for(int frameIndex=sfmTest.configParams.firstFrame; frameIndex<=sfmTest.configParams.lastFrame; frameIndex+=sfmTest.configParams.frameStep)

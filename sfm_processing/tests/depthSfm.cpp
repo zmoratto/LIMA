@@ -21,55 +21,22 @@ using namespace std;
 
 int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams);
 
-
 int main(int argc, char** argv)
 {
-	string modelImageFilename;
-	string matchImageFilename;
-	int verbose;
-	string configFilename;
-	string errorFilename;
-	string resDir;
-	string auxDir;
-
-	// load images
+	string modelList = "modelList.txt", matchList = "matchList.txt";
+	char sfmConfigFile[] = "../sfm_config.txt";
+	vector<string> modelImageFilenames;
+	vector<string> matchImageFilenames;
 	IplImage *modelImage, *matchImage;
-
-	modelImage = cvLoadImage( modelImageFilename.c_str(), 0 );
-	matchImage = cvLoadImage( matchImageFilename.c_str(), 0 );
-
-	if(modelImage==NULL)
-	{
-		cerr<<"Error: image failed to load"<<endl;
-	return -1;
-	}
-	if(matchImage==NULL)
-	{
-		cerr<<"Error: image failed to load"<<endl;
-		return -1;
-	}
-
-	//run openCV stereo
-	CvStereoBMProcessorParameters thisStereoParams;
-	int configReadError = ReadStereoConfigFile(string("stereo_settingsBM.txt"), &thisStereoParams);
-	 
-	if( !configReadError )
-		return -1;
-
-	thisStereoParams.modelImageFilename = modelImageFilename;
-	thisStereoParams.resDir = resDir;
-
-	cv::Size imageSize;
-	imageSize.width = modelImage->width;
-	imageSize.height = modelImage->height;
-	  
-	CvStereoBMProcessor *thisStereo;  
-	thisStereo = new CvStereoBMProcessor(thisStereoParams);
-
-
+	IplImage *image;
+	int frameIndex, index;
+	ifstream fin1, fin2;
+	ofstream fout;
+	string tempString;
 	cv::Mat rotationMat=cv::Mat::eye(3,3, CV_64F);
 	cv::Mat translationMat=cv::Mat::zeros(3,1, CV_64F);
-	  
+	double const maxZ = 1.0e4;
+		  
 	//UBER Hack be careful - START
 	float PI = 3.1415;
 	float xAngleRad = 65*PI/180;
@@ -80,27 +47,72 @@ int main(int argc, char** argv)
 	rotationMat.at<double>(2,2) = cos(xAngleRad);
 	//UBER Hack be careful - END
 
-	thisStereo->changeCoordinates(rotationMat, translationMat);
-	 
-	thisStereo->processImagePair(modelImage, matchImage);
-	IplImage rModelImage = thisStereo->GetRectifiedModelImage();
-
-	cv::Mat m_points = thisStereo->pointImage();
-
-	//SAVE POINT CLOUDS
-	double const maxZ = 1.0e4;
-		 
-	for (int y = 0; y < m_points.rows; ++y)
+	//Read Stereo Config File
+	CvStereoBMProcessorParameters thisStereoParams;
+	int configReadError = ReadStereoConfigFile(string("../../stereo_processing/stereo_settingsBM.txt"), &thisStereoParams);
+	if( !configReadError )
 	{
-		for (int x = 0; x < m_points.cols; ++x)
-		{
-			cv::Vec3f const& point = m_points.at<cv::Vec3f>(y, x);
-			//if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0)
-			//	ostr << point[0] << " " << point[1] << " " << point[2] << endl;
-		}
+		cout << "Stereo Config File Read Error" << endl;
+		return -1;
 	}
 
-	//END SAVE POINT CLOUDS
+	CvStereoBMProcessor *thisStereo;
+
+	//Read Stereo Filenames
+	fin1.open(modelList.c_str());
+	fin2.open(matchList.c_str());
+	while(fin1.good())
+	{
+		fin1 >> tempString;
+		modelImageFilenames.push_back(tempString);
+		fin2 >> tempString;
+		matchImageFilenames.push_back(tempString);
+	}
+	fin1.close();
+	fin2.close();
+
+	SFM sfmTest(sfmConfigFile);
+	image = cvLoadImage(modelImageFilenames[0].c_str(), CV_LOAD_IMAGE_UNCHANGED);
+	sfmTest.setUpSFM(NULL, image);
+
+	for(frameIndex = sfmTest.configParams.firstFrame; frameIndex < sfmTest.configParams.lastFrame; frameIndex++)
+	{
+		thisStereo = new CvStereoBMProcessor(thisStereoParams);
+		cout << endl << endl <<"Frame " << frameIndex << endl;
+		//Load Stereo Images
+		modelImage = cvLoadImage( modelImageFilenames[frameIndex].c_str(), 0 );
+		matchImage = cvLoadImage( matchImageFilenames[frameIndex].c_str(), 0 );
+
+		thisStereo->changeCoordinates(rotationMat, translationMat);
+		 
+		thisStereo->processImagePair(modelImage, matchImage);
+		IplImage rModelImage = thisStereo->GetRectifiedModelImage();
+
+		cv::Mat m_points = thisStereo->pointImage();
+
+		//fout.open("results/pc.txt");
+		//Save Point Clouds	 
+		for (int y = 0; y < m_points.rows; ++y)
+		{
+			for (int x = 0; x < m_points.cols; ++x)
+			{
+				cv::Vec3f const& point = m_points.at<cv::Vec3f>(y, x);
+				if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0)
+				{
+					index = y*sfmTest.imageWidth + x;
+					sfmTest.pose.curr_x[index] = point[0];
+					sfmTest.pose.curr_y[index] = point[1];
+					sfmTest.pose.curr_z[index] = point[2];
+					//fout << point[0] << " " << point[1] << " " << point[2] << endl;
+				}
+			}
+		}
+		//fout.close();
+
+		sfmTest.process(&rModelImage, frameIndex);
+		delete thisStereo;
+
+	}
 }
 
 int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams)
@@ -111,122 +123,105 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
   std::string identifier;
   std::string param;
 
-  if (configFile.is_open()){ 
-    
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline; 
-    sline<<line;
-    sline >> identifier >> val;
-    cout<<val<<endl;
-    thisStereoParams->preFilterSize=val;
+	if (configFile.is_open())
+	{ 
+		getline (configFile,line);
+		stringstream sline; 
+		sline<<line;
+		sline >> identifier >> val;
+		thisStereoParams->preFilterSize=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline1; 
-    sline1<<line;
-    sline1 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->preFilterCap=val;
-  
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline2; 
-    sline2<<line;
-    sline2 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->sadWindowSize=val;
- 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline3; 
-    sline3<<line;
-    sline3 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->minDisparity= val;
-  
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline4; 
-    sline4<<line;
-    sline4 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->numberOfDisparities= val;
-  
+		getline (configFile,line);
+		stringstream sline1; 
+		sline1<<line;
+		sline1 >> identifier >> val;
+		thisStereoParams->preFilterCap=val;
+	  
+		getline (configFile,line);
+		stringstream sline2; 
+		sline2<<line;
+		sline2 >> identifier >> val;
+		thisStereoParams->sadWindowSize=val;
+	 
+		getline (configFile,line);
+		stringstream sline3; 
+		sline3<<line;
+		sline3 >> identifier >> val;
+		thisStereoParams->minDisparity= val;
+	  
+		getline (configFile,line);
+		stringstream sline4; 
+		sline4<<line;
+		sline4 >> identifier >> val;
+		thisStereoParams->numberOfDisparities= val;
+	  
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline5; 
-    sline5<<line;
-    sline5 >> identifier >> val;
-   cout<<val<<endl;
-    thisStereoParams->textureThreshold=val;
- 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline6; 
-    sline6<<line;
-    sline6 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->uniquenessRatio=val;
+		getline (configFile,line);
+		stringstream sline5; 
+		sline5<<line;
+		sline5 >> identifier >> val;
+		thisStereoParams->textureThreshold=val;
+	 
+		getline (configFile,line);
+		stringstream sline6; 
+		sline6<<line;
+		sline6 >> identifier >> val;
+		thisStereoParams->uniquenessRatio=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline7; 
-    sline7<<line;
-    sline7 >> identifier >> param;
-      cout<<param<<endl;
-    if(param[0]=='N' || param[0]=='n')
-      thisStereoParams->needRectification=false;
-    else if(param[0]=='Y' || param[0]=='y')
-      thisStereoParams->needRectification=true;
-    else{
-      cout << "Error reading stereo settings file"<<endl;
-      configFile.close();
-      return 0;
-    }
+		getline (configFile,line);
+		stringstream sline7; 
+		sline7<<line;
+		sline7 >> identifier >> param;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline8; 
-    sline8<<line;
-    sline8 >> identifier >> val;
-    cout<<val<<endl;
-    thisStereoParams->scaleFactor=val;
+		if(param[0]=='N' || param[0]=='n')
+			thisStereoParams->needRectification=false;
+		else if(param[0]=='Y' || param[0]=='y')
+			thisStereoParams->needRectification=true;
+		else
+		{
+		cout << "Error reading stereo settings file"<<endl;
+		configFile.close();
+		return 0;
+		}
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline9; 
-    sline9<<line;
-    sline9 >> identifier;
-    if( sline9 >> val ){
-       cout<<val<<endl;
-       thisStereoParams->tileWidth=val;
-       }
-    else{
-       cout<<"TILE_HEIGHT: "<<-1<<endl;
-       thisStereoParams->tileWidth=-1;
-       }
+		getline (configFile,line);
+		stringstream sline8; 
+		sline8<<line;
+		sline8 >> identifier >> val;
+		thisStereoParams->scaleFactor=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline10; 
-    sline10<<line;
-    sline10 >> identifier;
-    if( sline10 >> val ){
-       cout<<val<<endl;
-       thisStereoParams->tileHeight=val;
-       }
-    else{
-       cout<<"TILE_HEIGHT: "<<-1<<endl;
-       thisStereoParams->tileHeight=-1;
-       }
+		getline (configFile,line);
+		stringstream sline9; 
+		sline9<<line;
+		sline9 >> identifier;
+		if( sline9 >> val )
+		{
+			thisStereoParams->tileWidth=val;
+		}
+		else
+		{
+			cout<<"TILE_HEIGHT: "<<-1<<endl;
+			thisStereoParams->tileWidth=-1;
+		}
 
-    configFile.close();
-    return 1;
-  }
-  else{
-    cout << "Unable to open settings file"<<endl; 
-    return 0;
-  } 
+		getline (configFile,line);
+		stringstream sline10;
+		sline10 >> identifier;
+		if( sline10 >> val )
+		{
+			thisStereoParams->tileHeight=val;
+		}
+		else
+		{
+			thisStereoParams->tileHeight=-1;
+		}
+
+		configFile.close();
+		return 1;
+	}
+	else
+	{
+		cout << "Unable to open settings file"<<endl; 
+		return 0;
+	} 
 }

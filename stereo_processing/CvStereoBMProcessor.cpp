@@ -157,7 +157,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
 
     //rectification code - START
     //TODO:calibration filename can be a parameter in StereoCV21Parameters!!!
-    string calibrationFilename="stereo_calibration.txt";
+    string calibrationFilename="/home/emily/project/lima/stereo_processing/stereo_calibration.txt";
     cv::Mat camera_matrix[2], dist_coeffs[2];
     cv::Mat R, T;
     cv::Size imageSize;
@@ -166,7 +166,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
                                                      camera_matrix[0], camera_matrix[1],
                                                      dist_coeffs[0], dist_coeffs[1],
                                                      R, T, imageSize);
-    
+
     cv::Mat R1, R2, P1, P2;
     cv::Rect validRoi[2];
 

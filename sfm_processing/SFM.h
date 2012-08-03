@@ -1,3 +1,5 @@
+#ifndef SFM_H
+#define SFM_H
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -42,7 +44,7 @@ class SFM
 public:
 
 	//Constructor
-	SFM(char* configFile, char* inputFilename);
+	SFM(char* configFile);
 
 	//Destructor
 	~SFM();
@@ -67,6 +69,7 @@ public:
 	vector<string> inputFiles, depthFiles;
 
 	//Methods
+	void setUpSFM(char* inputFilename, IplImage* image);
 	void printUsage();
 	void printWarning(string& filename);
 	void readConfigurationFile(string& configurationFilename);
@@ -86,3 +89,5 @@ public:
 	void savePointCloud(int iteration, IplImage* image);
 	void printCurrentGlobal_R_T();
 };
+
+#endif
