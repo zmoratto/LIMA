@@ -1,5 +1,5 @@
-#include "CvStereoSGBMProcessor.h"
-#include "../string_util.h"
+#include "../CvStereoSGBMProcessor.h"
+#include "../../string_util.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -353,13 +353,14 @@ int main( int argc, char *argv[] )
    return -1;
 	}
 
-
+  string makeResultsDirCmd = "mkdir " + resDir;
   resDir = resDir + "/" + GetFilenameNoExt(GetFilenameNoPath(modelImageFilename)) + "_" + GetFilenameNoExt(GetFilenameNoPath(matchImageFilename));
   auxDir = resDir+"/aux";
   cout<<"aux_dir="<<auxDir<<endl;
   //create the results and auxiliary directories
   string makeResDirCmd = "mkdir " + resDir;
   string makeAuxDirCmd = "mkdir " + auxDir;
+  system(makeResultsDirCmd.c_str());
   system(makeResDirCmd.c_str()); 
   system(makeAuxDirCmd.c_str());
 
