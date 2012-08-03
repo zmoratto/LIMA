@@ -79,6 +79,7 @@ void SFM::setUpSFM(char* inputFilename, IplImage* image)
 	pose.allocatePCMemory(imageWidth,imageHeight);
 
 	cvReleaseImage(&image);
+	image = NULL;
 }
 
 void SFM::printUsage()
@@ -538,6 +539,12 @@ void SFM::update(IplImage* image)
 
 	referenceTile.clear();
 	pose.matchWeights.clear();
+
+	for(int i=0; i<numTiles; i++)
+	{
+		cvReleaseImage(&referenceTile.tileImages[i]);
+		referenceTile.tileImages[i] = NULL;
+	}
 
 /*	if(image != NULL)
 	{

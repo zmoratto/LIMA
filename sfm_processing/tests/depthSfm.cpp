@@ -27,8 +27,10 @@ int main(int argc, char** argv)
 	char sfmConfigFile[] = "../sfm_config.txt";
 	vector<string> modelImageFilenames;
 	vector<string> matchImageFilenames;
-	IplImage *modelImage, *matchImage;
-	IplImage *image;
+	IplImage *modelImage = NULL, *matchImage = NULL;
+	IplImage *image = NULL;
+	IplImage im;
+	cv::Mat rModelImage;
 	int frameIndex, index;
 	ifstream fin1, fin2;
 	ofstream fout;
@@ -49,14 +51,12 @@ int main(int argc, char** argv)
 
 	//Read Stereo Config File
 	CvStereoBMProcessorParameters thisStereoParams;
-	int configReadError = ReadStereoConfigFile(string("../../stereo_processing/stereo_settingsBM.txt"), &thisStereoParams);
+	int configReadError = ReadStereoConfigFile(string("../../stereo_processing/tests/stereo_settingsBM.txt"), &thisStereoParams);
 	if( !configReadError )
 	{
 		cout << "Stereo Config File Read Error" << endl;
 		return -1;
 	}
-
-	CvStereoBMProcessor *thisStereo;
 
 	//Read Stereo Filenames
 	fin1.open(modelList.c_str());
@@ -71,22 +71,26 @@ int main(int argc, char** argv)
 	fin1.close();
 	fin2.close();
 
+	//Set Up SFM
 	SFM sfmTest(sfmConfigFile);
-	image = cvLoadImage(modelImageFilenames[0].c_str(), CV_LOAD_IMAGE_UNCHANGED);
+	image = cvLoadImage(modelImageFilenames[0].c_str(), 0);
 	sfmTest.setUpSFM(NULL, image);
+
+	//Set up Stereo
+	CvStereoBMProcessor *thisStereo;
+	thisStereo = new CvStereoBMProcessor(thisStereoParams);
+	thisStereo->changeCoordinates(rotationMat, translationMat);
+
 
 	for(frameIndex = sfmTest.configParams.firstFrame; frameIndex < sfmTest.configParams.lastFrame; frameIndex++)
 	{
-		thisStereo = new CvStereoBMProcessor(thisStereoParams);
 		cout << endl << endl <<"Frame " << frameIndex << endl;
 		//Load Stereo Images
 		modelImage = cvLoadImage( modelImageFilenames[frameIndex].c_str(), 0 );
 		matchImage = cvLoadImage( matchImageFilenames[frameIndex].c_str(), 0 );
 
-		thisStereo->changeCoordinates(rotationMat, translationMat);
-		 
 		thisStereo->processImagePair(modelImage, matchImage);
-		IplImage rModelImage = thisStereo->GetRectifiedModelImage();
+		rModelImage = thisStereo->GetRectifiedModelImage();
 
 		cv::Mat m_points = thisStereo->pointImage();
 
@@ -109,9 +113,14 @@ int main(int argc, char** argv)
 		}
 		//fout.close();
 
-		sfmTest.process(&rModelImage, frameIndex);
-		delete thisStereo;
+		im = rModelImage;
 
+		sfmTest.process(&im, frameIndex);
+
+		cvReleaseImage(&modelImage);
+		cvReleaseImage(&matchImage);
+		modelImage = NULL;
+		matchImage = NULL;
 	}
 }
 

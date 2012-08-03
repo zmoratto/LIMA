@@ -33,6 +33,8 @@ int main (int argc, char** argv)
 		sfmTest.process(image, frameIndex);
 
 		cout << endl << "******************************************" << endl << endl;
+		cvReleaseImage(&image);
+		image = NULL;
 	}
 
 	//Write point projections for SBA
