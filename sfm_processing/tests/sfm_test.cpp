@@ -1,7 +1,5 @@
 #include <iostream>
 #include <time.h>
-#include "../PoseEstimation.h"
-#include "../FeatureExtraction.h"
 #include "../SFM.h"
 
 using namespace std;

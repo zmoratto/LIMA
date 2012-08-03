@@ -25,7 +25,6 @@ namespace po = boost::program_options;
 
 
 using namespace std;
-using namespace cv;
 
 //reads the calibration file
 int readCalibrationFile(const string &calibrationFilename, 
@@ -228,7 +227,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
     for (int y = 0; y < m_points.rows; ++y) {
       for (int x = 0; x < m_points.cols; ++x) {
        
-        Vec3f const& point = m_points.at<Vec3f>(y, x);
+        cv::Vec3f const& point = m_points.at<cv::Vec3f>(y, x);
         //if (!(fabs(point[2] - maxZ) < FLT_EPSILON || fabs(point[2]) > maxZ)) {
         if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0){
           ostr << point[0] << " " << point[1] << " " << point[2] << endl;
@@ -269,16 +268,16 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
   void
   CvStereoBMProcessor::processImagePair(IplImage *refImg, IplImage *matchImg)
   {
-    Mat refMatOrig = refImg;
-    Mat matchMatOrig = matchImg;
+    cv::Mat refMatOrig = refImg;
+    cv::Mat matchMatOrig = matchImg;
     CvMat * tileDisparity;
-    Rect imageRoi, tileRoi;
-    Mat tileDisMat, fullDisMat;
-    Mat refMat, matchMat;
+    cv::Rect imageRoi, tileRoi;
+    cv::Mat tileDisMat, fullDisMat;
+    cv::Mat refMat, matchMat;
 
     // downsample
-    resize(refMatOrig, refMat, smallSize, 0, 0, INTER_LINEAR );
-    resize(matchMatOrig, matchMat, smallSize, 0, 0, INTER_LINEAR );
+    resize(refMatOrig, refMat, smallSize, 0, 0, cv::INTER_LINEAR );
+    resize(matchMatOrig, matchMat, smallSize, 0, 0, cv::INTER_LINEAR );
 
     if(NEED_RECTIFICATION)
     {
@@ -328,8 +327,8 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
        tileRoi.y = imageRoi.y - it->y;
 
        //copy data using roi's
-       Mat tileRoiMat(tileDisMat, tileRoi);
-       Mat imageRoiMat(fullDisMat, imageRoi);
+       cv::Mat tileRoiMat(tileDisMat, tileRoi);
+       cv::Mat imageRoiMat(fullDisMat, imageRoi);
        tileRoiMat.copyTo(imageRoiMat);
 
        //release data
@@ -339,7 +338,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
     // hack to get rid of small-scale noise
     cvErode(m_imageDisparity, m_imageDisparity, NULL, 2);
     cvDilate(m_imageDisparity, m_imageDisparity, NULL, 2);
-    Mat disMat = m_imageDisparity;
+    cv::Mat disMat = m_imageDisparity;
 
     //TODO:cant do this without doing rectification yet
     if(NEED_RECTIFICATION)
@@ -417,9 +416,9 @@ void CvStereoBMProcessor::initializeTiling(Tiling &tiling)
 
 
 // computes the tile region that doesn't include overlap
-Rect CvStereoBMProcessor::getTileWithoutOverlap(Rect tile, int xOverlap, int yOverlap)
+cv::Rect CvStereoBMProcessor::getTileWithoutOverlap(cv::Rect tile, int xOverlap, int yOverlap)
 {
-   Rect roi;
+   cv::Rect roi;
 
    if( tile.x == 0 ){
       roi.x = 0;

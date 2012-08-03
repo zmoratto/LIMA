@@ -4,12 +4,6 @@
 #include <vector>
 #include <time.h>
 
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/registration/icp.h>
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -21,11 +15,9 @@
 #include "../common/Tiling.h"
 
 #define NO_DEPTH 0
+#define STEREO_DEPTH 1
 #define KINECT_DEPTH 2
 #define POINT_CLOUD 3
-
-using namespace cv;
-using namespace std;
 
 struct SFMParams{
 	int firstFrame;
@@ -59,11 +51,10 @@ public:
 	PoseEstimation pose;
 	FeatureExtraction feat;
 	SFMParams configParams;
-	Mat cameraMatrix;
-	Mat distCoeffs;
-	Mat Q;
+	cv::Mat cameraMatrix;
+	cv::Mat distCoeffs;
 	IplImage *prevImage;
-	IplImage *prevDepth, *currDepth;
+	IplImage *currDepth;
 	string outputDir;
 	int sfmInit;
 	vector<string> pointFiles;
@@ -87,9 +78,7 @@ public:
 	void preprocessing(IplImage* image, int frameIndex);
 	void process(IplImage* image, int frameIndex);
 	void update(IplImage* image);
-	void clear();
 	void showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex);
-	void cleanUp(IplImage*& im1, IplImage*& im2);
 
 	void mapping(string &filename, IplImage* image);
 	void depthToPointCloud();

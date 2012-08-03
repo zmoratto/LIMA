@@ -7,8 +7,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-using namespace cv;
-
 struct configParams
 {
 	int detect_extract_method;
@@ -27,10 +25,10 @@ public:
 
 	//Member Variables
 	configParams featureParams;
-	FeatureDetector * detector;
-	vector<KeyPoint> key_points;
-	DescriptorExtractor * extractor;
-	Mat point_descriptors;
+	cv::FeatureDetector * detector;
+	std::vector<cv::KeyPoint> key_points;
+	cv::DescriptorExtractor * extractor;
+	cv::Mat point_descriptors;
 	int featureMethod;
 
 	//Surf Parameters
@@ -43,10 +41,10 @@ public:
 	int octaveLayers;
 
 	//Methods
-	void printWarning(string configFilename);
+	void printWarning(std::string configFilename);
 	void printUsage();
-	void readImageFiles(string filename, vector<string>& imageFiles);
-	void readConfigurationFile(string filename);
+	void readImageFiles(std::string filename, std::vector<std::string>& imageFiles);
+	void readConfigurationFile(std::string filename);
 	void setDetectExtract(int type);
 	void detectKeyPoints(IplImage* image);
 	void extractKeyPoints(IplImage* image);

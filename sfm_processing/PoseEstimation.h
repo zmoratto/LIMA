@@ -1,10 +1,6 @@
 #pragma once
 #include <vector>
 
-#include "pcl/common/common_headers.h"
-#include <pcl/correspondence.h>
-#include <pcl/registration/transformation_estimation_svd.h>
-
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -15,58 +11,55 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+//Depth Info For Matching
 #define NO_DEPTH 0
+#define STEREO_DEPTH 1
 #define KINECT_DEPTH 2
 #define POINT_CLOUD 3
 
+//Weighting For Matches
 #define NO_WEIGHT 0
 #define SINGLE_WEIGHT 1
 #define DOUBLE_WEIGHT 2
 
-using namespace cv;
-
-using namespace std;
-
 //Point Projection struct for SBA
 struct pointProjection{
-	Point3f point;
-	vector<Point2f> pixels;
-	vector<int> frames;
-	vector<Point3f> allPoints;
+	cv::Point3f point;
+	std::vector<cv::Point2f> pixels;
+	std::vector<int> frames;
+	std::vector<cv::Point3f> allPoints;
 };
 
 class PoseEstimation
 {
 public:
-	//Constructor
 	PoseEstimation();
 
-	//Destructor
 	~PoseEstimation();
 
 	//Tile points, matches and descriptors
-	vector<cv::Point3f> currMatchedPoints, prevMatchedPoints;
-	vector<cv::Point2f> prevMatchedPixels, currMatchedPixels;
-	Mat prevObjectData, currObjectData;
-	vector<KeyPoint> prevKeypoints;
+	std::vector<cv::Point3f> currMatchedPoints, prevMatchedPoints;
+	std::vector<cv::Point2f> prevMatchedPixels, currMatchedPixels;
+	cv::Mat prevObjectData, currObjectData;
+	std::vector<cv::KeyPoint> prevKeypoints;
 
 	//Global Points, matches and descriptors
-	vector<cv::Point3f> globalCurrMatchedPts, globalPrevMatchedPts;
-	vector<cv::Point2f> globalPrevMatchedPix, globalCurrMatchedPix;
-	vector<KeyPoint> globalCurrKeyPoints, globalPrevKeyPoints;
-	Mat globalCurrDescriptors, globalPrevDescriptors;
+	std::vector<cv::Point3f> globalCurrMatchedPts, globalPrevMatchedPts;
+	std::vector<cv::Point2f> globalPrevMatchedPix, globalCurrMatchedPix;
+	std::vector<cv::KeyPoint> globalCurrKeyPoints, globalPrevKeyPoints;
+	cv::Mat globalCurrDescriptors, globalPrevDescriptors;
 
 	//Vector with index locations of globalMatchedPix which says which matches are valid
-	vector<int> validPix;
+	std::vector<int> validPix;
 
 	//Vector with floats telling which matches have which weights
-	vector<float> matchWeights;
+	std::vector<float> matchWeights;
 
 	//Mask which says which matches are inliers and which are outliers
-	Mat outlierMask;
+	cv::Mat outlierMask;
 
 	//Point projections for SBA
-	vector<pointProjection> projectedPoints;
+	std::vector<pointProjection> projectedPoints;
 
 	//Rotation and Translation
 	CvMat *prevGlobal_R;
@@ -77,12 +70,12 @@ public:
 	CvMat *currGlobal_T;
 
 	//3D Points
-	vector<float> curr_x;
-	vector<float> curr_y;
-	vector<float> curr_z;
-	vector<float> prev_x;
-	vector<float> prev_y;
-	vector<float> prev_z;
+	std::vector<float> curr_x;
+	std::vector<float> curr_y;
+	std::vector<float> curr_z;
+	std::vector<float> prev_x;
+	std::vector<float> prev_y;
+	std::vector<float> prev_z;
 
 	//Configuration Parameters
 	float nndrRatio;
@@ -106,7 +99,7 @@ public:
 	void find_homography();
 	void copyGlobal_R_T();
 	void resetPrevPos();
-	void resizeXYZVectors(int width, int height);
+	void allocatePCMemory(int width, int height);
 	void nearestNeighborMatching(IplImage* image);
 	void collect3DMatches(int width);
 	void process(int depthInfo, IplImage* image);
@@ -115,8 +108,8 @@ public:
 	void removeOutliers(int depthInfo, IplImage* image);
 
 	//Point Projection -- For SBA
-	int searchPointProj(Point2f find);
-	void appendPointProj(Point2f pix, Point3f pt, int loc, int frameIndex);
+	int searchPointProj(cv::Point2f find);
+	void appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex);
 	void savePointProj(int frameIndex, int firstFrame);
-	void writePointProj(string& pointProjFile);
+	void writePointProj(std::string& pointProjFile);
 };

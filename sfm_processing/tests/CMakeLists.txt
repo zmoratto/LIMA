@@ -6,15 +6,21 @@ include_directories(${OPENCV_INCLUDE_DIRS})
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-project(sfm_project)
-add_executable(sfm_test sfm_test.cpp ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp ../../common/Tiling.cpp)
-target_link_libraries(sfm_test ${PCL_LIBRARIES})
-target_link_libraries(sfm_test ${OpenCV_LIBS})
-project(FE_project)
-add_executable(FE_test FeatureExtraction_test.cpp ../FeatureExtraction.cpp)
-target_link_libraries(FE_test ${OpenCV_LIBS})
-#project(sfmDepth_project)
-#add_executable(sfmDepth_test depthSfm.cpp ../../common/Tiling.cpp ../../stereo_processing/CvStereoBMProcessor.cpp ../../string_util.cc ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp)
-#target_link_libraries(sfmDepth_test ${OpenCV_LIBS})
-#target_link_libraries(sfmDepth_test ${PCL_LIBRARIES})
-#target_link_libraries(sfmDepth_test ${Boost_LIBRARIES})
+
+#sfm Library
+add_library(sfm ../SFM.cpp ../PoseEstimation.cpp ../FeatureExtraction.cpp ../../common/Tiling.cpp)
+target_link_libraries(sfm ${PCL_LIBRARIES})
+target_link_libraries(sfm ${OpenCV_LIBS})
+
+#sfm_test Executable
+add_executable(sfm_test sfm_test.cpp)
+target_link_libraries(sfm_test sfm)
+
+#FE_test Executable
+add_executable(FE_test FeatureExtraction_test.cpp)
+target_link_libraries(FE_test sfm)
+
+#sfmDepth Executable
+add_executable(sfmDepth_test depthSfm.cpp ../../stereo_processing/CvStereoBMProcessor.cpp ../../string_util.cc)
+target_link_libraries(sfmDepth_test sfm)
+target_link_libraries(sfmDepth_test ${Boost_LIBRARIES})

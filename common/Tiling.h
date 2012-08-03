@@ -1,3 +1,5 @@
+#ifndef TILING_H
+#define TILING_H
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -48,6 +50,8 @@ public:
 	void setUpMatchingTiles(Tiling ref, IplImage* im1);
 	void clear();
 };
+
+#endif
 
 
 

@@ -103,16 +103,16 @@ void FeatureExtraction::setDetectExtract(int type)
 	switch(type)
 	{
 		case 1: //Orb
-			detector = new OrbFeatureDetector();
-			extractor = new OrbDescriptorExtractor();
+			detector = new cv::OrbFeatureDetector();
+			extractor = new cv::OrbDescriptorExtractor();
 			break;
 		case 2: //Sift
-			detector = new SiftFeatureDetector();
-			extractor = new SiftDescriptorExtractor();
+			detector = new cv::SiftFeatureDetector();
+			extractor = new cv::SiftDescriptorExtractor();
 			break;
 		default: //Surf
-			detector = new SurfFeatureDetector(hessianThresh, octaves, octaveLayers, upright);
-			extractor = new SurfDescriptorExtractor(nOctaves, nOctaveLayers, extended, upright);
+			detector = new cv::SurfFeatureDetector(hessianThresh, octaves, octaveLayers, upright);
+			extractor = new cv::SurfDescriptorExtractor(nOctaves, nOctaveLayers, extended, upright);
 	}
 }
 
@@ -147,7 +147,7 @@ void FeatureExtraction::showKeyPoints(IplImage* image)
 void FeatureExtraction::process(IplImage* image)
 {
 	//Clean Up
-	vector<KeyPoint> temp;
+	vector<cv::KeyPoint> temp;
 	int cnt = 0;
 	int xLoc, yLoc, width = image->width;
 	temp.clear();

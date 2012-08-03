@@ -13,8 +13,6 @@
 #include <opencv/highgui.h>
 #include <opencv/cvaux.h>
 
-#include "../PoseEstimation.h"
-#include "../FeatureExtraction.h"
 #include "../SFM.h"
 #include "../../stereo_processing/CvStereoBMProcessor.h"
 #include "../../string_util.h"

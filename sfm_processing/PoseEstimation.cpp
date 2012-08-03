@@ -1,19 +1,15 @@
-#include <opencv2/core/core.hpp>
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
 #include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
-
+#include "opencv2/calib3d/calib3d.hpp"
 #include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include "pcl/common/common_headers.h"
 #include <pcl/correspondence.h>
 #include <pcl/registration/transformation_estimation_svd.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/registration/transformation_estimation_lm.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
@@ -24,7 +20,6 @@
 
 using namespace Eigen;
 using namespace std;
-using namespace pcl;
 
 PoseEstimation::PoseEstimation()
 {
@@ -285,7 +280,7 @@ void PoseEstimation::composePose()
 	cvMatMulAdd(prevGlobal_R, relative_T, prevGlobal_T, currGlobal_T);
 }
 
-//Wrapper for OpenCV findHomography and findFundamentalMat
+//Wrapper for OpenCV findHomography and findFundamentalMat for two sets of pixels
 void PoseEstimation::find_homography()
 {
 	cv::Mat H;
@@ -299,16 +294,16 @@ void PoseEstimation::find_homography()
 	H.release();
 }
 
+//Copy global R and T to previous Global R and T
 void PoseEstimation::copyGlobal_R_T()
 {
-	//Copy global R and T to previous Global R and T
 	cvCopy(currGlobal_R, prevGlobal_R);
 	cvCopy(currGlobal_T, prevGlobal_T);
 }
 
+//Copy the current 3D points to the previous 3D points and clean out current points.
 void PoseEstimation::resetPrevPos()
 {
-	//Copy the current 3D points to the previous 3D points and clean out current points.
 	prev_x.clear();
 	prev_y.clear();
 	prev_z.clear();
@@ -324,8 +319,8 @@ void PoseEstimation::resetPrevPos()
 	}
 }
 
-
-void PoseEstimation::resizeXYZVectors(int width, int height)
+//Allocate memory for 3D point holders
+void PoseEstimation::allocatePCMemory(int width, int height)
 {
 	curr_x.resize(width*height);
 	curr_y.resize(width*height);
@@ -336,7 +331,7 @@ void PoseEstimation::resizeXYZVectors(int width, int height)
 	prev_z.resize(width*height);
 }
 
-
+//Flann Nearest Neighbor Matching
 void PoseEstimation::nearestNeighborMatching(IplImage* image)
 {
 	int numMatches;
@@ -377,16 +372,15 @@ void PoseEstimation::nearestNeighborMatching(IplImage* image)
 		//Backward
 		cv::flann::Index backwardIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
 
-		int k=numNN; // find the 2 nearest neighbors
-		cv::Mat resultsBack(globalPrevDescriptors.rows, k, CV_32SC1);
-		cv::Mat distsBack(globalPrevDescriptors.rows, k, CV_32FC1);
-		backwardIndex.knnSearch(globalPrevDescriptors, resultsBack, distsBack, k, cv::flann::SearchParams(flannCheck)); 
+		cv::Mat resultsBack(globalPrevDescriptors.rows, 1, CV_32SC1);
+		cv::Mat distsBack(globalPrevDescriptors.rows, 1, CV_32FC1);
+		backwardIndex.knnSearch(globalPrevDescriptors, resultsBack, distsBack, 1, cv::flann::SearchParams(flannCheck)); 
 
 		//Forward
 		cv::flann::Index forwardIndex(globalPrevDescriptors, cv::flann::KDTreeIndexParams());
-		cv::Mat resultsForward(globalCurrDescriptors.rows, k, CV_32SC1);
-		cv::Mat distsForward(globalCurrDescriptors.rows, k, CV_32FC1);
-		forwardIndex.knnSearch(globalCurrDescriptors, resultsForward, distsForward, k, cv::flann::SearchParams(flannCheck));
+		cv::Mat resultsForward(globalCurrDescriptors.rows, 1, CV_32SC1);
+		cv::Mat distsForward(globalCurrDescriptors.rows, 1, CV_32FC1);
+		forwardIndex.knnSearch(globalCurrDescriptors, resultsForward, distsForward, 1, cv::flann::SearchParams(flannCheck));
 	
 		// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
 		for(int i=0; i < globalPrevKeyPoints.size(); ++i)
@@ -421,6 +415,7 @@ void PoseEstimation::nearestNeighborMatching(IplImage* image)
 		collect3DMatches(image->width);
 }
 
+//Using Pixel Matches, find corresponding 3D Matches
 void PoseEstimation::collect3DMatches(int width)
 {
 	int currIndex, prevIndex;
@@ -449,11 +444,12 @@ void PoseEstimation::collect3DMatches(int width)
 	}
 }
 
+//Perform Point Cloud Alignment on matches from two images
 void PoseEstimation::process(int depthInfo, IplImage* image)
 {
 	int relativePoseError = 1;
 	int i;
-	Mat currTemp, prevTemp;
+	cv::Mat currTemp, prevTemp;
 	clock_t t1, t2;
 
 	//Nearest Neighbor Matching
@@ -472,9 +468,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 			relativePoseError = estimateRelativePose();
 	}
 	else
-	{
 		cout << "* NO POSE ESTIMATION! NOT ENOUGH GOOD POINTS *" << endl;
-	}
 
 	if (relativePoseError == 0)
 	{
@@ -483,6 +477,7 @@ void PoseEstimation::process(int depthInfo, IplImage* image)
 	}
 }
 
+//Clear variables for processing of new tile
 void PoseEstimation::clear()
 {
 	currMatchedPoints.clear();
@@ -495,8 +490,8 @@ void PoseEstimation::clear()
 	outlierMask.release();
 }
 
-
-int PoseEstimation::searchPointProj(Point2f find)
+//Search for point projection matches
+int PoseEstimation::searchPointProj(cv::Point2f find)
 {
 	int match;
 	int end;
@@ -511,13 +506,15 @@ int PoseEstimation::searchPointProj(Point2f find)
 	return -1;
 }
 
-void PoseEstimation::appendPointProj(Point2f pix, Point3f pt, int loc, int frameIndex)
+//Add new point projection
+void PoseEstimation::appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex)
 {
 	projectedPoints[loc].pixels.push_back(pix);
 	projectedPoints[loc].allPoints.push_back(pt);
 	projectedPoints[loc].frames.push_back(frameIndex);
 }
 
+//Save All new points into point projection
 void PoseEstimation::savePointProj(int frameIndex, int firstFrame)
 {
 	int index, match;
@@ -553,6 +550,7 @@ void PoseEstimation::savePointProj(int frameIndex, int firstFrame)
 	}
 }
 
+//Write projected points to a file
 void PoseEstimation::writePointProj(string& pointProjFile)
 {
 	ofstream fout;
@@ -570,14 +568,15 @@ void PoseEstimation::writePointProj(string& pointProjFile)
 	fout.close();
 }
 
+//Remove duplicate key points before matching
 void PoseEstimation::removeDuplicates(IplImage* image)
 {
 	CvMat* im = cvCreateMat(image->height,image->width,CV_32F);
 	vector<int> repeats;
-	vector<KeyPoint> tempKeyPoints;
+	vector<cv::KeyPoint> tempKeyPoints;
 	int x, y, index, width = image->width;
 	tempKeyPoints.clear();
-	Mat tempMat;
+	cv::Mat tempMat;
 
 	for(int i=0; i<globalCurrKeyPoints.size(); i++)
 	{
@@ -602,7 +601,7 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 	{
 		if(repeats[j] != i)
 		{
-			Mat dest(tempMat.rowRange(cnt, cnt+1));
+			cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
 			globalCurrDescriptors.row(i).copyTo(dest);
 			cnt++;
 		}
@@ -620,7 +619,7 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 	tempMat.release();
 }
 
-
+//Remove outliers after initial nearest neighbor matching
 void PoseEstimation::removeOutliers(int depthInfo, IplImage* image)
 {
 	vector<cv::Point3f> currPts, prevPts;

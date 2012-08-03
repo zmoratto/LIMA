@@ -11,23 +11,21 @@ void printDepthWarning();
 SFM::SFM(char* configFile, char* inputFilename)
 {
 	prevImage = NULL;
-	prevDepth = NULL;
 	currDepth = NULL;
 	sfmInit = 1;
 	string configFileString = string(configFile);
 	string inputFilenameString = string(inputFilename);
 
-	//Read Configuration Files and Set Up Tiles
+	//Read Configuration Files
 	readConfigurationFile(configFileString);
 	readImageFilenames(inputFilenameString);
 
 	IplImage* image = cvLoadImage(inputFiles[configParams.firstFrame].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-
 	imageWidth = image->width;
 	imageHeight = image->height;
 
+	//Set up tiles
 	referenceTile.setUpReferenceTiles(image);
-
 	numTiles = referenceTile.tiles.size();
 
 	//Read Camera/Point Information Depending on Depth Info
@@ -42,13 +40,37 @@ SFM::SFM(char* configFile, char* inputFilename)
 	}
 
 	//Set up 3D Point Vectors
-	pose.resizeXYZVectors(imageWidth,imageHeight);
+	pose.allocatePCMemory(imageWidth,imageHeight);
 
 	cvReleaseImage(&image);
 }
 
 SFM::~SFM()
 {
+	cameraMatrix.release();
+	distCoeffs.release();
+
+	if(prevImage != NULL)
+	{
+		cvReleaseImage(&prevImage);
+		prevImage = NULL;
+	}
+	if(currDepth != NULL)
+	{
+		cvReleaseImage(&currDepth);
+		currDepth = NULL;
+	}
+
+	pointFiles.clear();
+
+	for(int i=0; i<numTiles; i++)
+	{
+		cvReleaseImage(&referenceTile.tileImages[i]);
+		referenceTile.tileImages[i] = NULL;
+	}	
+
+	inputFiles.clear();
+	depthFiles.clear();
 }
 
 void SFM::printUsage()
@@ -121,7 +143,7 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> pose.matchingMethod;
 		fin.close();
 	}
-	else 
+	else //If the config file doesn't open, resort to default parameters 
 	{
 	    printWarning(configurationFilename);
 		restoreDefaultParameters();
@@ -172,7 +194,7 @@ void SFM::printConfigParams()
 	cout << "matchingMethod=" << pose.matchingMethod << endl;
 }
 
-
+//Read camera calibration file for kinect
 int SFM::readCameraCalibrationFile()
 {
 	ifstream calibrationFile (configParams.cameraCalibrationFilename.c_str());
@@ -205,6 +227,7 @@ int SFM::readCameraCalibrationFile()
 	}
 }
 
+//Restore default parameters if no config file
 void SFM::restoreDefaultParameters()
 {
 	configParams.firstFrame = 0;
@@ -249,6 +272,7 @@ void SFM::restoreDefaultParameters()
 	pose.matchingMethod = 1;
 }
 
+//Read list of input images and save into vector
 void SFM::readImageFilenames(string& inputFile)
 {
 	string image, depth;
@@ -273,21 +297,22 @@ void SFM::readImageFilenames(string& inputFile)
 	fin.close();
 }
 
+//Perform feature extraction on tile and save extracted features and descriptors in global collection variables
 void SFM::processTile(IplImage *image, int frameIndex)
 {
 	int index, cnt = 0;
 	pose.currMatchedPixels.clear();
 	pose.prevMatchedPixels.clear();
-	vector<KeyPoint> temp;
+	vector<cv::KeyPoint> temp;
 	temp.clear();
 	vector<int> loc;
-	Mat tempMat;
+	cv::Mat tempMat;
 	int j = 0;	
 	int left = imageWidth, right = 0, top = imageHeight, bottom = 0, x, y;
 	CvRect mask;
 	IplImage* imageMask;
 	int tileY, tileX;
-	KeyPoint tilePt;
+	cv::KeyPoint tilePt;
 	int oldRow = 0;
 	int buffer = 25;
 	IplImage* tempImg = cvCreateImage(cvSize(imageWidth,imageHeight),image->depth,image->nChannels);
@@ -303,6 +328,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	pose.currMatchedPixels.clear();
 
 	//Set up mask for FE
+	//Only extract features from area where 3D information is available
 	for(int i=0; i<imageWidth*imageHeight; i++)
 	{
 		if(pose.curr_z[i] > 0)
@@ -339,7 +365,6 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	mask.y -= referenceTile.tiles[currTile].y;
 
 	cvCopy(image, copy, NULL);
-
 	cvSetImageROI(copy, mask);
 
 	//Feature Extraction
@@ -381,7 +406,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
 		if(pose.curr_z[index] > 0)
 		{
-			Mat dest(tempMat.rowRange(cnt, cnt+1));
+			cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
 			pose.currObjectData.row(i).copyTo(dest);
 			cnt++;
 		}
@@ -404,7 +429,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	//Collect All Descriptors
 	oldRow = pose.globalCurrDescriptors.rows;
 	pose.globalCurrDescriptors.resize(oldRow+feat.key_points.size());
-	Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
+	cv::Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
 	pose.currObjectData.copyTo(dest1);
 }
 
@@ -425,6 +450,7 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 	}
 }
 
+//Process each tile, process pose and map point clouds
 void SFM::process(IplImage* image, int frameIndex)
 {
 	clock_t t1, t2;
@@ -463,7 +489,7 @@ void SFM::process(IplImage* image, int frameIndex)
 	update(image);
 }
 
-
+//Move current points and matches to previous variables
 void SFM::update(IplImage* image)
 {
 	pose.clear();
@@ -505,16 +531,7 @@ void SFM::update(IplImage* image)
 	image = NULL;
 }
 
-void SFM::clear()
-{
-	sfmInit = 1;
-	feat.clear();
-	pose.clear();
-	if(prevImage != NULL)
-		cvReleaseImage(&prevImage);
-	prevImage = NULL;
-}
-
+//Creates composed image and displays matches and keypoints
 void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 {
 	int index;
@@ -610,25 +627,6 @@ void SFM::showGlobalMatches(IplImage* image1, IplImage* image2, int frameIndex)
 	string composedFilename = configParams.resultImageFilename + ss.str() + string(".jpg");
 	cvSaveImage(composedFilename.c_str(), composedImage);
 	cvReleaseImage(&composedImage);
-}
-
-
-void SFM::cleanUp(IplImage*& im1, IplImage*& im2)
-{
-	pose.globalCurrMatchedPts.clear();
-	pose.globalCurrMatchedPix.clear();
-	pose.globalCurrKeyPoints.clear();
-	pose.globalPrevMatchedPts.clear();
-	pose.globalPrevMatchedPix.clear();
-	pose.globalPrevKeyPoints.clear();
-	pose.globalPrevDescriptors.release();
-	pose.globalCurrDescriptors.release();
-	cvReleaseImage(&im1);
-	cvReleaseImage(&im2);
-	cvReleaseImage(&prevImage);
-	im1 = NULL;
-	im2 = NULL;
-	prevImage = NULL;
 }
 
 //Takes global R and T and applies them to the point clouds to get aligned point clouds.
