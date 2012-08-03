@@ -24,6 +24,7 @@ struct CvStereoSGBMProcessorParameters{
   std::string resDir;
   bool needRectification;
   float scaleFactor;
+  std::string calibrationFilename;
   int tileWidth;
   int tileHeight;
 };

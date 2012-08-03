@@ -19,6 +19,7 @@ struct CvStereoProcessorParameters{
   int uniquenessRatio;
   std::string modelImageFilename;
   std::string resDir;
+  std::string calibrationFilename;
 };
 
 class CvStereoProcessor

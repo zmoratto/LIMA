@@ -133,7 +133,7 @@ int readCalibrationFile(const string &calibrationFilename,
     return 1;
   }
   else {
-    cout << "Unable to open file"; 
+    cout << "Unable to open file"<<endl;; 
     return 0;
   }
 }
@@ -156,8 +156,7 @@ CvStereoSGBMProcessor::CvStereoSGBMProcessor(CvStereoSGBMProcessorParameters con
     sgbm.fullDP=true;
 
     //rectification code - START
-    //TODO:calibration filename can be a parameter in StereoCV21Parameters!!!
-    string calibrationFilename="stereo_calibration.txt";
+    string calibrationFilename=m_params.calibrationFilename;
     cv::Mat camera_matrix[2], dist_coeffs[2];
     cv::Mat R, T;
     cv::Size imageSize;
@@ -167,6 +166,11 @@ CvStereoSGBMProcessor::CvStereoSGBMProcessor(CvStereoSGBMProcessorParameters con
                                                      dist_coeffs[0], dist_coeffs[1],
                                                      R, T, imageSize);
     
+    if( !readCalibFilenameError ){
+      cout<<"Error: could not read calibration file: "<<calibrationFilename<<endl;
+      return;
+      }
+
     cv::Mat R1, R2, P1, P2;
     cv::Rect validRoi[2];
 

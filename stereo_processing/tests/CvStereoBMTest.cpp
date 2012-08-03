@@ -126,15 +126,8 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
     cout<<line<<endl;
     stringstream sline9; 
     sline9<<line;
-    sline9 >> identifier;
-    if( sline9 >> val ){
-       cout<<val<<endl;
-       thisStereoParams->tileWidth=val;
-       }
-    else{
-       cout<<"TILE_HEIGHT: "<<-1<<endl;
-       thisStereoParams->tileWidth=-1;
-       }
+    sline9 >> identifier >> thisStereoParams->calibrationFilename;
+    cout<<thisStereoParams->calibrationFilename<<endl;
 
     getline (configFile,line);
     cout<<line<<endl;
@@ -142,6 +135,20 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
     sline10<<line;
     sline10 >> identifier;
     if( sline10 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileWidth=val;
+       }
+    else{
+       cout<<"TILE_Width: "<<-1<<endl;
+       thisStereoParams->tileWidth=-1;
+       }
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline11; 
+    sline11<<line;
+    sline11 >> identifier;
+    if( sline11 >> val ){
        cout<<val<<endl;
        thisStereoParams->tileHeight=val;
        }

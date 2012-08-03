@@ -133,7 +133,7 @@ int readCalibrationFile(const string &calibrationFilename,
     return 1;
   }
   else {
-    cout << "Unable to open file"; 
+    cout << "Unable to open file"<<endl;; 
     return 0;
   }
 }
@@ -156,8 +156,7 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
     NEED_RECTIFICATION             = m_params.needRectification;
 
     //rectification code - START
-    //TODO:calibration filename can be a parameter in StereoCV21Parameters!!!
-    string calibrationFilename="/home/emily/project/lima/stereo_processing/stereo_calibration.txt";
+    string calibrationFilename=m_params.calibrationFilename;
     cv::Mat camera_matrix[2], dist_coeffs[2];
     cv::Mat R, T;
     cv::Size imageSize;
@@ -166,6 +165,11 @@ CvStereoBMProcessor::CvStereoBMProcessor(CvStereoBMProcessorParameters const& pa
                                                      camera_matrix[0], camera_matrix[1],
                                                      dist_coeffs[0], dist_coeffs[1],
                                                      R, T, imageSize);
+
+    if( !readCalibFilenameError ){
+      cout<<"Error: could not read calibration file: "<<calibrationFilename<<endl;
+      return;
+      }
 
     cv::Mat R1, R2, P1, P2;
     cv::Rect validRoi[2];
