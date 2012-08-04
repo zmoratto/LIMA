@@ -28,7 +28,11 @@ using namespace std;
 vw::Vector3 ComputeDEMTranslation( const std::vector<vw::Vector3>& features, 
                                    const std::vector<vw::Vector3>& reference );
 
-void PrintMatrix(Matrix<float, 3, 3> &A);
+vw::Vector3 ComputeDEMTranslation( const vector<Vector3>& match, 
+                                   const vector<Vector3>& reference,
+                                   const Matrix<float, 3, 3> &rotation);
+
+void PrintMatrix(const Matrix<float, 3, 3> &A);
 
 //compute the matching error vector and overall average error 
 valarray<float> ComputeMatchingError( const std::vector<vw::Vector3>& model, 
@@ -260,15 +264,134 @@ void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray,
 		const vw::cartography::GeoReference& foreDEMGeo,
 		vw::Vector3&                   center, 
 		vw::Vector3&                   translation, 
-		vw::Matrix<float, 3, 3>&       rotation);
+		vw::Matrix<float, 3, 3>&       rotation,
+                float matchError);
+
 
 
 //used in DEM to DEM alignment
+//old style DEM alignment
 template <class ViewT>
 void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray, 
                     const vw::ImageViewBase<ViewT>&      backDEM,  
                     const vw::cartography::GeoReference& backDEMGeo, 
                     const vw::cartography::GeoReference& foreDEMGeo, 
+		    const int matchingMode,
+                    const CoregistrationParams&          settings,
+                          vw::Vector3&                   translation, 
+                          vw::Matrix<float, 3, 3>&       rotation, 
+                          vw::Vector3&                   featureCenter, 
+                          float&                         matchError ){
+
+  std::vector<vw::Vector3> translationArray;
+  std::vector<vw::Matrix<float, 3,3> > rotationArray;
+  std::vector<vw::Vector3> referenceArray( featureArray.size() );
+  vw::Vector3 referenceCenter;
+  vw::Vector3 origFeatureCenter;
+  vw::Vector3 zeroVector;
+
+  std::vector<vw::Vector3> origFeatureArray( featureArray.size() );   
+  for (int i = 0; i < featureArray.size(); i++){
+    origFeatureArray[i] = featureArray[i];
+  }
+  origFeatureCenter = find_centroid( origFeatureArray );
+
+  int numIter = 0;
+  matchError = 100.0; 
+   
+  while( (numIter    < settings.maxNumIter) &&
+         (matchError > settings.minConvThresh) ){
+    std::cout << " iteration=" << numIter << std::endl;
+
+    std::cout << "feature matching ..." << std::endl;
+    FindMatches( featureArray, backDEM, backDEMGeo, foreDEMGeo, 
+                 referenceArray, settings.matchWindowHalfSize, settings.noDataVal);
+    
+    std::cout << "computing the matching error ..." << std::endl; 
+    matchError = ComputeMatchingError3D( featureArray, referenceArray );
+    std::cout << "match error=" << matchError << std::endl;
+
+    if (matchError >= std::numeric_limits<float>::max()){
+      std::cout<< "Features cannot be matched. Exiting ICP_DEM_2_DEM..."<<std::endl;
+      return;
+    }
+
+    featureCenter = find_centroid( featureArray );
+    referenceCenter = find_centroid(referenceArray);
+    /*
+    if (matchingMode >= 2){//ICP_TRANSLATION
+      std::cout << "computing DEM translation ..." << std::endl;
+      translation = ComputeDEMTranslation( featureArray, referenceArray );   
+    } 
+    
+    std::cout << "translation = " << translation << std::endl;
+    */
+    
+    if (matchingMode == 3){//ICP_ROTATION
+      std::cout << "computing DEM rotation ..." << std::endl;
+      //std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
+      rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
+      
+      //compute the rotation matrix with the origin of the referenceArray
+      std::cout << "rotation matrix = " << std::endl;
+      PrintMatrix( rotation );
+    }
+    
+    if (matchingMode >= 2){//ICP_TRANSLATION
+      std::cout << "computing DEM translation ..." << std::endl;
+      //std::cout << "rotation matrix = " << std::endl;
+      //PrintMatrix( rotation );
+      translation = ComputeDEMTranslation( featureArray, referenceArray, rotation);  
+      std::cout << "translation = " << translation << std::endl; 
+    } 
+
+    //apply the computed rotation and translation to the featureArray  
+    //correction to transform features to ignore the center of rotation
+    //TransformFeatures( featureArray, referenceCenter/*featureCenter*/, translation, rotation ); 
+
+    
+    //this is really bad
+    //Vector3 zeroVector;
+    zeroVector(0)=0;
+    zeroVector(1)=0;
+    zeroVector(2)=0;
+    TransformFeatures( featureArray, zeroVector, translation, rotation ); 
+    
+    //save current rotation and translation
+    translationArray.push_back( translation );
+    rotationArray.push_back(    rotation    );
+    
+    ++numIter;
+  }
+
+
+  //compute the final rotation and translation - START
+  rotation = rotationArray[0];
+  translation = translationArray[0];
+  for ( unsigned int i = 1; i < rotationArray.size(); ++i){
+    rotation = rotationArray[i]*rotation;
+    translation =  rotationArray[i]*translation + translationArray[i];
+  }  
+  //compute the final rotation and translation - END
+
+  //for debug - START
+
+  cout<<"Alignment using the center of rotation"<<endl;
+  
+  ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter/*zeroVector*/, translation, rotation, matchError);
+  //for debug - END
+}
+
+
+/*
+//used in DEM to DEM alignment
+//new style DEM alignment
+template <class ViewT>
+void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray, 
+                    const vw::ImageViewBase<ViewT>&      backDEM,  
+                    const vw::cartography::GeoReference& backDEMGeo, 
+                    const vw::cartography::GeoReference& foreDEMGeo, 
+		    const int matchingMode,
                     const CoregistrationParams&          settings,
                           vw::Vector3&                   translation, 
                           vw::Matrix<float, 3, 3>&       rotation, 
@@ -310,22 +433,32 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
     featureCenter = find_centroid( featureArray );
     referenceCenter = find_centroid(referenceArray);
     
-    std::cout << "computing DEM translation ..." << std::endl;
-    translation = ComputeDEMTranslation( featureArray, referenceArray );
+    if (matchingMode >= 2){//ICP_TRANSLATION
+      std::cout << "computing DEM translation ..." << std::endl;
+      translation = ComputeDEMTranslation( featureArray, referenceArray );   
+    } 
     std::cout << "translation = " << translation << std::endl;
-           
-    std::cout << "computing DEM rotation ..." << std::endl;
-    //std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
-    //rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
     
-    //compute the rotation matrix with the origin of the referenceArray
-    rotation = ComputeDEMRotation( featureArray, referenceArray, translation);
+    
+    if (matchingMode == 3){//ICP_ROTATION
+      std::cout << "computing DEM rotation ..." << std::endl;
+      //std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
+      //rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
+      //compute the rotation matrix with the origin of the referenceArray
+      rotation = ComputeDEMRotation( featureArray, referenceArray, translation);
+    }
     std::cout << "rotation matrix = " << std::endl;
     PrintMatrix( rotation );
 
+    Vector3 zeroVector;
+    zeroVector(0)=0;
+    zeroVector(1)=0;
+    zeroVector(2)=0;
+
     //apply the computed rotation and translation to the featureArray  
-    TransformFeatures( featureArray, referenceCenter, translation, rotation );     
-       
+    //correction to transform features to ignore the center of rotation
+    TransformFeatures( featureArray, zeroVector, translation, rotation );     
+        
     //save current rotation and translation
     translationArray.push_back( translation );
     rotationArray.push_back(    rotation    );
@@ -337,18 +470,21 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
   //compute the final rotation and translation - START
   rotation = rotationArray[0];
   translation = translationArray[0];
-  for( unsigned int i = 1; i < rotationArray.size(); ++i){
-    rotation = rotationArray[i]*rotation;
-    translation =  rotationArray[i]*translation + translationArray[i];
+  for ( unsigned int i = 1; i < rotationArray.size(); ++i){
+     rotation = rotationArray[i]*rotation;
+     translation =  rotationArray[i]*translation + translationArray[i];
   }
+  
+  featureCenter(0)=0.0;
+  featureCenter(1)=0.0;
+  featureCenter(2)=0.0;
+  
+  cout<<"Alignment without center of rotation"<<endl;
   //compute the final rotation and translation - END
-
-  //for debug - START
-  ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter, translation, rotation);
-  //for debug - END
+  ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter, translation, rotation, matchError);
+  
 }
-
-
+*/
 
 //used in DEM to Lidar alignment
 template <class ViewT>

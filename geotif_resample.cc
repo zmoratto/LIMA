@@ -386,7 +386,6 @@ int main( int argc, char *argv[] ) {
     quadDecomposition = QuadDecomposition(horTile, verTile, numPyrLevels);
     for (int i = numPyrLevels-1; i >=0; i--){
       quadDecomposition[i] = quadDecomposition[i] +1; 
-      //cout<<quadDecomposition[i]<<endl;
       stringstream ss;//create a stringstream
       ss << quadDecomposition[i];
       outputDirname = outputDirname+string("/")+ss.str();
@@ -395,14 +394,15 @@ int main( int argc, char *argv[] ) {
    
   
     
-    if (resampleParams.imageType == 0){
+    if (resampleParams.imageType == 0){//DEM
       DiskImageView<float >  initImg(inputFilename);
       GeoReference initGeo;
       read_georeference(initGeo, inputFilename);
+      cout<<"make pyramid"<<endl;
       MakePyramid(initImg, initGeo, resampleParams, outputDirname);
     }
     
-    if (resampleParams.imageType == 1){     
+    if (resampleParams.imageType == 1){//DRG     
       DiskImageView<PixelGray<uint8> >  initImg(inputFilename);
       GeoReference initGeo;
       read_georeference(initGeo, inputFilename);

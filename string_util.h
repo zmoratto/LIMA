@@ -9,16 +9,7 @@
 
 #include <iostream>
 
-/*
-#include <vw/Core/Exception.h>
-#include <vw/Math/BBox.h>
-#include <vw/Math/Vector.h>
 
-#include <vw/Cartography.h>
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-*/
 using namespace std;
 
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );

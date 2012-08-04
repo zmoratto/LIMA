@@ -1,3 +1,6 @@
+#ifndef FEATURE_EXTRACTION_H
+#define FEATURE_EXTRACTION_H
+
 #pragma once
 #include <sstream>
 #include <iostream>
@@ -52,3 +55,5 @@ public:
 	void process(IplImage* image);
 	void clear();
 };
+
+#endif

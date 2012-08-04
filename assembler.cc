@@ -114,6 +114,14 @@ int ReadAssemblerConfigFile(string assemblerConfigFilename, struct AssemblerPara
     sline0 >> identifier >> val;
     //cout<<val<<endl;
     assemblerParams->matchingMode = val;
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline01; 
+    sline01 << line;
+    sline01 >> identifier >> val;
+    //cout<<val<<endl;
+    assemblerParams->weightingMode = val;
 
     getline (configFile,line);
     cout<<line<<endl;
@@ -132,6 +140,13 @@ int ReadAssemblerConfigFile(string assemblerConfigFilename, struct AssemblerPara
     assemblerParams->deltaLonLat(0)=val1;
     assemblerParams->deltaLonLat(1)=val2;
     
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline200; 
+    sline200 << line;
+    sline200 >> identifier >> val1;
+    //cout<<val<<endl;
+    assemblerParams->useForeLonLatRadOffset=val1;
 
     getline (configFile,line);
     cout<<line<<endl;
@@ -141,6 +156,16 @@ int ReadAssemblerConfigFile(string assemblerConfigFilename, struct AssemblerPara
     //cout<<val<<endl;
     assemblerParams->foreLonLatOrigin(0)=val1;
     assemblerParams->foreLonLatOrigin(1)=val2;
+    //assemblerParams->foreLonLatOrigin(2)=val3;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline201; 
+    sline201 << line;
+    sline201 >> identifier >> val1;
+    //cout<<val<<endl;
+    assemblerParams->foreMaxPPD=val1;
+
 
     getline (configFile,line);
     cout<<line<<endl;
@@ -255,6 +280,7 @@ int ReadAssemblerConfigFile(string assemblerConfigFilename, struct AssemblerPara
 
      //matching params - START
      assemblerParams->matchingMode = 1; 
+     assemblerParams->weightingMode = 0;
      assemblerParams->maxNumStarts = 36;
      assemblerParams->deltaLonLat(0) = 0.0001;
      assemblerParams->deltaLonLat(1) = 0.0001;
@@ -435,27 +461,45 @@ int main( int argc, char *argv[] ) {
     camPoint(1) = 0;
     Vector2 camLonLat = foreDEMGeo.point_to_lonlat(camPoint);
     cout<<"camLonLat="<<camLonLat<<endl;
+
     Vector2 offsetLonLat;
-    if ((assemblerParams.foreLonLatOrigin(0) == 0) && (assemblerParams.foreLonLatOrigin(1) == 0)){
+    //compute the lonlat offset between the original lonlat origin of the foregoround and the new origin in the configuration file.  
+    if (assemblerParams.useForeLonLatRadOffset == 0){
+      //use current values of the foreground origin
+      //if((assemblerParams.foreLonLatOrigin(0) == 0) && (assemblerParams.foreLonLatOrigin(1) == 0)){
       offsetLonLat(0) = 0.0;
       offsetLonLat(1) = 0.0;
     }
-    else{
+    else{//use new values of the foregoround origin
       offsetLonLat(0) = assemblerParams.foreLonLatOrigin(0) - camLonLat(0);    
       offsetLonLat(1) = assemblerParams.foreLonLatOrigin(1) - camLonLat(1);
     }
     cout<<"offsetLonLat="<<offsetLonLat<<endl; 
-    //LON_LAT_OFFSET 137.4 -4.5
+    
+    //TODO: read the altitude offset
+  
+    //matchingMode = 0 do notthing, no alignmment
+    //matchingMode = 1 altitude alignment, no ICP
+    //matchingMode = 2 ICP, translation only
+    //matchingMode = 3 ICP, rotation and translation
+ 
+    if (assemblerParams.matchingMode == 1){//altitude alignment
+      cout<<"altitude only alignment"<<endl;
+      float deltaRad = ComputeAverageDiff(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assemblerParams.foreNoDataValDEM, offsetLonLat, registrationParams);
+      registrationParams.deltaRad = deltaRad;
+      registrationParams.bestDeltaLonLat = offsetLonLat;
+    }
 
-    if (assemblerParams.matchingMode != 0){
-       
+    if (assemblerParams.matchingMode > 1){//run ICP
+
+       cout<<"ICP alignment"<<endl;
+
        float matchError;
        Vector2 delta_lonlat;        
  
        int numVerRestarts = sqrt(assemblerParams.maxNumStarts); 
        int numHorRestarts = sqrt(assemblerParams.maxNumStarts);  
       
- 
        for (int k = -(numVerRestarts-1)/2; k < (numVerRestarts+1)/2; k++){
 	// delta_lonlat(0) = offsetLonLat(0) +k*assemblerParams.deltaLonLat(0); //~5 meters increments
         delta_lonlat(0) = k*assemblerParams.deltaLonLat(0); //~5 meters increments
@@ -493,8 +537,8 @@ int main( int argc, char *argv[] ) {
            cout<<"coregParams="<<coregistrationParams<<endl;
 
          
-	   ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, coregistrationParams,
-	   		 currTranslation, currRotation, currCenter, matchError);
+	   ICP_DEM_2_DEM(featureArray, backDEM, backDEMGeo, foreDEMGeo, assemblerParams.matchingMode, 
+			 coregistrationParams, currTranslation, currRotation, currCenter, matchError);
 	   
 	   cout<<"currCenter:"<<currCenter<<endl;
 	   cout<<"currTranslation:"<<currTranslation<<endl;
@@ -530,7 +574,13 @@ int main( int argc, char *argv[] ) {
 	     registrationParams.bestDeltaLonLat = offsetLonLat + delta_lonlat;
 	     registrationParams.rotation = currRotation;
 	     registrationParams.translation = currTranslation;
-	     registrationParams.center = currCenter;
+	     /*
+             Vector3 zeroVector;
+	     zeroVector(0)=0;
+	     zeroVector(1)=0;
+	     zeroVector(2)=0;
+	     */
+	     registrationParams.center = /*zeroVector;*/currCenter;
 	   }
    
 	 }//l
@@ -551,14 +601,7 @@ int main( int argc, char *argv[] ) {
        cout<<"cleanBestLonLat = "<<registrationParams.bestDeltaLonLat-offsetLonLat<<endl;
 
     }//done with ICP mode
-
-    else{ //altitude alignment
-      cout<<"altitude alignment"<<endl;
-      float deltaRad = ComputeAverageDiff(foreDEM, foreDEMGeo, backDEM, backDEMGeo, assemblerParams.foreNoDataValDEM, offsetLonLat, registrationParams);
-      registrationParams.deltaRad = deltaRad;
-      registrationParams.bestDeltaLonLat = offsetLonLat;
-    }
-   
+  
    
     
     /*
@@ -591,21 +634,22 @@ int main( int argc, char *argv[] ) {
     vector<struct TilingParams> tileParamsArray;
     Vector4 foreLonLatBB;
 
-    cout<<"ComputeLonLatBoxDEM of the foreground region"<<endl;
+    cout<<"ASSEMBLER: ComputeLonLatBoxDEM of the foreground region"<<endl;
     ComputeLonLatBoxDEM(foreDEM, foreDEMGeo, assemblerParams.foreNoDataValDEM, 
                         registrationParams.bestDeltaLonLat, registrationParams, 
 			foreLonLatBB);
-    cout<<"DEM bounding box: "<<foreLonLatBB<<endl;
+    cout<<"ASSEMBLER: DEM bounding box: "<<foreLonLatBB<<endl;
 
-    cout<<"ComputeTileBoundaries for DEMs"<<endl;
+    cout<<"ASSEMBLER: ComputeTileBoundaries for DEMs"<<endl;
     ComputeTileParams(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 		      registrationParams, assemblerParams, 
 		      0, foreLonLatBB, tileParamsArray);
    
-    cout<<"ComputeAssembledDEM for each tile"<<endl;
+    cout<<"ASSEMBLER: ComputeAssembledDEM for each tile"<<endl;
     for (int i= 0; i <tileParamsArray.size(); i++){
       ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
-			  assemblerParams.foreNoDataValDEM, assemblerParams.foreLonLatOrigin, 
+			  assemblerParams.foreNoDataValDEM, assemblerParams.foreLonLatOrigin,
+                          assemblerParams.weightingMode, 
 			  resDir, registrationParams, tileParamsArray[i]);   
     }
     
@@ -619,25 +663,25 @@ int main( int argc, char *argv[] ) {
       GeoReference backDRGGeo;
       //read_georeference(backDRGGeo, backFile);
       read_georeference(backDRGGeo, backDRGFile);
-      cout<<"backDRG filename="<<backDRGFile<<endl;
+      cout<<"ASSEMBLER: backDRG filename="<<backDRGFile<<endl;
 
        //small image high res - foreground 
       string foreDRGFile = foreDEMFilename;
       FindAndReplace( foreDRGFile, string("Height"), string("Photo"));
-      cout<<"foreDRG filename="<<foreDRGFile<<endl;
+      cout<<"ASSEMBLER: foreDRG filename="<<foreDRGFile<<endl;
       DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFile);
       GeoReference foreDRGGeo;
       read_georeference(foreDRGGeo, foreDRGFile);
       
-      cout<<"DRG bounding box: "<<foreLonLatBB<<endl;
+      cout<<"ASSEMBLER: DRG bounding box: "<<foreLonLatBB<<endl;
 
-      cout<<"ComputeTileParams for DRG"<<endl;
+      cout<<"ASSEMBLER: ComputeTileParams for DRG"<<endl;
       tileParamsArray.clear();
       ComputeTileParams(foreDRG, foreDRGGeo, backDRG, backDRGGeo, 
 			registrationParams, assemblerParams, 
 			1, foreLonLatBB, tileParamsArray);
      
-      cout<<"ComputeAssembledDRG for each tile"<<endl;
+      cout<<"ASSEMBLER: ComputeAssembledDRG for each tile"<<endl;
       for (int i= 0; i <tileParamsArray.size(); i++){   
 	ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
 			    foreDEM, foreDEMGeo, assemblerParams.foreNoDataValDRG, 

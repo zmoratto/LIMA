@@ -38,23 +38,28 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& match,
   }
   return translation/numValidMatches;
 }
-/*
-//computes the translation between the foreground and background pixels
-Vector3 ComputeDEMTranslation( const vector<Vector3>& features, 
-                               const vector<Vector3>& reference ) {
+
+
+//computes the translation T = avg(reference-rotation*match)
+Vector3 ComputeDEMTranslation( const vector<Vector3>& match, 
+                               const vector<Vector3>& reference,
+                               const Matrix<float, 3, 3>& rotation) {
   Vector3 translation(0,0,0);
   
   unsigned int numValidMatches = 0;
-  for( unsigned int i = 0; i < features.size(); ++i ){
-    //if( norm_1(reference[i]) > 0 ){
-      translation += reference[i] - features[i];
+  
+  //PrintMatrix(rotation);
+  
+  for( unsigned int i = 0; i < match.size(); ++i ){
+    if( norm_1(reference[i]) > 0 ){
+      translation += reference[i] - rotation*match[i];
       ++numValidMatches;
-      //}
+    }
   }
   return translation/numValidMatches;
 }
-*/
-void PrintMatrix(Matrix<float, 3, 3> &A)
+
+void PrintMatrix(const Matrix<float, 3, 3> &A)
 {
   for (int i = 0; i < 3; i++){
     for (int j = 0; j < 3; j++){
@@ -91,11 +96,11 @@ float ComputeMatchingError3D( const vector<Vector3>& model,
   valarray<float> errors = ComputeMatchingError( model, reference );
   return errors.sum()/errors.size();
 }
-
-Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features, 
-                                        const vector<Vector3>& matches,
-                                        const Vector3&         featureCenter,
-                                        const Vector3&         matchCenter ) {
+//compute a rotation matrix between two point clouds
+Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match, 
+                                        const vector<Vector3>& reference,
+                                        const Vector3&         matchCenter,
+                                        const Vector3&         referenceCenter ) {
   Matrix<float, 3, 3> rotation;
  
   Matrix<float,3,3> A;
@@ -105,12 +110,13 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
   
   A.set_zero();
   
-  vw_out(vw::InfoMessage, "icp") << "  F_center: " << featureCenter << endl;
-  vw_out(vw::InfoMessage, "icp") << "  M_center: " << matchCenter   << endl;
+  vw_out(vw::InfoMessage, "icp") << "  Match_center: " << matchCenter << endl;
+  vw_out(vw::InfoMessage, "icp") << "  Reference_center: " << referenceCenter   << endl;
   
-  for( unsigned int i = 0; i < features.size(); ++i ){
-    if( norm_1(matches[i]) > 0 ){ //ignore invalid matches
-      A += outer_prod( matches[i] - matchCenter, features[i] - featureCenter );
+  for( unsigned int i = 0; i < match.size(); ++i ){
+    if( norm_1(reference[i]) > 0 ){ //ignore invalid matches
+   
+      A += outer_prod( reference[i] - referenceCenter, match[i] - matchCenter );
     }
   }
   
@@ -127,7 +133,8 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& features,
   return rotation;
 }
 
-
+//computes the rotation matrix R
+//such that reference = R*match
 Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match, 
                                         const vector<Vector3>& reference,
                                         const Vector3&         translation) {
@@ -146,6 +153,8 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match,
   for( unsigned int i = 0; i < match.size(); ++i ){
     if( norm_1(reference[i]) > 0 ){ //ignore invalid matches
       A += outer_prod( reference[i], match[i] + translation);
+      //correction to the order in which the matrix is filled
+      //A += outer_prod( match[i] + translation, reference[i]);
     }
   }
   
@@ -156,13 +165,17 @@ Matrix<float, 3, 3> ComputeDEMRotation( const vector<Vector3>& match,
     Matrix3x3 sign_id = identity_matrix(3);
     sign_id(2,2) = -1;
     rotation = U*sign_id*V;
+    //cout<<"DET NEGATIVE"<<endl;
   } 
-  else { rotation = U*V; }
+  else { rotation = U*V; 
+    //cout<<"DET POSITIVE"<<endl;
+  }
  
   return rotation;
 }
 
-//applies a 3D rotation and transform to a DEM
+//applies a 3D rotation and translation to a set of 3D points
+//extracts the centroid of the original set of 3D points
 void TransformFeatures( vector<Vector3>&         featureArray, 
                         const Vector3&           translation, 
                         const Matrix<float,3,3>& rotation ){
@@ -170,7 +183,8 @@ void TransformFeatures( vector<Vector3>&         featureArray,
   TransformFeatures( featureArray, featureCenter, translation, rotation );
 }
 
-//applies a 3D rotation and transform to a DEM
+//applies a 3D rotation and translation to a set of 3D points
+//assumes a precomputed centroid of the 3D point set
 void TransformFeatures(       vector<Vector3>&   featureArray, 
                         const Vector3&           featureCenter, 
                         const Vector3&           translation, 
@@ -188,13 +202,15 @@ void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray,
 		const vw::cartography::GeoReference& foreDEMGeo,
 		vw::Vector3&                   center, 
 		vw::Vector3&                   translation, 
-		vw::Matrix<float, 3, 3>&       rotation)
+		vw::Matrix<float, 3, 3>&       rotation,
+                float matchingError)
 {
  
     //print the feature and reference arrays for debug - START 
     for (int index = 0; index<featureXYZArray.size(); index++){
     
       Vector3 transfFeatureXYZ = rotation*(origFeatureXYZArray[index]/*-center*/) /*+ center */+ translation; 
+
       Vector3 origFeatureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(origFeatureXYZArray[index]);
       Vector3 featureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(featureXYZArray[index]);
       Vector3 transFeatureLonLatRad = foreDEMGeo.datum().cartesian_to_geodetic(transfFeatureXYZ);
@@ -210,6 +226,7 @@ void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray,
       cout<<"ICP report:transfFeature_llr: "<<transFeatureLonLatRad<<endl;
       cout<<"ICP report:feature_llr: "<<featureLonLatRad<<endl;
       cout<<"ICP report:reference_llr: "<<referenceLonLatRad<<endl;
+      cout<<"ICP report: matching error: "<<matchingError<<endl;
       cout<<"-----------------------------------------------------"<<endl;
     }
     //print the feature and reference arrays for debug - END

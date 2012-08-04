@@ -56,22 +56,23 @@ The goal of ICP is to find a rotation matrix $R$ and a translation vector $T$ su
 where $\bf r$ is a reference and $\bf m$ is matching array of 3D vectors respectively.
 At each iteration
 \begin{itemize}
-\item {\bf step 1} determine best matches between features in $\bf r$ and $\bf m$.
-\item {\bf step 2} estimate $R$ from arrays ${\bf r} - E({\bf r})$ and ${\bf m}-E({\bf m})$ using Kaubsh method; $E({\bf x})$ is the expected value of $\bf x$;
+\item {\bf step 1:} determine best matches between features in $\bf r$ and $\bf m$.
+\item {\bf step 2:} estimate $R$ from arrays ${\bf r} - E({\bf r})$ and ${\bf m}-E({\bf m})$ using Kaubsh method; $E({\bf x})$ is the expected value of $\bf x$;
                    note that these two arrays have 0 mean.
-\item {\bf step 3} estimate $T=E({\bf r}-R*{\bf m})$.
-\item {\bf step 4} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
-\item {\bf step 5} check convergence, otherwise go to step 1.
+\item {\bf step 3:} estimate $T=E({\bf r}-R*{\bf m})$.
+\item {\bf step 4:} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
+\item {\bf step 5:} check convergence, otherwise go to step 1.
 \end{itemize}
 
-An alternative solution:
-
-At each iteration
-\begin{itemize}
-\item {\bf step 1} determine best matches between features in $\bf r$ and $\bf m$.
-\item {\bf step 3} estimate $R$ from arrays ${\bf r}$ and ${\bf m}+E({\bf r}-{\bf m})$,  using Kaubsh method;
-                   note that these two arrays have the same mean; $E({\bf x})$ is the expected value of $\bf x$.
-\item {\bf step 2} estimate $T=R*E({\bf r}-{\bf m})$.
-\item {\bf step 4} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
-\item {\bf step 5} check convergence, otherwise go to step 1.
-\end{itemize}
+%\begin{comments}
+%An alternative solution:
+%At each iteration
+%\begin{itemize}
+%\item {\bf step 1:} determine best matches between features in $\bf r$ and $\bf m$.
+%\item {\bf step 2:} estimate $R$ from arrays ${\bf r}$ and ${\bf m}+E({\bf r}-{\bf m})$,  using Kaubsh method;
+%                   note that these two arrays have the same mean; $E({\bf x})$ is the expected value of $\bf x$.
+%\item {\bf step 3:} estimate $T=R*E({\bf r}-{\bf m})$.
+%\item {\bf step 4:} estimate a new array $\tilde{\bf m} = R*{\bf m} + T$.
+%\item {\bf step 5:} check convergence, otherwise go to step 1.
+%\end{itemize}
+%\end{comments}

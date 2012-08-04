@@ -3,6 +3,10 @@
 //#include "knStereo_Export.h"
 //#include "StereoParameters.h"
 
+#ifndef STEREO_BM_PROCESSOR_H
+#define STEREO_BM_PROCESSOR_H
+
+
 // OpenCV includes
 #include <opencv/cv.h>
 
@@ -80,3 +84,5 @@ class CvStereoBMProcessor
 
   bool NEED_RECTIFICATION;
 };
+
+#endif

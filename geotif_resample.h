@@ -79,6 +79,19 @@ MakePyramid(ImageViewBase<ViewT1> const& initImg, GeoReference const &initGeo,
 
     struct TileParams tileParams = MakeTilingParams(resampleParams, initImg.impl().cols(), initImg.impl().rows());
    
+    /*
+    //determine the output dirname
+    vector<int> quadDecomposition;
+    int h = 76;
+    int v = 73;
+    int numPyrLevels = 7;
+    quadDecomposition = QuadDecomposition(h, v, numPyrLevels);
+    for (int i = numPyrLevels-1; i >=0; i--){
+       quadDecomposition[i] = quadDecomposition[i] +1; 
+       cout<<quadDecomposition[i]<<endl;
+    }
+    */
+    
     int padImgWidth = tileParams.padImgWidth;
     int padImgHeight = tileParams.padImgHeight;
     //cout<<"numPyrLevels="<<tileParams.numPyrLevels<<endl;
@@ -193,6 +206,7 @@ MakePyramid(ImageViewBase<ViewT1> const& initImg, GeoReference const &initGeo,
           //create a new tile of the resampled image - END
           
           //create the out filenames - START     
+        
 	  //vector<int> quadDecomposition = QuadDecomposition(77/*k*/, 73/*l*/, 7/*tileParams.numPyrLevels*/);
           vector<int> quadDecomposition = QuadDecomposition(k, l, tileParams.numPyrLevels-p);
           
@@ -224,19 +238,14 @@ MakePyramid(ImageViewBase<ViewT1> const& initImg, GeoReference const &initGeo,
           //int num_channels = PixelNumChannels<typename ViewT1::pixel_type>::value;
 	  //cout << "num_channels = "<< num_channels << "\n";
 
-            
-          
+                  
           int length = outImg.cols()*outImg.rows(); 
           FILE* bilfile = fopen (bilFilename.c_str(), "wb");
-          if (resampleParams.imageType == 1){//DEM
-	    for (int jx = 0; jx < outImg.rows(); jx++){
-	      for (int ix = 0; ix < outImg.cols(); ix++){
-		unsigned char f = outImg(ix, jx);
-		fwrite(&f, sizeof(unsigned char), 1, bilfile);
-	      }
-	    }
-	  }
-          if (resampleParams.imageType == 0){
+          if (bilfile == NULL){
+	    cout<<bilFilename<<" not found"<<endl;
+          }
+
+	  if (resampleParams.imageType == 0){//DEM
 	    for (int jx = 0; jx < outImg.rows(); jx++){
 	      for (int ix = 0; ix < outImg.cols(); ix++){
                 float f = outImg(ix, jx);
@@ -245,6 +254,16 @@ MakePyramid(ImageViewBase<ViewT1> const& initImg, GeoReference const &initGeo,
 	      }
 	    }
 	  }
+
+          if (resampleParams.imageType == 1){//DRG
+	    for (int jx = 0; jx < outImg.rows(); jx++){
+	      for (int ix = 0; ix < outImg.cols(); ix++){
+		unsigned char f = outImg(ix, jx);
+		fwrite(&f, sizeof(unsigned char), 1, bilfile);
+	      }
+	    }
+	  }
+       
 	  fclose(bilfile);
       
 	}

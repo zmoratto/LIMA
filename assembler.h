@@ -37,7 +37,9 @@ using namespace std;
 typedef struct AssemblerParams
 {
   Vector2 deltaLonLat; //0.0001, 0.0001
+  int useForeLonLatRadOffset;
   Vector2 foreLonLatOrigin;
+  float foreMaxPPD;// = 2000000; 
   int tileSizeDEM; //128
   Vector4 paddingParamsDEM; //0, 0, 1, 1
   int tileSizeDRG; //512
@@ -48,8 +50,8 @@ typedef struct AssemblerParams
   float backNoDataValDRG;
   Vector2 samplingStep;
   float maxNumStarts; 
-  int matchingMode;
-
+  int   matchingMode;
+  int   weightingMode;
   Vector2 matchWindowHalfSize;
   int maxNumIter;
   float minConvThresh;
@@ -184,8 +186,9 @@ void ComputeLonLatBoxDEM(ImageViewBase<ViewT1> const& foreImg, GeoReference cons
 	  Vector3 foreXYZ = foreGeo.datum().geodetic_to_cartesian(foreLonLatRad);
 	  
 	  //transform using rotation and translation obtained from ICP
-	  Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
-	  
+	  //Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
+	  Vector3 transfForeXYZ = rotation*(foreXYZ/*-center*/)+/*center+*/translation; 
+
 	  //back to spherical coordinates
 	  Vector3 transfForeLonLatRad = foreGeo.datum().cartesian_to_geodetic(transfForeXYZ);
   
@@ -310,9 +313,9 @@ void ComputeTileParams(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference c
   InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<typename ViewT2::pixel_type>, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> backImg
     = interpolate(edge_extend(orig_backImg.impl(),ConstantEdgeExtension()), BilinearInterpolation());
   
-  
+  cout<<assemblerParams.foreMaxPPD<<endl;
   float foreNumPixPerDegree = ComputeTerrainResolutionPPD(orig_foreImg, foreGeo);
-  if (foreNumPixPerDegree > 2000000) {foreNumPixPerDegree = 2000000;}
+  if (foreNumPixPerDegree > assemblerParams.foreMaxPPD /*2000000*/) {foreNumPixPerDegree = assemblerParams.foreMaxPPD/*2000000*/;}
   float backNumPixPerDegree = ComputeTerrainResolutionPPD(orig_backImg, backGeo);
   cout<<"COMPUTE TILE PARAMS: foreNumPixelPerDegree="<<foreNumPixPerDegree<<endl;
   cout<<"COMPUTE TILE PARAMS: backNumPixelPerDegree="<<backNumPixPerDegree<<endl;
@@ -409,8 +412,8 @@ template <class ViewT1, class ViewT2 >
 void
 ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference const &foreGeo,
                     ImageViewBase<ViewT2> const& orig_backImg, GeoReference const &backGeo,
-                    float foreNoDataVal,  Vector2 foreLonLatOrigin, string resDirname, 
-                    struct RegistrationParams registrationParams,
+                    float foreNoDataVal,  Vector2 foreLonLatOrigin, int weightingMode, 
+                    string resDirname, struct RegistrationParams registrationParams,
                     struct TilingParams &tileParams)
 {
 
@@ -554,8 +557,9 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
 	Vector3 foreXYZ = assembledGeo.datum().geodetic_to_cartesian(foreLonLatRad);
       
 	//transform using rotation and translation obtained from ICP
-	Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
-   
+	//Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
+   	Vector3 transfForeXYZ = rotation*(foreXYZ/*-center*/)+/*center+*/translation; 
+
         //back to spherical coordinates
         Vector3 transfForeLonLatRad = assembledGeo.datum().cartesian_to_geodetic(transfForeXYZ);
         
@@ -568,7 +572,6 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
 	  transfForeLonLat(0) = transfForeLonLatRad(0);
 	  transfForeLonLat(1) = transfForeLonLatRad(1);
 
-	  
 	  Vector2 assembledPix = assembledGeo.lonlat_to_pixel(transfForeLonLat);
           Vector2 backPix = backGeo.lonlat_to_pixel(transfForeLonLat);
 
@@ -576,11 +579,18 @@ ComputeAssembledDEM(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
 	  int l = (int)floor(assembledPix(1));
 
 	  if ((k>=0) && (l>=0) && (k<assembledWidth) && (l<assembledHeight)){
-	    float backAccuracy = 1;//backAcc(k,l);
-	    float foreAccuracy = ComputeDEMAccuracy(foreGeo, forePix, backAccuracy);
-	    float foreWeight = backAccuracy/(foreAccuracy+backAccuracy);
-	    assembledImg.impl()(k,l) = foreWeight*(transfForeLonLatRad(2)) + (1-foreWeight)*backImg.impl()(backPix(0), backPix(1));
-	    assembledAcc(k,l) = 1/(foreWeight*(1/foreAccuracy) + (1-foreWeight)*(1/backAccuracy)); 
+	    if (weightingMode!=0){
+	      float backAccuracy = 1;//backAcc(k,l);
+	      float foreAccuracy = ComputeDEMAccuracy(foreGeo, forePix, backAccuracy);
+	      float foreWeight = backAccuracy/(foreAccuracy+backAccuracy);
+	      
+	      assembledImg.impl()(k,l) = foreWeight*(transfForeLonLatRad(2)) + (1-foreWeight)*backImg.impl()(backPix(0), backPix(1));
+	      assembledAcc(k,l) = 1/(foreWeight*(1/foreAccuracy) + (1-foreWeight)*(1/backAccuracy)); 
+	   
+	    }
+	    else{
+	      assembledImg.impl()(k,l) = transfForeLonLatRad(2);
+	    }
 	  }
 	}
       }               
@@ -721,8 +731,9 @@ ComputeAssembledDRG(ImageViewBase<ViewT1> const& orig_foreImg, GeoReference cons
 	Vector3 foreXYZ = assembledGeo.datum().geodetic_to_cartesian(foreLonLatRad);
       
 	//transform using rotation and translation obtained from ICP
-	Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
-   
+	//Vector3 transfForeXYZ = rotation*(foreXYZ-center)+center+translation; 
+	Vector3 transfForeXYZ = rotation*foreXYZ+translation; 
+
         //back to spherical coordinates
         Vector3 transfForeLonLatRad = assembledGeo.datum().cartesian_to_geodetic(transfForeXYZ);
   
