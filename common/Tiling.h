@@ -19,10 +19,6 @@ struct TileConfig
 	int tileHeight;
 	int xOverlap;
 	int yOverlap;
-	int featureMethod;
-	int showResultsFlag;
-	int tileScaleX;
-	int tileScaleY;
 };
 
 class Tiling
@@ -36,7 +32,6 @@ public:
 
 	//Members
 	TileConfig tileParams;
-	IplImage* image;
 	vector<CvRect> tiles;
 	vector<IplImage*> tileImages;
 
@@ -48,7 +43,6 @@ public:
 	void saveTileBB();
 	void process(IplImage* image);
 	void setUpReferenceTiles(IplImage* image);
-	void setUpMatchingTiles(Tiling ref, IplImage* im1);
 	void clear();
 };
 

@@ -39,13 +39,6 @@ int main(int argc, char** argv)
 	outputDir = string(argv[3]);
 
 	feat.readImageFiles(inputFilename, imageFiles);
-	feat.hessianThresh = 800.0;
-	feat.nOctaves = 4;
-	feat.nOctaveLayers = 2;
-	feat.extended = 0;
-	feat.upright = 1;
-	feat.octaves = 3;
-	feat.octaveLayers = 4;
 
 	//Main Loop
 	for(int i=0; i<1; i++)

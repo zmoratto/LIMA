@@ -10,13 +10,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-struct configParams
-{
-	int detect_extract_method;
-	int showResultsFlag;
-	int saveResultsFlag;
-};
-
 class FeatureExtraction
 {
 public:
@@ -27,7 +20,6 @@ public:
 	~FeatureExtraction();
 
 	//Member Variables
-	configParams featureParams;
 	cv::FeatureDetector * detector;
 	std::vector<cv::KeyPoint> key_points;
 	cv::DescriptorExtractor * extractor;
@@ -47,7 +39,6 @@ public:
 	void printWarning(std::string configFilename);
 	void printUsage();
 	void readImageFiles(std::string filename, std::vector<std::string>& imageFiles);
-	void readConfigurationFile(std::string filename);
 	void setDetectExtract(int type);
 	void detectKeyPoints(IplImage* image);
 	void extractKeyPoints(IplImage* image);

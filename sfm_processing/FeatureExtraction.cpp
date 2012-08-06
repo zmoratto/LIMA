@@ -12,6 +12,13 @@ FeatureExtraction::FeatureExtraction()
 	detector = NULL;
 	extractor = NULL;
 	featureMethod = 0;
+	hessianThresh = 800.0;
+	nOctaves = 4;
+	nOctaveLayers = 2;
+	extended = 0;
+	upright = 1;
+	octaves = 3;
+	octaveLayers = 4;
 }
 
 //Destructor
@@ -63,38 +70,6 @@ void FeatureExtraction::readImageFiles(string filename, vector<string>& imageFil
 	}
 
 	fin.close();
-}
-
-void FeatureExtraction::readConfigurationFile(string filename)
-{
-	ifstream fin;
-	int detect_extract_method;
-	int showResultsFlag;
-	int saveResultsFlag;
-	string identifier;
-
-	//Read configuration file for FE_test
-	fin.open(filename.c_str());
-
-	if(fin.is_open())
-	{
-		fin >> identifier >> detect_extract_method;
-		fin >> identifier >> showResultsFlag;
-		fin >> identifier >> saveResultsFlag;
-
-		fin.close();
-
-		featureParams.detect_extract_method = detect_extract_method;
-		featureParams.showResultsFlag = showResultsFlag;
-		featureParams.saveResultsFlag = saveResultsFlag;
-	}
-	else //Default Parameters
-	{
-		printWarning(filename);
-		featureParams.detect_extract_method = 0; //SURF
-		featureParams.showResultsFlag = 1;
-		featureParams.saveResultsFlag = 1;
-	}
 }
 
 void FeatureExtraction::setDetectExtract(int type)

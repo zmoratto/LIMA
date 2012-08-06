@@ -35,7 +35,6 @@ struct SFMParams{
 	string cameraCalibrationFilename;
 	string pointCloudFilename;
 	string kinectDepthFilename;
-	int featureMethod;
 	int poseEstimationType;
 	string pointProjFilename;
 	string resultImageFilename;
@@ -59,11 +58,8 @@ public:
 	cv::Mat distCoeffs;
 	IplImage *prevImage;
 	IplImage *currDepth;
-	string outputDir;
-	int sfmInit;
 	vector<string> pointFiles;
 	Tiling referenceTile;
-	Tiling matchingTile;
 	int currTile;
 	int numTiles;
 	int imageWidth;

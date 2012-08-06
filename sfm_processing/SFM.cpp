@@ -14,7 +14,6 @@ SFM::SFM(char* configFile, char* inputFilename)
 	string tempString;
 	prevImage = NULL;
 	currDepth = NULL;
-	sfmInit = 1;
 	string configFileString = string(configFile);
 
 	//Read Configuration Files
@@ -175,8 +174,6 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> referenceTile.tileParams.tileHeight;
 		fin >> identifier >> referenceTile.tileParams.xOverlap;
 		fin >> identifier >> referenceTile.tileParams.yOverlap;
-		fin >> identifier >> referenceTile.tileParams.tileScaleX;
-		fin >> identifier >> referenceTile.tileParams.tileScaleY;
 		fin >> identifier >> configParams.pointProjFilename;
 		fin >> identifier >> pose.weightedPortion;
 		fin >> identifier >> configParams.resultImageFilename;
@@ -228,8 +225,6 @@ void SFM::printConfigParams()
 	cout << "tileHeight=" << referenceTile.tileParams.tileHeight << endl;
 	cout << "xOverlap=" << referenceTile.tileParams.xOverlap << endl;
 	cout << "yOverlap=" << referenceTile.tileParams.yOverlap << endl;
-	cout << "tileScaleX=" << referenceTile.tileParams.tileScaleX << endl;
-	cout << "tileScaleY=" << referenceTile.tileParams.tileScaleY << endl;
 	cout << "pointProjFilename=" << configParams.pointProjFilename << endl;
 	cout << "weightedPortion=" << pose.weightedPortion << endl;
 	cout << "resultImageFilename=" << configParams.resultImageFilename << endl;
@@ -306,8 +301,6 @@ void SFM::restoreDefaultParameters()
 	referenceTile.tileParams.tileHeight = 500;
 	referenceTile.tileParams.xOverlap = 0;
 	referenceTile.tileParams.yOverlap = 0;
-	referenceTile.tileParams.tileScaleX = 0;
-	referenceTile.tileParams.tileScaleY = 0;
 	configParams.pointProjFilename = "results/pointProj.txt";
 	pose.weightedPortion = 0.5;
 	configParams.resultImageFilename = "results/composedImage";
@@ -319,6 +312,8 @@ void SFM::restoreDefaultParameters()
 	feat.octaves = 3;
 	feat.octaveLayers = 4;
 	pose.matchingMethod = 1;
+	stereoLeftList = "modelList.txt";
+	stereoRightList = "matchList.txt";
 }
 
 //Read list of input images and save into vector
@@ -624,7 +619,6 @@ void SFM::update(IplImage* image)
 		cvReleaseImage(&currDepth);
 		currDepth = NULL;
 	}
-	sfmInit = 0;
 
 	referenceTile.clear();
 	pose.matchWeights.clear();

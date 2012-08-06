@@ -67,8 +67,7 @@ void Tiling::readTilingConfigFile(string filename)
 		fin >> identifier >> tileHeight;
 		fin >> identifier >> xOverlap;
 		fin >> identifier >> yOverlap;
-		fin >> identifier >> tileScaleX;
-		fin >> identifier >> tileScaleY;
+
 
 		fin.close();
 
@@ -76,8 +75,6 @@ void Tiling::readTilingConfigFile(string filename)
 		tileParams.tileHeight = tileHeight;
 		tileParams.xOverlap = xOverlap;
 		tileParams.yOverlap = yOverlap;
-		tileParams.tileScaleX = tileScaleX;
-		tileParams.tileScaleY = tileScaleY;
 	}
 	else
 	{
@@ -136,8 +133,6 @@ void Tiling::setUpReferenceTiles(IplImage* image)
 
 	tiles.clear();
 
-
-
    //Check if Tile too large
    if( x > size.width || x < 0)
       x = size.width;
@@ -171,58 +166,6 @@ void Tiling::setUpReferenceTiles(IplImage* image)
 
     }
 
-}
-
-void Tiling::setUpMatchingTiles(Tiling ref, IplImage* im1)
-{
-	int xScale = ref.tileParams.tileScaleX;
-	int yScale = ref.tileParams.tileScaleY;
-	CvRect temp;
-
-	for(int i=0;i<ref.tiles.size();i++)
-	{
-		if(ref.tiles[i].x - xScale < 0)
-		{
-			temp.width = ref.tiles[i].width + ref.tiles[i].x;
-			temp.x = 0;
-		}
-		else
-		{
-			temp.width = ref.tiles[i].width + xScale;
-			temp.x = ref.tiles[i].x - xScale;
-		}
-
-		if(ref.tiles[i].y - yScale <0)
-		{
-			temp.height = ref.tiles[i].height + ref.tiles[i].y;
-			temp.y = 0;
-		}
-		else
-		{
-			temp.height = ref.tiles[i].height + yScale;
-			temp.y = ref.tiles[i].y - yScale;
-		}
-
-		tiles.push_back(temp);
-
-		if(tiles[i].x + tiles[i].width + xScale > im1->width)
-		{
-			tiles[i].width = im1->width - tiles[i].x;
-		}
-		else
-		{
-			tiles[i].width += xScale;
-		}
-
-		if(tiles[i].y + tiles[i].height + yScale > im1->height)
-		{
-			tiles[i].height = im1->height - tiles[i].y;
-		}
-		else
-		{
-			tiles[i].height += yScale;
-		}
-	}
 }
 
 void Tiling::clear()
