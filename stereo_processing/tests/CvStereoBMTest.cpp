@@ -106,13 +106,8 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
       cout<<param<<endl;
     if(param[0]=='N' || param[0]=='n')
       thisStereoParams->needRectification=false;
-    else if(param[0]=='Y' || param[0]=='y')
+    else
       thisStereoParams->needRectification=true;
-    else{
-      cout << "Error reading stereo settings file"<<endl;
-      configFile.close();
-      return 0;
-    }
 
     getline (configFile,line);
     cout<<line<<endl;
@@ -161,7 +156,20 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
     return 1;
   }
   else{
-    cout << "Unable to open settings file"<<endl; 
+    cout << "WARNING: unable to open settings file, using defaults instead"<<endl; 
+
+    thisStereoParams->preFilterSize=11;
+    thisStereoParams->preFilterCap=7;
+    thisStereoParams->sadWindowSize=11;
+    thisStereoParams->minDisparity=-128;
+    thisStereoParams->numberOfDisparities=256;
+    thisStereoParams->textureThreshold=25;
+    thisStereoParams->uniquenessRatio=25;
+    thisStereoParams->needRectification=true;
+    thisStereoParams->scaleFactor=1.0;
+    thisStereoParams->calibrationFilename = "stereo_calibration.txt";
+    thisStereoParams->tileWidth=-1;
+    thisStereoParams->tileHeight=-1;
     return 0;
   }
   
@@ -379,9 +387,6 @@ int main( int argc, char *argv[] )
   //run openCV stereo
   CvStereoBMProcessorParameters thisStereoParams;
   int configReadError = ReadStereoConfigFile(string("stereo_settingsBM.txt"), &thisStereoParams);
- 
-  if( !configReadError )
-     return -1;
 
   thisStereoParams.modelImageFilename = modelImageFilename;
   thisStereoParams.resDir = resDir;
