@@ -43,9 +43,9 @@ void FeatureExtraction::printWarning(string configFilename)
 void FeatureExtraction::printUsage()
 {
 	cout << endl;
-	cout << "********************* USAGE ********************" << endl;
-	cout << "./sfm_test <configFile> <inputFile> <outputDir> " << endl;
-	cout << "************************************************" << endl;
+	cout << "********************** USAGE *********************" << endl;
+	cout << "./sfm_test <featureMethod> <inputFile> <outputDir> " << endl;
+	cout << "**************************************************" << endl;
 	cout << endl;
 }
 

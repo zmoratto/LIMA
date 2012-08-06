@@ -38,3 +38,5 @@ upright 1
 octaves 3
 octaveLayers 4
 matchingMethod 1
+stereoLeftList modelList.txt
+stereoRightList matchList.txt

@@ -2,14 +2,15 @@ Structure from motion is the process of estimating camera pose from a sequence o
 
 \subsection{Files:}
 \begin{itemize}
-	\item{depthSfm\_test.cpp} - main function for SFM Processing
+	\item{tests/depthSfm\_test.cpp} - main function for SFM Processing
+	\item{tests/FE\_test.cpp} - main function for testing FeatureExtraction class
 	\item{SFM.h} - declaration of SFM class
 	\item{SFM.cpp} - definition of SFM class
 	\item{PoseEstimation.h} - declaration of PoseEstimation class
 	\item{PoseEstimation.cpp} - definition of PoseEstimation class
 	\item{FeatureExtraction.h} - declaration of FeatureExtraction class
 	\item{FeatureExtraction.cpp} - definition of FeatureExtraction class
-	\item{sfm\_config.txt} - configuration file for main program
+	\item{tests/testConfig.txt} - configuration file for main program
 \end{itemize}
 
 
@@ -21,7 +22,8 @@ Structure from motion is the process of estimating camera pose from a sequence o
 \end{enumerate}
 
 \subsection{How to run:}
-./sfmDepth\_test testConfig.txt testImageList.txt results
+./sfmDepth\_test testConfig.txt testImageList.txt results/
+./FE\_test 0 testImageList results/
 \subsubsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
