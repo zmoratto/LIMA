@@ -33,40 +33,18 @@ set(ALL_ASP_LIBRARIES
 	libQtXml.so.4
 	libQtXmlPatterns.so.4
 	libQtWebKit.so.4
-	boost_filesystem-mt
-	boost_system-mt
-	boost_thread-mt
-	boost_program_options-mt
+	#	boost_filesystem-mt
+	#	boost_system-mt
+	#	boost_thread-mt
+	#	boost_program_options-mt
 	superlu
 )
-
-set(BASE_SYSTEM_LIBRARIES
-	boost_filesystem-mt
-	boost_system-mt
-	boost_thread-mt
-	boost_program_options-mt
-	superlu
-)
-set(ISIS_LIBRARIES
-	libisis3.so
-)
-set(ISIS_3RD_PARTY_LIBRARIES
-	libQtCore.so.4
-	libQtGui.so.4
-	libQtNetwork.so.4
-	libQtSql.so.4
-	libQtSvg.so.4
-	libQtXml.so.4
-	libQtXmlPatterns.so.4
-	libQtWebKit.so.4
-)
-set(LIBASP_LIBRARIES libaspIsisIO.so)
 
 # Set the root to 3 directories above Core.h
 # Look for files to confirm that paths are correct
-find_file( ASP_INCLUDE_H "include/asp/Core.h" $ENV{ASP_ROOT} NO_DEFAULT_PATH)
+find_file( ASP_INCLUDE_H "include/asp/Core.h" $ENV{ASPROOT} NO_DEFAULT_PATH)
 if(NOT ASP_INCLUDE_H)
-	message(ERROR "   ASP not found. Did you set the ASP_ROOT environment variable?")
+	message(ERROR "   ASP not found. Did you set the ASPROOT environment variable?")
 	return()
 endif(NOT ASP_INCLUDE_H)
 string(REGEX REPLACE "/[^/]*/[^/]*/[^/]*$" "" ASP_ROOT_DIR ${ASP_INCLUDE_H} )
@@ -90,7 +68,7 @@ mark_as_advanced(ASP_INCLUDE_H ISIS_INCLUDE_H BASE_INCLUDE_H)
 set( ASP_INCLUDE_DIR 
 	${ASP_ROOT_DIR}/include
 	${BASE_SYSTEM_ROOT_DIR}/include
-	${BASE_SYSTEM_ROOT_DIR}/include/boost-1_46_1/ 
+	#${BASE_SYSTEM_ROOT_DIR}/include/boost-1_46_1/ 
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include/QtCore
 	${ISIS_ROOT_DIR}/3rdParty/include
@@ -111,5 +89,5 @@ foreach(LIB ${ALL_ASP_LIBRARIES})
 endforeach(LIB ${ALL_ASP_LIBRARIES})
 LIST(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.4")
 
-set(ASP_FOUND, True)
+set(ASP_FOUND True)
 

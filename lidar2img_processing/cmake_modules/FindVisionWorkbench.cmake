@@ -49,6 +49,10 @@ set( PACKAGE_DIR VisionWorkbench )
 find_file( VW_INCLUDE_H "include/vw/vw.h"
   ${VW_ROOT}
 )
+if(NOT VW_INCLUDE_H)
+	message(ERROR "   VW not found. Did you set the VWROOT environment variable?")
+	return()
+endif(NOT VW_INCLUDE_H)
 
 # Set the root to 3 directories above vw.h
 #-----------------------------------------
