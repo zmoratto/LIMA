@@ -14,8 +14,8 @@ target_link_libraries(sfm ${PCL_LIBRARIES})
 target_link_libraries(sfm ${OpenCV_LIBS})
 
 #sfm_test Executable
-add_executable(sfm_test sfm_test.cpp)
-target_link_libraries(sfm_test sfm)
+#add_executable(sfm_test sfm_test.cpp)
+#target_link_libraries(sfm_test sfm)
 
 #FE_test Executable
 add_executable(FE_test FeatureExtraction_test.cpp)

@@ -15,6 +15,8 @@
 #include "PoseEstimation.h"
 #include "FeatureExtraction.h"
 #include "../common/Tiling.h"
+#include "../stereo_processing/CvStereoBMProcessor.h"
+#include "../string_util.h"
 
 #define NO_DEPTH 0
 #define STEREO_DEPTH 1
@@ -44,7 +46,7 @@ class SFM
 public:
 
 	//Constructor
-	SFM(char* configFile);
+	SFM(char* configFile, char* inputFilename);
 
 	//Destructor
 	~SFM();
@@ -68,6 +70,15 @@ public:
 	int imageHeight;
 	vector<string> inputFiles, depthFiles;
 
+	//Stereo Members
+	CvStereoBMProcessorParameters thisStereoParams;
+	cv::Mat rotationMat;
+	cv::Mat translationMat;
+	CvStereoBMProcessor *thisStereo;
+	IplImage* stereoLeft, *stereoRight;
+	string stereoLeftList, stereoRightList;
+	vector<string> stereoLeftFiles, stereoRightFiles;
+
 	//Methods
 	void setUpSFM(char* inputFilename, IplImage* image);
 	void printUsage();
@@ -88,6 +99,7 @@ public:
 	void readDepthFiles(string &filename);
 	void savePointCloud(int iteration, IplImage* image);
 	void printCurrentGlobal_R_T();
+	int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams);
 };
 
 #endif

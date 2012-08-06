@@ -8,8 +8,10 @@ using namespace std;
 
 void printDepthWarning();
 
-SFM::SFM(char* configFile)
+SFM::SFM(char* configFile, char* inputFilename)
 {
+	ifstream fin1, fin2;
+	string tempString;
 	prevImage = NULL;
 	currDepth = NULL;
 	sfmInit = 1;
@@ -17,6 +19,48 @@ SFM::SFM(char* configFile)
 
 	//Read Configuration Files
 	readConfigurationFile(configFileString);
+
+	if(configParams.depthInfo == STEREO_DEPTH)
+	{
+		//Stereo Stuff
+		rotationMat=cv::Mat::eye(3,3, CV_64F);
+		translationMat=cv::Mat::zeros(3,1, CV_64F);
+
+		//UBER Hack be careful - START
+		float PI = 3.1415;
+		float xAngleRad = 65*PI/180;
+		//rotation.at<double>(0,0) = 1.0;
+		rotationMat.at<double>(1,1) = cos(xAngleRad);
+		rotationMat.at<double>(1,2) = -sin(xAngleRad);
+		rotationMat.at<double>(2,1) = sin(xAngleRad);
+		rotationMat.at<double>(2,2) = cos(xAngleRad);
+		//UBER Hack be careful - END
+
+
+		//Read Stereo Filenames
+		fin1.open(stereoLeftList.c_str());
+		fin2.open(stereoRightList.c_str());
+		while(fin1.good() && fin2.good())
+		{
+			fin1 >> tempString;
+			stereoLeftFiles.push_back(tempString);
+			fin2 >> tempString;
+			stereoRightFiles.push_back(tempString);
+		}
+		fin1.close();
+		fin2.close();
+		int configReadError = ReadStereoConfigFile(string("../stereo_settingsBM.txt"), &thisStereoParams);
+	}
+	else
+	{
+		fin1.open(inputFilename);
+		while(fin1.good())
+		{
+			fin1 >> tempString;
+			inputFiles.push_back(tempString);
+		}
+		fin1.close();
+	}
 }
 
 SFM::~SFM()
@@ -68,6 +112,12 @@ void SFM::setUpSFM(char* inputFilename, IplImage* image)
 
 	cvReleaseImage(&image);
 	image = NULL;
+
+	if(configParams.depthInfo == STEREO_DEPTH)
+	{
+		thisStereo = new CvStereoBMProcessor(thisStereoParams);
+		thisStereo->changeCoordinates(rotationMat, translationMat);
+	}
 }
 
 void SFM::printUsage()
@@ -138,6 +188,8 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> feat.octaves;
 		fin >> identifier >> feat.octaveLayers;
 		fin >> identifier >> pose.matchingMethod;
+		fin >> identifier >> stereoLeftList;
+		fin >> identifier >> stereoRightList;
 		fin.close();
 	}
 	else //If the config file doesn't open, resort to default parameters 
@@ -323,43 +375,52 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	pose.prevMatchedPixels.clear();
 	pose.currMatchedPixels.clear();
 
-	//Set up mask for FE
-	//Only extract features from area where 3D information is available
-	for(int i=0; i<imageWidth*imageHeight; i++)
+	if(configParams.depthInfo != NO_DEPTH)
 	{
-		if(pose.curr_z[i] > 0)
+		//Set up mask for FE
+		//Only extract features from area where 3D information is available
+		for(int i=0; i<imageWidth*imageHeight; i++)
 		{
-			y = i/imageWidth;
-			x = i%imageWidth;
-			if(x < left)
-				left = x;
-			if(x > right)
-				right = x;
-			if(y < top)
-				top = y;
-			if(y > bottom)
-				bottom = y;
+			if(pose.curr_z[i] > 0)
+			{
+				y = i/imageWidth;
+				x = i%imageWidth;
+				if(x < left)
+					left = x;
+				if(x > right)
+					right = x;
+				if(y < top)
+					top = y;
+				if(y > bottom)
+					bottom = y;
+			}
 		}
+
+		mask.x = referenceTile.tiles[currTile].x;
+		mask.y = referenceTile.tiles[currTile].y;
+		mask.width = referenceTile.tiles[currTile].width;
+		mask.height = referenceTile.tiles[currTile].height;
+
+		if(mask.x < left)
+			mask.x = left;
+		if(referenceTile.tiles[currTile].x + referenceTile.tiles[currTile].width > right)	
+			mask.width = right - mask.x;
+
+		if(mask.y < top)
+			mask.y = top;
+		if(referenceTile.tiles[currTile].y + referenceTile.tiles[currTile].height > bottom)
+			mask.height = bottom - mask.y;
+
+		mask.x -= referenceTile.tiles[currTile].x;
+		mask.y -= referenceTile.tiles[currTile].y;
 	}
-
-	mask.x = referenceTile.tiles[currTile].x;
-	mask.y = referenceTile.tiles[currTile].y;
-	mask.width = referenceTile.tiles[currTile].width;
-	mask.height = referenceTile.tiles[currTile].height;
-
-	if(mask.x < left)
-		mask.x = left;
-	if(referenceTile.tiles[currTile].x + referenceTile.tiles[currTile].width > right)	
-		mask.width = right - mask.x;
-
-	if(mask.y < top)
-		mask.y = top;
-	if(referenceTile.tiles[currTile].y + referenceTile.tiles[currTile].height > bottom)
-		mask.height = bottom - mask.y;
-
-	mask.x -= referenceTile.tiles[currTile].x;
-	mask.y -= referenceTile.tiles[currTile].y;
-
+	else
+	{
+		mask.x = 0;
+		mask.y = 0;
+		mask.width = referenceTile.tiles[currTile].width;
+		mask.height = referenceTile.tiles[currTile].height;
+	}
 
 	cvCopy(image, copy, NULL);
 	cvSetImageROI(copy, mask);
@@ -380,41 +441,44 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		feat.key_points.at(i).pt.y = feat.key_points.at(i).pt.y + double(mask.y);
 	}
 
-	if(pose.globalCurrDescriptors.cols == 0)
+	if(currTile == 0)
 		pose.globalCurrDescriptors.create(0, pose.currObjectData.cols, CV_32F);
 
-	//Remove KeyPoints with No Depth
-	tileY = referenceTile.tiles[currTile].y;
-	tileX = referenceTile.tiles[currTile].x;
-	for(int i=0; i<feat.key_points.size(); i++)
+	if(configParams.depthInfo != NO_DEPTH)
 	{
-		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-		if(pose.curr_z[index] > 0)
+		//Remove KeyPoints with No Depth
+		tileY = referenceTile.tiles[currTile].y;
+		tileX = referenceTile.tiles[currTile].x;
+		for(int i=0; i<feat.key_points.size(); i++)
 		{
-			temp.push_back(feat.key_points.at(i));
-			loc.push_back(i);
+			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+			if(pose.curr_z[index] > 0)
+			{
+				temp.push_back(feat.key_points.at(i));
+				loc.push_back(i);
+			}
 		}
-	}
-	tempMat.create(temp.size(), pose.currObjectData.cols, CV_32F);
+		tempMat.create(temp.size(), pose.currObjectData.cols, CV_32F);
 
-	cnt = 0;
-	for(int i=0; i<feat.key_points.size(); i++)
-	{
-		index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
-		if(pose.curr_z[index] > 0)
+		cnt = 0;
+		for(int i=0; i<feat.key_points.size(); i++)
 		{
-			cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
-			pose.currObjectData.row(i).copyTo(dest);
-			cnt++;
-			dest.release();
+			index = (imageWidth)*int(feat.key_points.at(i).pt.y + tileY) + int(feat.key_points.at(i).pt.x + tileX);
+			if(pose.curr_z[index] > 0)
+			{
+				cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
+				pose.currObjectData.row(i).copyTo(dest);
+				cnt++;
+				dest.release();
+			}
 		}
+
+		pose.currObjectData.release();
+		feat.key_points.clear();
+
+		pose.currObjectData = tempMat.clone();
+		feat.key_points = temp;
 	}
-
-	pose.currObjectData.release();
-	feat.key_points.clear();
-
-	pose.currObjectData = tempMat.clone();
-	feat.key_points = temp;
 
 	for(int i=0; i<feat.key_points.size(); i++)
 	{
@@ -454,10 +518,47 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 void SFM::process(IplImage* image, int frameIndex)
 {
 	clock_t t1, t2;
-	preprocessing(image, frameIndex); //Read PC
+	IplImage im;
+	double const maxZ = 1.0e4;
+	cv::Mat rModelImage;
+	int index;
+
+	if(configParams.depthInfo != STEREO_DEPTH)
+		preprocessing(image, frameIndex); //Read PC
+	else
+	{
+		stereoLeft = cvLoadImage( stereoLeftFiles[frameIndex].c_str(), 0 );
+		stereoRight = cvLoadImage( stereoRightFiles[frameIndex].c_str(), 0 );
+
+		thisStereo->processImagePair(stereoLeft, stereoRight);
+		rModelImage = thisStereo->GetRectifiedModelImage();
+
+		cv::Mat m_points = thisStereo->pointImage();
+
+		//Save Point Clouds	 
+		for (int y = 0; y < m_points.rows; ++y)
+		{
+			for (int x = 0; x < m_points.cols; ++x)
+			{
+				cv::Vec3f const& point = m_points.at<cv::Vec3f>(y, x);
+				if (fabs(point[2]-maxZ)> FLT_EPSILON && point[2]<maxZ && point[2]>0)
+				{
+					index = y*imageWidth + x;
+					pose.curr_x[index] = point[0];
+					pose.curr_y[index] = point[1];
+					pose.curr_z[index] = point[2];
+				}
+			}
+		}
+
+		im = rModelImage;
+		image = &im;
+	}
+
 	referenceTile.process(image);
 
 	t1 = clock();
+	pose.globalCurrKeyPoints.clear();
 
 	//Process Each Tile
 	for(int j=0; j<numTiles;j++)
@@ -477,8 +578,11 @@ void SFM::process(IplImage* image, int frameIndex)
 		if(configParams.saveResultsFlag)
 		{
 			printCurrentGlobal_R_T();
-			string resultsString = string("results/PointCloud.txt");
-			mapping(resultsString, image);
+			if(configParams.depthInfo != NO_DEPTH)
+			{
+				string resultsString = string("results/PointCloud.txt");
+				mapping(resultsString, image);
+			}
 			showGlobalMatches(prevImage, image, frameIndex);
 		}
 	}
@@ -513,10 +617,6 @@ void SFM::update(IplImage* image)
 		prevImage = NULL;
 	}
 
-	//prevImage = cvCreateImage(cvGetSize(image), image->depth, image->nChannels);
-
-	//cvCopy(image, prevImage);
-
 	prevImage = cvCloneImage(image);
 
 	if(currDepth != NULL)
@@ -538,6 +638,13 @@ void SFM::update(IplImage* image)
 			cvReleaseImage(&image);
 			image = NULL;
 		}
+	}
+	else
+	{
+		cvReleaseImage(&stereoLeft);
+		cvReleaseImage(&stereoRight);
+		stereoLeft = NULL;
+		stereoRight = NULL;
 	}
 }
 
@@ -819,3 +926,142 @@ void SFM::printCurrentGlobal_R_T()
 	cout << endl;
 	cout<<"global_T=["<<pose.currGlobal_T->data.fl[0]<<" "<<pose.currGlobal_T->data.fl[1]<<" "<<pose.currGlobal_T->data.fl[2]<<"]"<<endl;
 }
+
+
+
+int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams)
+{
+  ifstream configFile (stereoConfigFilename.c_str());
+  std::string line;
+  double val; 
+  std::string identifier;
+  std::string param;
+
+  if (configFile.is_open()){ 
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline; 
+    sline<<line;
+    sline >> identifier >> val;
+    cout<<val<<endl;
+    thisStereoParams->preFilterSize=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline1; 
+    sline1<<line;
+    sline1 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->preFilterCap=val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline2; 
+    sline2<<line;
+    sline2 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->sadWindowSize=val;
+ 
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline3; 
+    sline3<<line;
+    sline3 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->minDisparity= val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline4; 
+    sline4<<line;
+    sline4 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->numberOfDisparities= val;
+  
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline5; 
+    sline5<<line;
+    sline5 >> identifier >> val;
+   cout<<val<<endl;
+    thisStereoParams->textureThreshold=val;
+ 
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline6; 
+    sline6<<line;
+    sline6 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->uniquenessRatio=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline7; 
+    sline7<<line;
+    sline7 >> identifier >> param;
+      cout<<param<<endl;
+    if(param[0]=='N' || param[0]=='n')
+      thisStereoParams->needRectification=false;
+    else if(param[0]=='Y' || param[0]=='y')
+      thisStereoParams->needRectification=true;
+    else{
+      cout << "Error reading stereo settings file"<<endl;
+      configFile.close();
+      return 0;
+    }
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline8; 
+    sline8<<line;
+    sline8 >> identifier >> val;
+    cout<<val<<endl;
+    thisStereoParams->scaleFactor=val;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline9; 
+    sline9<<line;
+    sline9 >> identifier >> thisStereoParams->calibrationFilename;
+    cout<<thisStereoParams->calibrationFilename<<endl;
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline10; 
+    sline10<<line;
+    sline10 >> identifier;
+    if( sline10 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileWidth=val;
+       }
+    else{
+       cout<<"TILE_Width: "<<-1<<endl;
+       thisStereoParams->tileWidth=-1;
+       }
+
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline11; 
+    sline11<<line;
+    sline11 >> identifier;
+    if( sline11 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileHeight=val;
+       }
+    else{
+       cout<<"TILE_HEIGHT: "<<-1<<endl;
+       thisStereoParams->tileHeight=-1;
+       }
+
+    configFile.close();
+    return 1;
+  }
+  else{
+    cout << "Unable to open settings file"<<endl; 
+    return 0;
+  }
+  
+}
+

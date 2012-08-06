@@ -137,10 +137,11 @@ void Tiling::setUpReferenceTiles(IplImage* image)
 	tiles.clear();
 
 
+
    //Check if Tile too large
-   if( x > size.width )
+   if( x > size.width || x < 0)
       x = size.width;
-   if( y > size.height )
+   if( y > size.height || y < 0 )
       y = size.height;
 
 	for (r = 0; r < size.height; r += (y-yOver))
