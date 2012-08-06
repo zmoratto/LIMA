@@ -25,8 +25,7 @@ int CountEntries(string pointCloudFilename)
     	while ( myfile.good() )
 		{
 			getline (myfile,line);
-			//cout << line << endl;
-			float x = 0, y = 0, z = 0, r = 255, g = 0, b = 0;
+			float x = 0, y = 0, z = 0, r = 0, g = 0, b = 0;
 			sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &r, &g, &b);
 			if ((x!=0.0)||(y!=0.0)||(z!=0.0))
 			{
@@ -46,45 +45,38 @@ int main (int argc, char** argv)
 	cout <<"num arguments = "<<argc<<endl;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 	string pointCloudFilename1, pointCloudFilename2;
-	int numPoints, numPoints1, numPoints2;
-	numPoints1 = 0;
-	numPoints2 = 0;
-	int elements;
+	int numPoints;
+	int subSampleStep = 1;
+	int counter = 0;
 
 	if (argc == 2)
 	{
 		pointCloudFilename1 = string(argv[1]);
 		cout<<"pointCloudFilename1="<<pointCloudFilename1<<endl;
-		numPoints1 = CountEntries(pointCloudFilename1);
+		numPoints = CountEntries(pointCloudFilename1);
 	}
 	if (argc == 3)
 	{
+		
 		pointCloudFilename1 = string(argv[1]);
 		cout<<"pointCloudFilename1="<<pointCloudFilename1<<endl;
-		numPoints1 = CountEntries(pointCloudFilename1);
-
-		pointCloudFilename2 = string(argv[2]);
-		cout<<"pointCloudFilename2="<<pointCloudFilename2<<endl;
-		numPoints2 = CountEntries(pointCloudFilename2);
+		numPoints = CountEntries(pointCloudFilename1);
+		subSampleStep = atoi(argv[2]);
 	}
 
 	if (argc == 1)
 	{
-		cout << endl << "Usage: ./pc_vis <pointcloudfilename>" << endl << endl;
+		cout << endl << "Usage: ./pc_vis <pointcloudfilename> <step>" << endl << endl;
 	}
 
-	numPoints = numPoints1 + numPoints2;
-	 
 	if ((argc == 2) || (argc==3))
 	{
-		cloud->width = numPoints;
+		cloud->width = numPoints/subSampleStep;
 		cloud->height = 1;
 		//cloud->is_dense = false;
 		cloud->points.resize (cloud->width * cloud->height);
 
-		int counter = 0;
-
-		if (numPoints1>0)
+		if (numPoints>0)
 		{
 			ifstream myFile1 (pointCloudFilename1.c_str());
 			string line;
@@ -105,12 +97,14 @@ int main (int argc, char** argv)
 						cloud->points[counter].b = b;
 						counter++;
 					}
+					for(int i=0; i<subSampleStep-1; i++)
+						getline(myFile1, line);
 				}
 				myFile1.close(); 
 			}
 		}
 	}
-	else
+	else //Default demo of pc_vis
 	{
 		// Fill in the cloud data
 		cloud->width= 5;
@@ -126,12 +120,11 @@ int main (int argc, char** argv)
 			cloud->points[i].z = 1024 * rand () / (RAND_MAX + 1.0f);
 		}
 
-		//pcl::io::savePCDFileASCII ("test_pcd.pcd", *cloud);
-		//std::cerr << "Saved " << cloud->points.size () << " data points to test_pcd.pcd." << std::endl;
-
 		for (size_t i = 0; i < cloud->points.size (); ++i)
 			std::cerr << "" << cloud->points[i].x << " " << cloud->points[i].y << " " << cloud->points[i].z << std::endl;
 	}
+
+	cout << "Points Visualized: " << counter << endl;
 
 	//display points
 	pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
