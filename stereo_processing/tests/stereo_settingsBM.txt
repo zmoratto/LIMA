@@ -7,7 +7,7 @@ TEXTURE_THRESHOLD: 25
 UNIQUENESS_RATIO: 25
 NEED_RECTIFICATION: YES
 DOWNSAMPLE_FACTOR: 1.0
-CALIBRATION_FILENAME: /home/emily/project/lima/project/stereo_processing/tests/stereo_calibration.txt
+CALIBRATION_FILENAME: stereo_calibration.txt
 TILE_WIDTH: -1
 TILE_HEIGHT: -1
 
