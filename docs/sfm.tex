@@ -1,6 +1,8 @@
+Structure from motion is the process of estimating camera pose from a sequence of 2D images. The input to the structure from motion module is a sequence of images and the output is the rotation and translation matrices of the camera. The goal of our work is to make a structure from motion framework that works for a variety of different situations. The framework is able to process images alone, stereo pairs, and data from the Kinect. Another important aspect of the framework is that it is able to process large planetary images as well as quickly process rover images.
+
 \subsection{Files:}
 \begin{itemize}
-	\item{sfm\_test.cpp} - main function for SFM Processing
+	\item{depthSfm\_test.cpp} - main function for SFM Processing
 	\item{SFM.h} - declaration of SFM class
 	\item{SFM.cpp} - definition of SFM class
 	\item{PoseEstimation.h} - declaration of PoseEstimation class
@@ -11,18 +13,25 @@
 \end{itemize}
 
 
-\subsection{How to install sfm:}
+\subsection{How to install:}
 \begin{enumerate}
 	\item{Install Prerequisites} - Install OpenCV 2.3.1, PCL 1.5, lapack, cmake, gfortran
-	\item{Install SFM} - inside sfm processing directory type: cmake .
-	\item{Build sfm\_test} - inside sfm processing directory type: make
-	\item{Run Examples} - ./sfm\_test testConfig.txt testImageList.txt results
+	\item{Install SFM} - inside sfm\_processing/tests directory type: cmake .
+	\item{Build sfm\_test} - inside sfm\_processing/tests directory type: make
 \end{enumerate}
 
-\subsection{Configuration Parameters}
+\subsection{How to run:}
+./sfmDepth\_test testConfig.txt testImageList.txt results
+\subsubsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
-	\item{\textsc{depthInfo}} - 0 (No Depth), 2 (Kinect Depth), 3 (Stereo Point Clouds)
+	\item{\textsc{firstFrame}} - first frame to process in the sequence
+	\item{\textsc{lastFrame}} - last frame to process in the sequence
+	\item{\textsc{frameStep}} - step between frames to process, for subsampling in time
+	\item{\textsc{depthInfo}} - 0 (No Depth), 1 (Stereo Pairs), 2 (Kinect Depth), 3 (Stereo Point Clouds)
+	\item{\textsc{showResultsFlag}} - 0 (Don't show), 1 (Show results)
+	\item{\textsc{saveResultsFlag}} - 0 (Don't save), 1 (Save results)
+	\item{\textsc{cameraCalibrationFilename}} - file containing camera calibration information for kinect
 	\item{\textsc{pointCloudFilename}} - file containing filenames for all point cloud files
 	\item{\textsc{kinectDepthFilename}} - file containing list of kinect depth filenames
 	\item{\textsc{minMatches}} - minimum number of matches in order to do pose estimation
@@ -39,15 +48,77 @@ If the configuration file is not specified, the program will run with a set of d
 	\item{\textsc{flannCheck}} - number of elements to visit in NN search
 	\item{\textsc{ransacPixels}} - maximum number of pixels the match can be from the epipolar line
 	\item{\textsc{ransacAccuracy}} - accuracy of homography before stopping iterations
-	\item{\textsc{tileWidth}} - width of each tile in image
-	\item{\textsc{tileHeight}} - height of each tile in image
+	\item{\textsc{tileWidth}} - width of each tile in image, if set to -1, tile width is equal to image width
+	\item{\textsc{tileHeight}} - height of each tile in image, if set to -1, tile height is equal to image height
 	\item{\textsc{xOverlap}} - amount of overlap in the x direction between consecutive tiles
 	\item{\textsc{yOverlap}} - amount of overlap in the y direction between consecutive tiles
 	\item{\textsc{tileScaleX}} - scale from reference tile to matching tile in the x direction
 	\item{\textsc{tileScaleY}} - scale from reference tile to matching tile in the y direction
 	\item{\textsc{pointProjFilename}} - file where point projections are saved for later use by SBA
 	\item{\textsc{weightedPortion}} - weights this portion of the image to the bottom of the image (work in progress \ldots)
+	\item{\textsc{resultImageFilename}} - filename for saved result images
+	\item{\textsc{hessianThresh}} - parameter for SURF
+	\item{\textsc{nOctaves}} - parameter for SURF
+	\item{\textsc{nOctaveLayers}} - parameter for SURF
+	\item{\textsc{extended}} - parameter for SURF to extract extended features
+	\item{\textsc{upright}} - parameter for SURF to extract non rotation invariant features
+	\item{\textsc{octaves}} - parameter for SURF
+	\item{\textsc{octaveLayers}} - parameter for SURF
+	\item{\textsc{matchingMethod}} - 0 (Use NNDR), 1 (Marry Features)
+	\item{\textsc{stereoLeftList}} - list of left stereo images
+	\item{\textsc{stereoRightList}} - list of right stereo images
 \end{itemize}
+
+
+\subsection{Algorithm}
+
+\subsubsection{Feature Extraction}
+	We make use of OpenCV's feature extraction methods for this part of the algorithm. The structure from motion utilizes three different feature detection and extraction methods: Oriented Brief (ORB), Speeded Up Robust Features (SURF), and Scale Invariant Feature Transform (SIFT). All three methods have their advantages and disadvantages. Since this application is designed for use by NASA, the features must be extremely discriminatory and robust.
+\begin{itemize} 
+\item{ORB} \\
+	ORB is extremely fast, but not always very robust. In many situations the rover won't have many object to extract features from, as it will mostly be a dirt surface that it is navigating. ORB is unable to detect robust features in an all dirt environment and therefore he matches that result from using ORB are not always very reliable.
+\item{SURF} \\
+	SURF is slower than ORB, but is able to detect many good features in a dirt-only environment. SURF easily doubled the number of keypoints detected per image and the matches that result from these features were much more robust than those from ORB.
+\item{SIFT} \\
+	SIFT is much slower than SURF, but is able to detect even more features than SURF in similar environments. Using SIFT results in really reliable matches as well, but since there are so many key points, matching takes longer than matching SURF features.
+\item{Increasing Speed} \\
+	Since the algorithm needs to run very quickly in order to be a part of rover software, we added a few options to speed up the Feature Extraction time. If 3D information is known, we apply a mask to the image, removing areas without any 3D information, before applying feature extraction. This cuts down the feature extraction time by half. Another option that is available for speed up is subsampling the image. Subsampling the image requires subsampling the set of 3D points and then applying the mask before feature extraction. The final feature extraction speed up option is to use upright features. This takes away the constraint that the features have to be rotationally invariant. This decreases time for both feature detection and extraction.
+\end{itemize}
+
+\subsubsection{Feature Matching}
+	OpenCV's Fast Library for Approximate Nearest Neighbor (FLANN) is used for determining possible matches for the features extracted in the previous step. Feature points are extracted from a pair of images and FLANN is applied to both sets of feature points. We find the two nearest neighbors for each key point. From here, we have two matching options. 
+\begin{itemize}
+\item{Nearest Neighbor Distance Ratio} \\
+	We determine if a potential match returned by FLANN is “good” by the Nearest Neighbor Distance Ratio (NNDR). If the ratio of distances of the reference key point's descriptor to its two nearest neighbors' descriptors is less than the NNDR, then the match is said to be “good” because it is much better than the second best match. 
+\item{Marry Matches} \\
+	The other matching method that we employ instead of the NNDR, is to marry matches from the reference image with those in the matching image. We find the nearest neighbor for each key point in the reference image and the nearest neighbor for each key point in the matching image. If a key point in the reference image has a nearest neighbor in the reference image whose nearest neighbor is that same key point in the reference image, these two key points are said to “marry.” In this case, this is considered a “good” match.
+\end{itemize}
+
+\subsubsection{Outlier Rejection}
+There are two steps in the process of outlier rejection in our structure from motion framework.
+\begin{itemize}
+\item{Standard Deviation Constraint} \\
+	First, for each match, we compute the translation between the two key points. If 3D information is available, either through Kinect or stereo data, then the 3D translation is computed for each point. If there is no 3D information available, in the case of image only input, then the 2D pixel translation is computed for each match. The mean and standard deviation of the translations of the entire match set are computed. The matches whose translation vector are outside of one standard deviation of the mean translation are rejected. 
+\item{Homography} \\
+	The standard deviation constraint is followed by another outlier removal technique. We use OpenCV to find a homography between the two images used to compute the matches. This homography tells us which of the matches that are left are outliers. These are removed, and the matches that survive this step are used to compute the camera pose in the next step. If there is no 3D information available, the rest of the algorithm is skipped.
+\end{itemize}
+
+\subsubsection{Relative Pose Estimation}
+	This step involves computing the translation and rotation matrices that map the 3D points from the previous image to the current image.
+\begin{itemize}
+\item{Translation} \\
+	The translation matrix is computed in a similar way to the way that it was for the outlier rejection. In this step, however, we use a weighted mean for the computation of the translation matrix. A parameter is set to weight the matches closer to the camera more than those further away from the camera. When the camera is moving, the change will be more noticeable closer to the camera, so those matches describe the movement of the camera more accurately. 
+\item{Rotation} \\
+	The Kabsch algorithm is used to compute the relative rotation matrix for the camera. The Kabsch algorithm calculates the optimal rotation matrix that minimizes the root mean squared deviation between two paired sets of points. There are three steps in the Kabsch algorithm. First, both sets of 3D points must be translated so that their centroid is on the origin. Next, the covariance matrix for the data must be computed, and finally, the covariance matrix is decomposed using singular value decomposition. This decomposition is then used to compute the rotation matrix for the image pair. The relative rotation and translation matrices are used in the next step, where we compute the global pose of the camera.
+\end{itemize}
+
+\subsubsection{Global Pose Estimation}
+	The end goal of the structure from motion system is to estimate the pose of the camera at each frame with respect to the first frame. At the beginning of the image sequence, the camera has yet to move, so the translation and rotation are both zero. From this point, matches are computed between the first and second frame, resulting in relative rotation and translation matrices. Since the rotation and translation thus far are both zero, these relative rotation and translation matrices are now the global rotation and translation. For each pair of frames to follow, new relative rotation and translation matrices are computed. These relative matrices must now be applied to the global matrices to get the new global matrices. These new global rotation and translation matrices describe the pose of the camera at this particular frame with respect to the first frame.
+
+
+\subsubsection{3D Point Mapping}
+	This step aligns the 3D point clouds from each frame of the image sequence with the first set of 3D points. In the previous step, we compute the rotation and translation from the first frame to the current frame. In this step, we need the rotation and translation that aligns the current frame with the first frame, so we must negate the translation matrix and transpose the rotation matrix. Once this is done, the new rotation and translation matrices are applied to each 3D point corresponding to the current frame.
+
 
 
 %=======
