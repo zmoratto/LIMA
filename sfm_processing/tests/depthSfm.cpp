@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
 	//Read Stereo Config File
 	CvStereoBMProcessorParameters thisStereoParams;
-	int configReadError = ReadStereoConfigFile(string("../../stereo_processing/tests/stereo_settingsBM.txt"), &thisStereoParams);
+	int configReadError = ReadStereoConfigFile(string("../stereo_settingsBM.txt"), &thisStereoParams);
 	if( !configReadError )
 	{
 		cout << "Stereo Config File Read Error" << endl;
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 	thisStereo->changeCoordinates(rotationMat, translationMat);
 
 
-	for(frameIndex = sfmTest.configParams.firstFrame; frameIndex < sfmTest.configParams.lastFrame; frameIndex++)
+	for(frameIndex = sfmTest.configParams.firstFrame; frameIndex <= sfmTest.configParams.lastFrame; frameIndex++)
 	{
 		cout << endl << endl <<"Frame " << frameIndex << endl;
 		//Load Stereo Images
@@ -132,105 +132,131 @@ int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParamet
   std::string identifier;
   std::string param;
 
-	if (configFile.is_open())
-	{ 
-		getline (configFile,line);
-		stringstream sline; 
-		sline<<line;
-		sline >> identifier >> val;
-		thisStereoParams->preFilterSize=val;
+  if (configFile.is_open()){ 
+    
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline; 
+    sline<<line;
+    sline >> identifier >> val;
+    cout<<val<<endl;
+    thisStereoParams->preFilterSize=val;
 
-		getline (configFile,line);
-		stringstream sline1; 
-		sline1<<line;
-		sline1 >> identifier >> val;
-		thisStereoParams->preFilterCap=val;
-	  
-		getline (configFile,line);
-		stringstream sline2; 
-		sline2<<line;
-		sline2 >> identifier >> val;
-		thisStereoParams->sadWindowSize=val;
-	 
-		getline (configFile,line);
-		stringstream sline3; 
-		sline3<<line;
-		sline3 >> identifier >> val;
-		thisStereoParams->minDisparity= val;
-	  
-		getline (configFile,line);
-		stringstream sline4; 
-		sline4<<line;
-		sline4 >> identifier >> val;
-		thisStereoParams->numberOfDisparities= val;
-	  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline1; 
+    sline1<<line;
+    sline1 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->preFilterCap=val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline2; 
+    sline2<<line;
+    sline2 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->sadWindowSize=val;
+ 
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline3; 
+    sline3<<line;
+    sline3 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->minDisparity= val;
+  
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline4; 
+    sline4<<line;
+    sline4 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->numberOfDisparities= val;
+  
 
-		getline (configFile,line);
-		stringstream sline5; 
-		sline5<<line;
-		sline5 >> identifier >> val;
-		thisStereoParams->textureThreshold=val;
-	 
-		getline (configFile,line);
-		stringstream sline6; 
-		sline6<<line;
-		sline6 >> identifier >> val;
-		thisStereoParams->uniquenessRatio=val;
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline5; 
+    sline5<<line;
+    sline5 >> identifier >> val;
+   cout<<val<<endl;
+    thisStereoParams->textureThreshold=val;
+ 
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline6; 
+    sline6<<line;
+    sline6 >> identifier >> val;
+      cout<<val<<endl;
+    thisStereoParams->uniquenessRatio=val;
 
-		getline (configFile,line);
-		stringstream sline7; 
-		sline7<<line;
-		sline7 >> identifier >> param;
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline7; 
+    sline7<<line;
+    sline7 >> identifier >> param;
+      cout<<param<<endl;
+    if(param[0]=='N' || param[0]=='n')
+      thisStereoParams->needRectification=false;
+    else if(param[0]=='Y' || param[0]=='y')
+      thisStereoParams->needRectification=true;
+    else{
+      cout << "Error reading stereo settings file"<<endl;
+      configFile.close();
+      return 0;
+    }
 
-		if(param[0]=='N' || param[0]=='n')
-			thisStereoParams->needRectification=false;
-		else if(param[0]=='Y' || param[0]=='y')
-			thisStereoParams->needRectification=true;
-		else
-		{
-		cout << "Error reading stereo settings file"<<endl;
-		configFile.close();
-		return 0;
-		}
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline8; 
+    sline8<<line;
+    sline8 >> identifier >> val;
+    cout<<val<<endl;
+    thisStereoParams->scaleFactor=val;
 
-		getline (configFile,line);
-		stringstream sline8; 
-		sline8<<line;
-		sline8 >> identifier >> val;
-		thisStereoParams->scaleFactor=val;
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline9; 
+    sline9<<line;
+    sline9 >> identifier >> thisStereoParams->calibrationFilename;
+    cout<<thisStereoParams->calibrationFilename<<endl;
 
-		getline (configFile,line);
-		stringstream sline9; 
-		sline9<<line;
-		sline9 >> identifier;
-		if( sline9 >> val )
-		{
-			thisStereoParams->tileWidth=val;
-		}
-		else
-		{
-			cout<<"TILE_HEIGHT: "<<-1<<endl;
-			thisStereoParams->tileWidth=-1;
-		}
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline10; 
+    sline10<<line;
+    sline10 >> identifier;
+    if( sline10 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileWidth=val;
+       }
+    else{
+       cout<<"TILE_Width: "<<-1<<endl;
+       thisStereoParams->tileWidth=-1;
+       }
 
-		getline (configFile,line);
-		stringstream sline10;
-		sline10 >> identifier;
-		if( sline10 >> val )
-		{
-			thisStereoParams->tileHeight=val;
-		}
-		else
-		{
-			thisStereoParams->tileHeight=-1;
-		}
+    getline (configFile,line);
+    cout<<line<<endl;
+    stringstream sline11; 
+    sline11<<line;
+    sline11 >> identifier;
+    if( sline11 >> val ){
+       cout<<val<<endl;
+       thisStereoParams->tileHeight=val;
+       }
+    else{
+       cout<<"TILE_HEIGHT: "<<-1<<endl;
+       thisStereoParams->tileHeight=-1;
+       }
 
-		configFile.close();
-		return 1;
-	}
-	else
-	{
-		cout << "Unable to open settings file"<<endl; 
-		return 0;
-	} 
+    configFile.close();
+    return 1;
+  }
+  else{
+    cout << "Unable to open settings file"<<endl; 
+    return 0;
+  }
+  
 }
+

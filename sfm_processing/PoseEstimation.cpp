@@ -575,7 +575,11 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 	vector<cv::KeyPoint> tempKeyPoints;
 	int x, y, index, width = image->width;
 	tempKeyPoints.clear();
+	repeats.clear();
 	cv::Mat tempMat;
+
+	for(int i=0; i<(image->width)*(image->height); i++)
+		im->data.fl[i] = 0.0;
 
 	for(int i=0; i<globalCurrKeyPoints.size(); i++)
 	{
@@ -603,6 +607,7 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 			cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
 			globalCurrDescriptors.row(i).copyTo(dest);
 			cnt++;
+			dest.release();
 		}
 		else
 			j++;
@@ -618,6 +623,9 @@ void PoseEstimation::removeDuplicates(IplImage* image)
 
 	tempKeyPoints.clear();
 	tempMat.release();
+
+	repeats.clear();
+	cvReleaseMat(&im);
 }
 
 //Remove outliers after initial nearest neighbor matching

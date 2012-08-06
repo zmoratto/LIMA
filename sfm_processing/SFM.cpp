@@ -21,31 +21,19 @@ SFM::SFM(char* configFile)
 
 SFM::~SFM()
 {
-/*	cameraMatrix.release();
+	cameraMatrix.release();
 	distCoeffs.release();
+
+	pointFiles.clear();
+
+	inputFiles.clear();
+	depthFiles.clear();
 
 	if(prevImage != NULL)
 	{
 		cvReleaseImage(&prevImage);
 		prevImage = NULL;
 	}
-	if(currDepth != NULL)
-	{
-		cvReleaseImage(&currDepth);
-		currDepth = NULL;
-	}
-
-	pointFiles.clear();
-
-	for(int i=0; i<numTiles; i++)
-	{
-		cvReleaseImage(&referenceTile.tileImages[i]);
-		referenceTile.tileImages[i] = NULL;
-	}	
-
-	inputFiles.clear();
-	depthFiles.clear();
-*/
 }
 
 void SFM::setUpSFM(char* inputFilename, IplImage* image)
@@ -324,7 +312,6 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	cv::KeyPoint tilePt;
 	int oldRow = 0;
 	int buffer = 25;
-	IplImage* tempImg = cvCreateImage(cvSize(imageWidth,imageHeight),image->depth,image->nChannels);
 	IplImage* copy = cvCreateImage(cvGetSize(image),image->depth,image->nChannels);
 
 	//Clear Everything
@@ -419,6 +406,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 			cv::Mat dest(tempMat.rowRange(cnt, cnt+1));
 			pose.currObjectData.row(i).copyTo(dest);
 			cnt++;
+			dest.release();
 		}
 	}
 
@@ -441,7 +429,7 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	pose.globalCurrDescriptors.resize(oldRow+feat.key_points.size());
 	cv::Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
 	pose.currObjectData.copyTo(dest1);
-
+	tempMat.release();
 	cvReleaseImage(&copy);
 }
 
@@ -515,7 +503,6 @@ void SFM::update(IplImage* image)
 	pose.globalCurrKeyPoints.clear();
 	pose.globalPrevDescriptors = pose.globalCurrDescriptors.clone();
 	pose.globalCurrDescriptors.release();
-	pose.globalCurrDescriptors.create(0, pose.globalCurrDescriptors.cols, CV_32F);
 
 	//3D Points
 	pose.resetPrevPos();
@@ -526,9 +513,11 @@ void SFM::update(IplImage* image)
 		prevImage = NULL;
 	}
 
-	prevImage = cvCreateImage(cvGetSize(image), image->depth, image->nChannels);
+	//prevImage = cvCreateImage(cvGetSize(image), image->depth, image->nChannels);
 
-	cvCopy(image, prevImage);
+	//cvCopy(image, prevImage);
+
+	prevImage = cvCloneImage(image);
 
 	if(currDepth != NULL)
 	{
@@ -539,19 +528,17 @@ void SFM::update(IplImage* image)
 
 	referenceTile.clear();
 	pose.matchWeights.clear();
+	pose.validPix.clear();
 
-	for(int i=0; i<numTiles; i++)
-	{
-		cvReleaseImage(&referenceTile.tileImages[i]);
-		referenceTile.tileImages[i] = NULL;
-	}
 
-/*	if(image != NULL)
+	if(configParams.depthInfo != STEREO_DEPTH)
 	{
-		cvReleaseImage(&image);
-		image = NULL;
+		if(image != NULL)
+		{
+			cvReleaseImage(&image);
+			image = NULL;
+		}
 	}
-*/
 }
 
 //Creates composed image and displays matches and keypoints
@@ -726,6 +713,8 @@ void SFM::mapping(string& filename, IplImage* image)
 	//Clean up
 	cvReleaseMat(&pointMat);
 	cvReleaseMat(&outPointMat);
+	cvReleaseMat(&temp_T);
+	cvReleaseMat(&temp_R);
 	cvReleaseImage(&r);
 	cvReleaseImage(&g);
 	cvReleaseImage(&b);
