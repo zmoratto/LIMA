@@ -770,7 +770,7 @@ void SFM::mapping(string& filename, IplImage* image)
 	int counter = 0;
 	CvMat *pointMat = cvCreateMat (3, 1, CV_32FC1); //Used to hold each 3D point for the matrix multiplication
 	CvMat *outPointMat = cvCreateMat (3, 1, CV_32FC1); //Holds the output of each 3D point matrix multiplication
-
+	CvMat *inputMat = cvCreateMat(3, 1, CV_32FC1);
 	//Compute the opposite of globalT to apply to the point clouds
 	temp_T->data.fl[0] = -1*pose.currGlobal_T->data.fl[0];
 	temp_T->data.fl[1] = -1*pose.currGlobal_T->data.fl[1];
@@ -797,7 +797,10 @@ void SFM::mapping(string& filename, IplImage* image)
 			cvSetReal2D(pointMat, 2, 0, pose.curr_z[i]);
 
 			//Apply globalR Transpose and negative globalT to the current point
-			cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
+			cvAdd(pointMat, temp_T, inputMat);
+			cvMatMul(temp_R, inputMat, outPointMat);
+
+			//cvMatMulAdd(temp_R, pointMat, temp_T, outPointMat);
 
 			//Write out each mapped point and the color information associated with it.
 			if(numChannels == 1)
