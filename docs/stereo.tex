@@ -1,26 +1,65 @@
-To be completed by Chris
 
 \subsection{Files:}
 
 \begin{itemize}
-\item{a file, does this}
+\item{tests/CvStereoBMTest.cpp - main function for stereo using the block matching algorithm}
+\item{tests/stereo\_settingsBM.txt - settings file for the block matching test}
+\item{tests/CvStereoSGBMTest.cpp - main function for stereo using the semiglobal block matching algorithm (Hirschmuller)}
+\item{tests/stereo\_settingsSGBM.txt - settings file for the semiglobal block matching test}
+\item{tests/stereo\_calibration.txt - calibration file for stereo tests}
+\item{CvStereoBMProcessor.h - declaration of stereo block matching class}
+\item{CvStereoBMProcessor.cpp - definition of stereo block matching class}
+\item{CvStereoSGBMProcessor.h - declaration of stereo semiglobal block matching class}
+\item{CvStereoSGBMProcessor.cpp - definition of stereo semiglobal block matching class}
 \end{itemize}
 
 
 \subsection{How to install:}
 \begin{enumerate}
-	\item{Install Prerequisites} 
-	\item{Install } 
-	\item{Build } 
+	\item{Install Prerequisites - Install OpenCV 2.3, cmake} 
+	\item{Install Stereo - inside stereo\_processing/tests directory type: "cmake ." } 
+	\item{Build Stereo tests - inside stereo\_processing/tests directory type: "make" }  
 	\item{Run Examples} 
 \end{enumerate}
 
-\subsection{Configuration Parameters}
+\subsection{How to run:}
+\begin{enumerate}
+   \item{./bm\_stereo\_test -a left.pgm -b right.pgm}
+   \item{./sgbm\_stereo\_test -a left.pgm -b right.pgm}
+\end{enumerate}
+
+\subsection{Block Matching Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
-	\item{\textsc{parameter1 }} - does this
-
+	\item{\textsc{PRE\_FILTER\_SIZE} - size of the preprocessing filter}
+	\item{\textsc{PRE\_FILTER\_CAP} - parameter for OpenCV stereoBM}
+	\item{\textsc{SAD\_WINDOW\_SIZE} - size of the SAD Window (must be odd)}
+   \item{\textsc{MIN\_DISPARITY} - minimum possible disparity value}
+   \item{\textsc{NUMBER\_OF\_DISPARITIES} - maximum possible disparity minus the minimum (must be a multiple of 16)} 
+   \item{\textsc{TEXTURE\_THRESHOLD} - minimum texture value for a pixel to be reliable}
+   \item{\textsc{UNIQUENESS\_RATIO} - margin in percentage by which a match should score higher than the second best to be considered a match}
+   \item{\textsc{NEED\_RECTIFICATION} - set to YES if the images need to be rectified, NO otherwise}
+   \item{\textsc{DOWNSAMPLE\_FACTOR} - factor by which to scale the images prior to processing}
+   \item{\textsc{CALIBRATION\_FILENAME} - filename where the calibration information is stored}
+   \item{\textsc{TILE\_WIDTH} - width of tile for processing by tiles, set to -1 for no tiling}
+   \item{\textsc{TILE\_HEIGHT} - height of tile for processing by tiles, set to -1 for no tiling}
 \end{itemize}
 
+\subsection{Semiglobal Block Matching Configuration Parameters}
+If the configuration file is not specified, the program will run with a set of default parameters.
+\begin{itemize}
+	\item{\textsc{PRE\_FILTER\_CAP }} - truncates the x derivates to [-preFilterCap,preFilterCap]
+	\item{\textsc{SAD\_WINDOW\_SIZE} - size of the SAD Window (must be odd)}
+	\item{\textsc{P1} - penalty on the disparity change by 1 (OpenCV suggests starting at about 8*imageChannels*sadWindowSize*sadWindowSize)}
+	\item{\textsc{P1} - penalty on the disparity change by more than 1 (OpenCV suggests starting at about 32*imageChannels*sadWindowSize*sadWindowSize)}
+   \item{\textsc{MIN\_DISPARITY} - minimum possible disparity value}
+   \item{\textsc{NUMBER\_OF\_DISPARITIES} - maximum possible disparity minus the minimum (must be a multiple of 16)} 
+   \item{\textsc{UNIQUENESS\_RATIO} - margin in percentage by which a match should score higher than the second best to be considered a match}
+   \item{\textsc{NEED\_RECTIFICATION} - set to YES if the images need to be rectified, NO otherwise}
+   \item{\textsc{DOWNSAMPLE\_FACTOR} - factor by which to scale the images prior to processing}
+   \item{\textsc{CALIBRATION\_FILENAME} - filename where the calibration information is stored}
+   \item{\textsc{TILE\_WIDTH} - width of tile for processing by tiles, set to -1 for no tiling}
+   \item{\textsc{TILE\_HEIGHT} - height of tile for processing by tiles, set to -1 for no tiling}
+\end{itemize}
 
 
