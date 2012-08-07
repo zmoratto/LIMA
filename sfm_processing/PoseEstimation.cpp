@@ -119,6 +119,8 @@ int PoseEstimation::estimateRelativePose()
 	float numWeightedMatches = 0.0;
 	int numMatches = globalCurrMatchedPts.size();
 	validPix.clear();
+	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
+	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
 
 	//Find Translation, Previous Center, and Current Center of Point Clouds
 	for (i = 0; i < numMatches; i++)
@@ -128,7 +130,6 @@ int PoseEstimation::estimateRelativePose()
                     (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
 		{
 			//Weight the translation matrix by where the match is located. More weight if the match is closer to the camera.
-			translation = translation + matchWeights[i]*(globalCurrMatchedPts[i]-globalPrevMatchedPts[i]);
 			if(matchWeights[i] != NO_WEIGHT)
 			{
 				currCenter = currCenter + (globalCurrMatchedPts[i]);
@@ -147,13 +148,6 @@ int PoseEstimation::estimateRelativePose()
 	//Normalize the translation and centers.
 	if (numValidMatches > 0)
 	{
-		translation.x = translation.x/numWeightedMatches;
-		translation.y = translation.y/numWeightedMatches;
-		translation.z = translation.z/numWeightedMatches;
-		cvSetReal2D(relative_T, 0, 0, translation.x);
-		cvSetReal2D(relative_T, 1, 0, translation.y);
-		cvSetReal2D(relative_T, 2, 0, translation.z);
-
 		currCenter.x = currCenter.x/numValidMatches;
 		currCenter.y = currCenter.y/numValidMatches;
 		currCenter.z = currCenter.z/numValidMatches;
@@ -187,17 +181,17 @@ int PoseEstimation::estimateRelativePose()
 			//Subtract the centers from each matched point and compute the A matrix.
 			if(matchWeights[i] != NO_WEIGHT)
 			{
-				a00 = a00 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].x - currCenter.x);
-				a10 = a10 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].x - currCenter.x);
-				a20 = a20 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].x - currCenter.x);
+				a00 = a00 + (globalCurrMatchedPts[i].x - currCenter.x)*(globalPrevMatchedPts[i].x - prevCenter.x);
+				a10 = a10 + (globalCurrMatchedPts[i].y - currCenter.y)*(globalPrevMatchedPts[i].x - prevCenter.x);
+				a20 = a20 + (globalCurrMatchedPts[i].z - currCenter.z)*(globalPrevMatchedPts[i].x - prevCenter.x);
 
-				a01 = a01 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].y - currCenter.y);
-				a11 = a11 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].y - currCenter.y);
-				a21 = a21 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].y - currCenter.y);
+				a01 = a01 + (globalCurrMatchedPts[i].x - currCenter.x)*(globalPrevMatchedPts[i].y - prevCenter.y);
+				a11 = a11 + (globalCurrMatchedPts[i].y - currCenter.y)*(globalPrevMatchedPts[i].y - prevCenter.y);
+				a21 = a21 + (globalCurrMatchedPts[i].z - currCenter.z)*(globalPrevMatchedPts[i].y - prevCenter.y);
 
-				a02 = a02 + (globalPrevMatchedPts[i].x - prevCenter.x)*(globalCurrMatchedPts[i].z - currCenter.z);
-				a12 = a12 + (globalPrevMatchedPts[i].y - prevCenter.y)*(globalCurrMatchedPts[i].z - currCenter.z);
-				a22 = a22 + (globalPrevMatchedPts[i].z - prevCenter.z)*(globalCurrMatchedPts[i].z - currCenter.z);
+				a02 = a02 + (globalCurrMatchedPts[i].x - currCenter.x)*(globalPrevMatchedPts[i].z - prevCenter.z);
+				a12 = a12 + (globalCurrMatchedPts[i].y - currCenter.y)*(globalPrevMatchedPts[i].z - prevCenter.z);
+				a22 = a22 + (globalCurrMatchedPts[i].z - currCenter.z)*(globalPrevMatchedPts[i].z - prevCenter.z);
 			}
 		}
 	}
@@ -232,7 +226,7 @@ int PoseEstimation::estimateRelativePose()
 			cvReleaseMat(&AMat);
 			return 1; //ERROR, determinant == 0.
 		}
-		else //Use Kabsh Algorithm for determining the rotation matrix between two sets of point clouds.
+		else //Use Kabsch Algorithm for determining the rotation matrix between two sets of point clouds.
 		{
 			if (det > 0)
 			{
@@ -263,6 +257,29 @@ int PoseEstimation::estimateRelativePose()
 			cvReleaseMat(&UMat);
 			cvReleaseMat(&AMat);
 		}
+
+		//Find Translation New Way
+		for (i = 0; i < numMatches; i++)
+		{
+			if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
+			{
+				cvSetReal2D(inMat, 0, 0, globalPrevMatchedPts[i].x);
+				cvSetReal2D(inMat, 1, 0, globalPrevMatchedPts[i].y);
+				cvSetReal2D(inMat, 2, 0, globalPrevMatchedPts[i].z);
+				cvMatMul(relative_R, inMat, outMat);
+				translation.x += matchWeights[i]*(globalCurrMatchedPts[i].x - outMat->data.fl[0]);
+				translation.y += matchWeights[i]*(globalCurrMatchedPts[i].y - outMat->data.fl[1]);
+				translation.z += matchWeights[i]*(globalCurrMatchedPts[i].z - outMat->data.fl[2]);
+			}
+		}
+
+		translation.x = translation.x/numWeightedMatches;
+		translation.y = translation.y/numWeightedMatches;
+		translation.z = translation.z/numWeightedMatches;
+		cvSetReal2D(relative_T, 0, 0, translation.x);
+		cvSetReal2D(relative_T, 1, 0, translation.y);
+		cvSetReal2D(relative_T, 2, 0, translation.z);
+
 		return 0;
 	}
 	else
@@ -683,12 +700,12 @@ void PoseEstimation::removeOutliers(int depthInfo, IplImage* image)
 				prevPix.push_back(globalPrevMatchedPix[i]);
 
 				//WEIGHTING
-/*				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) || globalPrevMatchedPix[i].y > weightedPortion*(image->height))
+				if(globalCurrMatchedPix[i].y > weightedPortion*(image->height) && globalPrevMatchedPix[i].y > weightedPortion*(image->height))
 				{
 					matchWeights.push_back(DOUBLE_WEIGHT);
 				}
 				else
-*/					matchWeights.push_back(SINGLE_WEIGHT);
+					matchWeights.push_back(SINGLE_WEIGHT);
 			}
 		}
 	}

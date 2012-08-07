@@ -15,6 +15,7 @@
 #include "../SFM.h"
 
 using namespace std;
+void printUsage();
 
 int main(int argc, char** argv)
 {
@@ -28,26 +29,12 @@ int main(int argc, char** argv)
 	//Read Command Line Arguments
 	if(argc != 4)
 	{
-		cout << endl;
-		cout << "******************** USAGE ********************" << endl;
-		cout << "./sfm_test <configFile> <inputFile> <outputDir>" << endl;
-		cout << "***********************************************" << endl;
-		cout << endl;
+		printUsage();
 		return (-1);
 	}
 
 	//Set Up SFM
 	SFM sfmTest(argv[1], argv[2]);
-	if(sfmTest.configParams.depthInfo == STEREO_DEPTH)
-	{
-		image = cvLoadImage(sfmTest.stereoLeftFiles[0].c_str(), 0);
-		sfmTest.setUpSFM(NULL, image);
-	}
-	else
-	{
-		image = cvLoadImage(sfmTest.inputFiles[0].c_str(), 0);
-		sfmTest.setUpSFM(argv[2], image);
-	}
 
 	//Loop through all images in sequence
 	for(frameIndex = sfmTest.configParams.firstFrame; frameIndex <= sfmTest.configParams.lastFrame; frameIndex++)
@@ -61,5 +48,14 @@ int main(int argc, char** argv)
 	}
 
 	return 0;
+}
+
+void printUsage()
+{
+	cout << endl;
+	cout << "******************** USAGE ********************" << endl;
+	cout << "./sfm_test <configFile> <inputFile> <outputDir>" << endl;
+	cout << "***********************************************" << endl;
+	cout << endl;
 }
 

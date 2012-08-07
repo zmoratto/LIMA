@@ -14,6 +14,7 @@ SFM::SFM(char* configFile, char* inputFilename)
 	string tempString;
 	prevImage = NULL;
 	currDepth = NULL;
+	IplImage* image;
 	string configFileString = string(configFile);
 
 	//Read Configuration Files
@@ -49,6 +50,9 @@ SFM::SFM(char* configFile, char* inputFilename)
 		fin1.close();
 		fin2.close();
 		int configReadError = ReadStereoConfigFile(string("../stereo_settingsBM.txt"), &thisStereoParams);
+
+		image = cvLoadImage(stereoLeftFiles[0].c_str(), 0);
+		setUpSFM(NULL, image);
 	}
 	else
 	{
@@ -59,7 +63,13 @@ SFM::SFM(char* configFile, char* inputFilename)
 			inputFiles.push_back(tempString);
 		}
 		fin1.close();
+
+		image = cvLoadImage(inputFiles[0].c_str(), 0);
+		setUpSFM(inputFilename, image);
 	}
+
+	cvReleaseImage(&image);
+	image = NULL;
 }
 
 SFM::~SFM()
@@ -108,9 +118,6 @@ void SFM::setUpSFM(char* inputFilename, IplImage* image)
 
 	//Set up 3D Point Vectors
 	pose.allocatePCMemory(imageWidth,imageHeight);
-
-	cvReleaseImage(&image);
-	image = NULL;
 
 	if(configParams.depthInfo == STEREO_DEPTH)
 	{
@@ -496,31 +503,14 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 {
 	int width = image->width;
 	int height = image->height;
-
-	//Read and Save Point Cloud File
-	if (configParams.depthInfo == KINECT_DEPTH)
-	{
-		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
-		depthToPointCloud();
-	}
-	else if(configParams.depthInfo == POINT_CLOUD)
-	{
-		savePointCloud(frameIndex, image);
-	}
-}
-
-//Process each tile, process pose and map point clouds
-void SFM::process(IplImage* image, int frameIndex)
-{
-	clock_t t1, t2;
 	IplImage im;
 	double const maxZ = 1.0e4;
 	cv::Mat rModelImage;
 	int index;
 
-	if(configParams.depthInfo != STEREO_DEPTH)
-		preprocessing(image, frameIndex); //Read PC
-	else
+
+	//Read and Save Point Cloud File
+	if(configParams.depthInfo == STEREO_DEPTH)
 	{
 		stereoLeft = cvLoadImage( stereoLeftFiles[frameIndex].c_str(), 0 );
 		stereoRight = cvLoadImage( stereoRightFiles[frameIndex].c_str(), 0 );
@@ -549,6 +539,27 @@ void SFM::process(IplImage* image, int frameIndex)
 		im = rModelImage;
 		image = &im;
 	}
+	else if (configParams.depthInfo == KINECT_DEPTH)
+	{
+		currDepth = cvLoadImage(depthFiles[frameIndex].c_str(), CV_LOAD_IMAGE_UNCHANGED);
+		depthToPointCloud();
+	}
+	else if(configParams.depthInfo == POINT_CLOUD)
+	{
+		savePointCloud(frameIndex, image);
+	}
+}
+
+//Process each tile, process pose and map point clouds
+void SFM::process(IplImage* image, int frameIndex)
+{
+	clock_t t1, t2;
+	IplImage im;
+	double const maxZ = 1.0e4;
+	cv::Mat rModelImage;
+	int index;
+
+	preprocessing(image, frameIndex); //Read PC
 
 	referenceTile.process(image);
 
