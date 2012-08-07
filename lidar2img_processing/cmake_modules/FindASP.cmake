@@ -8,6 +8,7 @@
 # Input Environment Variables:
 # ASPROOT                  : Root of ASP Install
 # ISISROOT                 : Root of ISIS install
+# BASESYSTEMROOT           : Root of BaseSystem, if ISISROOT isn't a subdirectory
 #
 # Output Variables:
 # -----------------
@@ -51,12 +52,18 @@ string(REGEX REPLACE "/[^/]*/[^/]*/[^/]*$" "" ASP_ROOT_DIR ${ASP_INCLUDE_H} )
 
 find_file( ISIS_INCLUDE_H "inc/Isis.h" $ENV{ISISROOT} NO_DEFAULT_PATH)
 if(NOT ISIS_INCLUDE_H)
-	message(ERROR "    ISIS not found. Did you set the ISIS_ROOT environment variable?")
+	message(ERROR "    ISIS not found. Did you set the ISISROOT environment variable?")
 	return()
 endif(NOT ISIS_INCLUDE_H)
 string(REGEX REPLACE "/[^/]*/[^/]*$" "" ISIS_ROOT_DIR ${ISIS_INCLUDE_H} )
 
-find_file( BASE_INCLUDE_H "include/gdal.h" "$ENV{ISISROOT}/.." NO_DEFAULT_PATH)
+if (DEFINED ENV{BASESYSTEMROOT})
+	set(BASESYSTEMROOT "$ENV{BASESYSTEMROOT}")
+else (DEFINED ENV{BASESYSTEMROOT})
+	set(BASESYSTEMROOT "$ENV{ISISROOT}/..")
+endif (DEFINED ENV{BASESYSTEMROOT})
+
+find_file( BASE_INCLUDE_H "include/gdal.h" ${BASESYSTEMROOT} NO_DEFAULT_PATH)
 if(NOT BASE_INCLUDE_H)
 	message(ERROR "    BaseSystem not found. Did you install Isis and set ISIS_ROOT to a directory inside the BinaryBuilder's BaseSystem directory?")
 	return()
