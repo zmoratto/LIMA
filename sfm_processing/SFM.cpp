@@ -49,7 +49,8 @@ SFM::SFM(char* configFile, char* inputFilename)
 		}
 		fin1.close();
 		fin2.close();
-		int configReadError = ReadStereoConfigFile(string("../stereo_settingsBM.txt"), &thisStereoParams);
+
+		int configReadError = ReadStereoConfigFile(configParams.stereoFilename, &thisStereoParams);
 
 		image = cvLoadImage(stereoLeftFiles[0].c_str(), 0);
 		setUpSFM(NULL, image);
@@ -194,6 +195,7 @@ void SFM::readConfigurationFile(string& configurationFilename)
 		fin >> identifier >> pose.matchingMethod;
 		fin >> identifier >> stereoLeftList;
 		fin >> identifier >> stereoRightList;
+		fin >> identifier >> configParams.stereoFilename;
 		fin.close();
 	}
 	else //If the config file doesn't open, resort to default parameters 
@@ -501,11 +503,10 @@ void SFM::processTile(IplImage *image, int frameIndex)
 
 void SFM::preprocessing(IplImage* image, int frameIndex)
 {
-	int width = image->width;
-	int height = image->height;
+	int width = imageWidth;
+	int height = imageHeight;
 	IplImage im;
 	double const maxZ = 1.0e4;
-	cv::Mat rModelImage;
 	int index;
 
 
@@ -535,9 +536,6 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 				}
 			}
 		}
-
-		im = rModelImage;
-		image = &im;
 	}
 	else if (configParams.depthInfo == KINECT_DEPTH)
 	{
@@ -556,14 +554,23 @@ void SFM::process(IplImage* image, int frameIndex)
 	clock_t t1, t2;
 	IplImage im;
 	double const maxZ = 1.0e4;
-	cv::Mat rModelImage;
 	int index;
 
+	t1 = clock();
 	preprocessing(image, frameIndex); //Read PC
+	t2 = clock();
+	cout << "PreProcessing Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
-	referenceTile.process(image);
+	if(configParams.depthInfo == STEREO_DEPTH)
+	{
+		im = rModelImage;
+		image = &im;
+	}	
+
 
 	t1 = clock();
+	referenceTile.process(image);
+
 	pose.globalCurrKeyPoints.clear();
 
 	//Process Each Tile
@@ -579,7 +586,7 @@ void SFM::process(IplImage* image, int frameIndex)
 	{
 		pose.process(configParams.depthInfo, image);
 		t2 = clock();
-		cout << "Overall Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
+		cout << "SFM Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
 		if(configParams.saveResultsFlag)
 		{

@@ -112,8 +112,8 @@ $$T = m - R*r$$
 Where $R$ is the rotation computed in the next step, $r$ is the reference key points, and $m$ is the matching key points.
 \item{Rotation} \\
 	The Kabsch algorithm is used to compute the relative rotation matrix for the camera. The Kabsch algorithm calculates the optimal rotation matrix that minimizes the root mean squared deviation between two paired sets of points. There are three steps in the Kabsch algorithm. First, both sets of 3D points must be translated so that their centroid is on the origin. Next, the covariance matrix for the data must be computed, and finally, the covariance matrix is decomposed using singular value decomposition. This decomposition is then used to compute the rotation matrix for the image pair. The relative rotation and translation matrices are used in the next step, where we compute the global pose of the camera.
-$$A = (r-c_r)*(m-c_m)$$
-Where $c_{r}$ is the center of the reference matches and $c_{m}$ is the center of the matching matches. We perform singular value decomposition on $A$ and use the resulting $U$, $W$, and $V$ matrices to compute $R$ as follows:
+$$A = (r-c_r)\times(m-c_m)$$
+Where $\times$ denotes the outer product, $c_{r}$ is the center of the reference matches and $c_{m}$ is the center of the matching matches. We perform singular value decomposition on $A$ and use the resulting $U$, $W$, and $V$ matrices to compute $R$ as follows:
 $$R = U*V$$
 \end{itemize}
 

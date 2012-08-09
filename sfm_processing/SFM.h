@@ -38,6 +38,7 @@ struct SFMParams{
 	int poseEstimationType;
 	string pointProjFilename;
 	string resultImageFilename;
+	string stereoFilename;
 };
 
 class SFM
@@ -65,6 +66,7 @@ public:
 	int imageWidth;
 	int imageHeight;
 	vector<string> inputFiles, depthFiles;
+	cv::Mat rModelImage;
 
 	//Stereo Members
 	CvStereoBMProcessorParameters thisStereoParams;

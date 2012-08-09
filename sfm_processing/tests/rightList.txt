@@ -1,0 +1,3 @@
+right1.pgm
+right2.pgm
+right3.pgm
