@@ -54,8 +54,6 @@ If the configuration file is not specified, the program will run with a set of d
 	\item{\textsc{tileHeight}} - height of each tile in image, if set to -1, tile height is equal to image height
 	\item{\textsc{xOverlap}} - amount of overlap in the x direction between consecutive tiles
 	\item{\textsc{yOverlap}} - amount of overlap in the y direction between consecutive tiles
-	\item{\textsc{tileScaleX}} - scale from reference tile to matching tile in the x direction
-	\item{\textsc{tileScaleY}} - scale from reference tile to matching tile in the y direction
 	\item{\textsc{pointProjFilename}} - file where point projections are saved for later use by SBA
 	\item{\textsc{weightedPortion}} - weights this portion of the image to the bottom of the image (work in progress \ldots)
 	\item{\textsc{resultImageFilename}} - filename for saved result images
@@ -109,18 +107,29 @@ There are two steps in the process of outlier rejection in our structure from mo
 	This step involves computing the translation and rotation matrices that map the 3D points from the previous image to the current image.
 \begin{itemize}
 \item{Translation} \\
-	The translation matrix is computed in a similar way to the way that it was for the outlier rejection. In this step, however, we use a weighted mean for the computation of the translation matrix. A parameter is set to weight the matches closer to the camera more than those further away from the camera. When the camera is moving, the change will be more noticeable closer to the camera, so those matches describe the movement of the camera more accurately. 
+	The translation matrix is computed in a similar way to the way that it was for the outlier rejection. In this step, however, we use a weighted mean for the computation of the translation matrix. A parameter is set to weight the matches closer to the camera more than those further away from the camera. When the camera is moving, the change will be more noticeable closer to the camera, so those matches describe the movement of the camera more accurately.
+$$T = m - R*r$$
+Where $R$ is the rotation computed in the next step, $r$ is the reference key points, and $m$ is the matching key points.
 \item{Rotation} \\
 	The Kabsch algorithm is used to compute the relative rotation matrix for the camera. The Kabsch algorithm calculates the optimal rotation matrix that minimizes the root mean squared deviation between two paired sets of points. There are three steps in the Kabsch algorithm. First, both sets of 3D points must be translated so that their centroid is on the origin. Next, the covariance matrix for the data must be computed, and finally, the covariance matrix is decomposed using singular value decomposition. This decomposition is then used to compute the rotation matrix for the image pair. The relative rotation and translation matrices are used in the next step, where we compute the global pose of the camera.
+$$A = (r-c_r)*(m-c_m)$$
+Where $c_{r}$ is the center of the reference matches and $c_{m}$ is the center of the matching matches. We perform singular value decomposition on $A$ and use the resulting $U$, $W$, and $V$ matrices to compute $R$ as follows:
+$$R = U*V$$
 \end{itemize}
 
 \subsubsection{Global Pose Estimation}
 	The end goal of the structure from motion system is to estimate the pose of the camera at each frame with respect to the first frame. At the beginning of the image sequence, the camera has yet to move, so the translation and rotation are both zero. From this point, matches are computed between the first and second frame, resulting in relative rotation and translation matrices. Since the rotation and translation thus far are both zero, these relative rotation and translation matrices are now the global rotation and translation. For each pair of frames to follow, new relative rotation and translation matrices are computed. These relative matrices must now be applied to the global matrices to get the new global matrices. These new global rotation and translation matrices describe the pose of the camera at this particular frame with respect to the first frame.
+$$T_g = T_p + T_c * R_p$$
+$$R_g = R_p * R_c$$
 
+Where $T_{g}$ is the new global translation, $T_{p}$ is the previous global translation, $T_{c}$ is the current relative translation, $R_{p}$ is the previous global rotation, $R_{c}$ is the current relative rotation, and $R_{g}$ is the new global rotation.
 
 \subsubsection{3D Point Mapping}
 	This step aligns the 3D point clouds from each frame of the image sequence with the first set of 3D points. In the previous step, we compute the rotation and translation from the first frame to the current frame. In this step, we need the rotation and translation that aligns the current frame with the first frame, so we must negate the translation matrix and transpose the rotation matrix. Once this is done, the new rotation and translation matrices are applied to each 3D point corresponding to the current frame.
-
+\begin{displaymath}
+\hat{m} \sim r = R^T * (m-T)
+\end{displaymath}
+Where $\hat{m}$ is the mapped matching point, $r$ is the reference point, $R$ is the global rotation matrix, $m$ is the matching point, and $T$ is the global translation matrix.
 
 
 %=======
