@@ -226,7 +226,7 @@ TEST( ICP_DEM_2_DEM, works ) {
   settings.matchWindowHalfSize = fives;
   settings.noDataVal = noDataVal;
 
-  ICP_DEM_2_DEM( features, foreDEM, foreDEMGeo, foreDEMGeo, 
+  ICP_DEM_2_DEM( features, foreDEM, foreDEMGeo, foreDEMGeo, 3,
                  settings, translation, rotation, center, error );
 
   EXPECT_NEAR( -5.0, translation.x(), 0.1 ) << "Translation in X is wrong.";
