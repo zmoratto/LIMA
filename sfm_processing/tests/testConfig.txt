@@ -1,12 +1,12 @@
 firstFrame 0
 lastFrame 2
 frameStep 1
-depthInfo 1
+depthInfo 3
 showResultsFlag 1
 saveResultsFlag 1
 cameraCalibrationFilename camera_calibration.txt
 pointCloudFilename testPCList.txt
-kinectDepthFilename kinectDepth_list.txt
+kinectDepthFilename kTestDepthList.txt
 minMatches 8
 detThresh 0.0000001
 featureMethod 0
@@ -21,7 +21,7 @@ homographyMethod 8
 flannCheck 64
 ransacPixels 3.0
 ransacAccuracy 0.99
-tileWidth 512
+tileWidth 1024
 tileHeight 768
 xOverlap 0
 yOverlap 0
