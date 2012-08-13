@@ -42,6 +42,6 @@ target_link_libraries(lima ${Boost_LIBRARIES} )
 target_link_libraries(lima ${VW_LIBRARIES} )
 target_link_libraries(lima ${ASP_LIBRARIES} )
 
-add_executable(lidar2img ../brute_force_align.cc )
+add_executable(lidar2img ../lidar2img.cc )
 target_link_libraries(lidar2img lima )
 

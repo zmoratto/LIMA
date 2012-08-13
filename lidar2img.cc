@@ -1,9 +1,9 @@
-// __BEGIN_LICENSE__
-// Copyright (C) 2006, 2007 United States Government as represented by
-// the Administrator of the National Aeronautics and Space Administration.
-// All Rights Reserved.
-// __END_LICENSE__
-
+/**
+ * This program takes as input a cub file which is an image of a planetary surface,
+ * and a CSV file of LOLA lidar points. It performs a brute force search over a
+ * local area to find the transform which best fits the lidar points to the image
+ * according to their estimate reflectance.
+ **/
 
 #include <iostream>
 #include <string>
@@ -27,6 +27,7 @@ namespace fs = boost::filesystem;
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
+#include <vw/Mosaic/ImageComposite.h>
 #include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 #include <asp/IsisIO.h>
@@ -46,177 +47,235 @@ using namespace std;
 #include "display.h"
 #include "weights.h"
 #include "featuresLOLA.h"
-	
-std::vector<int> determine_overlapping(vector<vector<LOLAShot> > trackPts, std::vector<std::string> camCubFiles)
-{
-	std::vector<int> overlapIndices;
-	Vector4 lat_lon_bb = FindMinMaxLat(trackPts); 
-	Vector4 lon_lat_bb;
-	lon_lat_bb[0]=lat_lon_bb[2];
-	lon_lat_bb[1]=lat_lon_bb[3];
-	lon_lat_bb[2]=lat_lon_bb[0];
-	lon_lat_bb[3]=lat_lon_bb[1];
-	overlapIndices = makeOverlapList(camCubFiles, lon_lat_bb);
 
-	return overlapIndices;
+// just initialize the tracks, don't align them
+vector<vector<AlignedLOLAShot> > setup_tracks(vector<vector<LOLAShot> > & trackPts, const string & inputCubFile,
+		Matrix3x3 trans)
+{
+	DiskImageResourceIsis rsrc(inputCubFile);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
+
+	camera::IsisCameraModel model(inputCubFile);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	//initialization step for LIMA - START	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+	transform_tracks(aligned, trans, cubImage);
+	return aligned;
+}
+
+vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, ImageView<PixelGray<float> > cubImage,
+		vector<Matrix3x3> & trackTransforms, bool globalAlignment=true, int transSearchWindow=0, int transSearchStep=0,
+		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
+{
+	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
+	transform_tracks(aligned, trans, cubImage);
+	float error = compute_transform_error(aligned);
+	
+	if (transSearchStep > 0 && thetaSearchStep > 0.0)
+	{
+		printf("Brute force alignment.\n");
+		trans = find_tracks_transform(aligned, cubImage, 
+			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
+	}
+	else if (globalAlignment)
+	{
+		printf("Global Gauss-Newton alignment.\n");
+		vector<AlignedLOLAShot> oneTrack;
+		for (unsigned int i = 0; i < aligned.size(); i++)
+			oneTrack.insert(oneTrack.end(), aligned[i].begin(), aligned[i].end());
+		trans = gauss_newton_track(oneTrack, cubImage, trackTransforms[0]);
+		transform_tracks(aligned, trans, cubImage);
+		for (unsigned int i = 0; i < trackTransforms.size(); i++)
+			trackTransforms[i] = trans;// * trackTransforms[i];
+	}
+	else
+	{
+		for (unsigned int i = 0; i < aligned.size(); i++)
+			trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
+	}
+	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
+	
+	if (image_file.length() > 0)
+		SaveReflectanceImages(aligned, cubImage, image_file);
+
+	return aligned;
+}
+
+vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & image_file,
+		vector<Matrix3x3> & trackTransforms, string outputImage = "")
+{
+	int ZOOM_MULTIPLIER = 2;
+	
+	int zoom_factor = 8;
+
+	vector<vector< AlignedLOLAShot> > aligned;
+
+	bool first = true;
+	DiskImageResourceIsis rsrc(image_file);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
+	
+	camera::IsisCameraModel model(image_file);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	transform_tracks_by_matrix(trackPts, Matrix3x3(1.0 / zoom_factor, 0, 0, 0, 1.0 / zoom_factor, 0, 0, 0, 0));
+
+	while (zoom_factor >= 1.0)
+	{
+		if (!first) // transform previous matrices
+		{
+			Matrix3x3 t1((float)ZOOM_MULTIPLIER, 0, 0, 0, (float)ZOOM_MULTIPLIER, 0, 0, 0, 1);
+			Matrix3x3 t2(1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1);
+			for (unsigned int i = 0; i < trackTransforms.size(); i++)
+				trackTransforms[i] = t1 * trackTransforms[i] * t2;
+			transform_tracks_by_matrix(trackPts, Matrix3x3(ZOOM_MULTIPLIER, 0, 0, 0, ZOOM_MULTIPLIER, 0, 0, 0, 1));
+		}
+		else
+		{
+			first = false;
+		}
+		if (zoom_factor == 1) // last level, save image
+		{
+			aligned = align_to_image(trackPts, cubImage, trackTransforms, true,
+				0.0, 0.0, 0.0, 0.0, outputImage);
+		}
+		else
+		{
+			ImageView<PixelGray<float> > img = resize(cubImage, cubImage.rows() / zoom_factor, cubImage.cols() / zoom_factor);
+			
+			aligned = align_to_image(trackPts, img, trackTransforms);
+		}
+		zoom_factor /= ZOOM_MULTIPLIER;
+	}
+
+	return aligned;
 }
 
 int main( int argc, char *argv[] )
 {
 	// command line options
 	string inputCSVFilename; 
-	std::string configFilename="lidar2img_settings.txt";
 	
-	std::vector<std::string> camCubFiles;
-	std::string resDir = "../results";
-	std::string mapCubDir = "../data/map";
-	std::string drgDir = "../data/drg";
-	std::vector<std::string> inputCubFiles;
-	struct CoregistrationParams settings;
+	std::string inputCubFile, tracksListFile, gcpFile;
+	std::string outputFile, dataFile, imageFile;
 
 	po::options_description general_options("Options");
 	general_options.add_options()
 	("Lidar-filename,l", po::value<std::string>(&inputCSVFilename))
-	("inputCubFiles,i", po::value<std::vector<std::string> >(&inputCubFiles))
-	("mapCub-directory,m", po::value<std::string>(&mapCubDir)->default_value("../data/map"), "map cub directory.")
-	("drg-directory,d", po::value<std::string>(&drgDir)->default_value("../data/drg"), "drg directory.")
-	("results-directory,r", po::value<std::string>(&resDir)->default_value("../results"), "results directory.")
-	("settings-filename,s", po::value<std::string>(&configFilename)->default_value("lidar2img_settings.txt"), "settings filename.")
+	("tracksList,t", po::value<std::string>(&tracksListFile))
+	("inputCubFile,i", po::value<std::string>(&inputCubFile))
+	("outputFile,o", po::value<std::string>(&outputFile))
+	("dataFile,d", po::value<std::string>(&dataFile))
+	("outputImage", po::value<std::string>(&imageFile))
+	("gcpFile,g", po::value<std::string>(&gcpFile))
 	("help,h", "Display this help message");
 	
 	po::options_description options("Allowed Options");
 	options.add(general_options);
 
 	po::positional_options_description p;
-	//p.add("camCubFileList", -1);
-	p.add("inputCubFiles", -1);
+	p.add("inputCubFile", -1);
 
 	std::ostringstream usage;
 	usage << "Description: main code for Lidar to image co-registration" << std::endl << std::endl;
 	usage << general_options << std::endl;
 	
 	po::variables_map vm;
-	try {
-	po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-	po::notify( vm );
-	} catch ( po::error &e ) {
-	std::cout << "An error occured while parsing command line arguments.\n";
-	std::cout << "\t" << e.what() << "\n\n";
-	std::cout << usage.str();
-	return 1;
-	}
-
-	if( vm.count("help") ) {
-	std::cerr << usage.str() << std::endl;
-	return 1;
-	}
-
-	if(( vm.count("inputCubFiles") < 1 )) {
-	std::cerr << "Error: Must specify at least one cub image file!" << std::endl << std::endl;
-	std::cerr << usage.str();
-	return 1;
-	}
-	
-	//#if 0
-	if( ReadConfigFile(configFilename, &settings) )
-		std::cerr << "Config file " << configFilename << " found." << endl;
-	else
-		std::cerr << "Config file " << configFilename << " not found, using defaults." << endl;
-	//PrintGlobalParams(&settings);
-	//std::cerr << settings << endl;
-
-	
-	//determine if inputCubFiles is a text file containing a list of .cub files, one .cub file or a set of .cub files
-	//by reading the file extension. A text file containing the DEM list *must* have extension .txt 
-	camCubFiles = AccessDataFilesFromInput(inputCubFiles);
-	
-
-	//create the results directory and prepare the output filenames - START
-
-	string makeResDirCmd = "mkdir -p " + resDir;
-	int ret = system(makeResDirCmd.c_str()); 
-	if (ret) exit(1);
-
-	vector<vector<LOLAShot> > trackPts =	CSVFileRead(inputCSVFilename);
-	std::vector<int> overlapIndices = determine_overlapping(trackPts, camCubFiles);
-	vector<gcp> gcpArray = ComputeSalientLOLAFeatures(trackPts);
-	
-	//Save3DImage(trackPts, resDir + "/3d_moon.obj");
-	
-	//save the GCP
-	string gcpFilenameRoot = resDir+"/"+GetFilenameNoExt(GetFilenameNoPath(inputCSVFilename));
- 
-	for (unsigned int k = 0; k < overlapIndices.size(); k++)
+	try
 	{
-		string overlapCamCubFile = camCubFiles[overlapIndices[k]];
-		string overlapMapCubFile = GetFilenameNoPath(overlapCamCubFile); 
-		overlapMapCubFile = mapCubDir+string("/")+overlapMapCubFile;
-		FindAndReplace(overlapMapCubFile, ".cub", "_map.cub"); 
-		string overlapDRGFilename = drgDir+string("/")+GetFilenameNoPath(overlapCamCubFile);
-		FindAndReplace(overlapDRGFilename, ".cub", "_drg.tif");
-	
-		boost::shared_ptr<DiskImageResource> rsrc(new DiskImageResourceIsis(overlapCamCubFile));
-		DiskImageView<PixelGray<float> > cub(rsrc);
-		ImageView<PixelGray<float> > cubImage(cub.cols(), cub.rows());
-		double nodataVal = rsrc->nodata_read();
-		cubImage = apply_mask(normalize(create_mask(cub,nodataVal)),0);
-	
-	
-		camera::IsisCameraModel model(overlapCamCubFile);
-		//camera::IsisCameraModel model(overlapMapCubFile); // for DRG
-		Vector3 center_of_moon(0,0,0);
-		Vector2 pixel_location = model.point_to_pixel( center_of_moon );
-		Vector3 cameraPosition = model.camera_center( pixel_location );
-		Vector3 lightPosition = model.sun_position( pixel_location );
-	
-		//initialization step for LIMA - START	
-		GetAllPtsFromCub(trackPts, model, cubImage);
-		/*boost::shared_ptr<DiskImageResource> rsrc( new DiskImageResourceGDAL(overlapDRGFilename) );
-		DiskImageView<PixelGray<uint8> > DRG( rsrc );
-		GeoReference DRGGeo;
-		read_georeference(DRGGeo, overlapDRGFilename);
-		GetAllPtsFromImage(trackPts, DRG, DRGGeo);*/
-		
-		int	numValidReflPts = ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
-		vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+		po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+		po::notify( vm );
+	}
+	catch ( po::error &e )
+	{
+		std::cout << "An error occured while parsing command line arguments.\n";
+		std::cout << "\t" << e.what() << "\n\n";
+		std::cout << usage.str();
+		return 1;
+	}
 
-		transform_tracks(aligned, Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1), cubImage);
-		//initialization step for LIMA - END 
-	
-		
-		if (numValidReflPts < 100)
-			fprintf(stderr, "Not enough reflectance points, aborting.\n");
+	if( vm.count("help") )
+	{
+		std::cerr << usage.str() << std::endl;
+		return 1;
+	}
 
-		//find_track_transforms(aligned, overlapCamCubFile);
-		//Matrix3x3 trans = find_tracks_transform(aligned, overlapCamCubFile);
-		Matrix3x3 trans(1, 0, 10, 0, 1, -15, 0, 0, 1);
-		transform_tracks(aligned, trans, cubImage);
-		printf("Best transform:\n");
-		for (int i = 0; i < 3; i++)
-			printf("%g %g %g\n", trans(i, 0), trans(i, 1), trans(i, 2));
-		float error = compute_transform_error(aligned);
-		for (unsigned int i = 0; i < aligned.size(); i++)
-			gauss_newton_track(aligned[i], cubImage, trans);
-		printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
-		//vector<float> initMatchingErrorArray;
-		//vector<Vector4> matchArray = FindMatches2D(trackPts, overlapCamCubFile, settings.matchWindowHalfSize, 80, initMatchingErrorArray);
-		std::stringstream out2;
-		out2 << resDir << "/reflectance_" << k << ".tif";
-		SaveReflectanceImages(aligned, cubImage, out2.str());
-		std::stringstream out4;
-		out4 << resDir << "/track_data_" << k << ".txt";
-		save_track_data(aligned, out4.str());
-		//SaveReflectanceImages(aligned, overlapDRGFilename, out2.str(), false);
+	vector<vector<LOLAShot> > trackPts;
+	if (vm.count("Lidar-filename"))
+		trackPts = LOLAFileRead(inputCSVFilename);
+	else if (vm.count("tracksList"))
+		trackPts = LOLAFilesRead(tracksListFile);
+	else
+	{
+		fprintf(stderr, "No track files specified.\n");
+		return 1;
+	}
+	vector<Matrix3x3> trackTransforms;
+	for (unsigned int i = 0; i < trackPts.size(); i++)
+		trackTransforms.push_back(Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 	
-		//save to GCP structure. 
-		//UpdateGCP(trackPts, matchArray, overlapCamCubFile, gcpArray);
-		
-		std::stringstream out3;
-		out3 << gcpFilenameRoot << "_match_" << k << ".tif";
-		//SaveAdjustedReflectanceImages(gcpArray, aligned, overlapCamCubFile, out3.str(), k, false);
-	}	
- 
-	//SaveGCPoints(gcpArray,	gcpFilenameRoot);
+	// use this later, only if saving to file
+	vector<gcp> gcpArray;
+	if (gcpFile.length() > 0)
+		gcpArray = ComputeSalientLOLAFeatures(trackPts);
+
+	vector<vector< AlignedLOLAShot> > aligned;
+
+	if (vm.count("inputCubFile") > 0)
+	{
+		aligned = align_to_image_pyramid(trackPts, inputCubFile, trackTransforms, imageFile);
+	}
+	else
+	{
+		fprintf(stderr, "Must specify either a cub file or an image pyramid file!\n");
+		return 1;
+	}
+	
+	FILE* output = stdout;
+	if (outputFile.length() > 0)
+	{
+		output = fopen(outputFile.c_str(), "w");
+		if (output == NULL)
+		{
+			fprintf(stderr, "Failed to open output file %s.\n", outputFile.c_str());
+			output = stdout;
+		}
+		for (unsigned int i = 0; i < trackTransforms.size(); i++)
+		{
+			Matrix3x3 & m = trackTransforms[i];
+			fprintf(output, "%g %g %g %g %g %g\n", m(0, 0), m(0, 1), m(0, 2), m(1, 0), m(1, 1), m(1, 2));
+		}
+		fclose(output);
+	}
+	
+	if (gcpFile.length() > 0)
+	{
+		UpdateGCP(aligned, inputCubFile, gcpArray);
+		SaveGCPoints(gcpArray, gcpFile);
+	}
+
+	if (dataFile.length() > 0)
+		save_track_data(aligned, dataFile);
  
 	return 0;
 
