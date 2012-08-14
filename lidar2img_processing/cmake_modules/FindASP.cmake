@@ -26,19 +26,21 @@ set( PACKAGE_DIR ASP )
 set(ALL_ASP_LIBRARIES
 	aspIsisIO
 	isis3
-	#libQtCore.so.4
-	#libQtGui.so.4
-	#libQtNetwork.so.4
-	#libQtSql.so.4
-	#libQtSvg.so.4
-	#libQtXml.so.4
-	#libQtXmlPatterns.so.4
-	#libQtWebKit.so.4
-	#	boost_filesystem-mt
-	#	boost_system-mt
-	#	boost_thread-mt
-	#	boost_program_options-mt
-	#superlu
+)
+
+set(OPTIONAL_ASP_LIBRARIES
+	superlu # on mac this is not needed?
+)
+
+set(ARBITRARY_QT_LIBRARIES
+	libQtCore.so.4
+	libQtGui.so.4
+	libQtNetwork.so.4
+	libQtSql.so.4
+	libQtSvg.so.4
+	libQtXml.so.4
+	libQtXmlPatterns.so.4
+	libQtWebKit.so.4
 )
 
 # Set the root to 3 directories above Core.h
@@ -75,18 +77,15 @@ mark_as_advanced(ASP_INCLUDE_H ISIS_INCLUDE_H BASE_INCLUDE_H)
 set( ASP_INCLUDE_DIR 
 	${ASP_ROOT_DIR}/include
 	${BASE_SYSTEM_ROOT_DIR}/include
-        /opt/local/include
-	#${BASE_SYSTEM_ROOT_DIR}/include/boost-1_46_1/ 
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include/QtCore
 	${ISIS_ROOT_DIR}/3rdParty/include
 	${ISIS_ROOT_DIR}/inc
-	
+	/opt/local/include # for OS X
 )
 
 set( ASP_LIBRARY_DIR ${ASP_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/3rdParty/lib ${BASE_SYSTEM_ROOT_DIR}/lib )
 
-LIST(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".so.4") # QT Libraries end with .so.4, need this for find_library to work
 foreach(LIB ${ALL_ASP_LIBRARIES})
 	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
 	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
@@ -96,7 +95,35 @@ foreach(LIB ${ALL_ASP_LIBRARIES})
 	endif(NOT BLIB)
 	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
 endforeach(LIB ${ALL_ASP_LIBRARIES})
+
+foreach(LIB ${OPTIONAL_ASP_LIBRARIES})
+	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
+	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
+	if(NOT BLIB)
+		message(WARNING "    Could not find library ${LIB}.")
+	else(NOT BLIB)
+		set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
+	endif(NOT BLIB)
+endforeach(LIB ${OPTIONAL_ASP_LIBRARIES})
+
+LIST(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".so.4") # QT Libraries end with .so.4, need this for find_library to work
+set( ARBITRARY_QT_FOUND True )
+foreach(LIB ${ARBITRARY_QT_LIBRARIES})
+	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
+	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
+	if(NOT BLIB)
+		message(WARNING "    Could not find QT library ${LIB}.")
+		set( ARBITRARY_QT_FOUND False )
+		return()
+	endif(NOT BLIB)
+	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
+endforeach(LIB ${ARBITRARY_QT_LIBRARIES})
 LIST(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.4")
+
+if (NOT ARBITRARY_QT_FOUND)
+	message(STATUS "    Using system Qt version.")
+	find_package(Qt)
+endif (NOT ARBITRARY_QT_FOUND)
 
 set(ASP_FOUND True)
 
