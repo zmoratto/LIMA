@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "pds_read.h"
-#include "pds_read.cpp"
+#include "opencv_pds.h"
 
 // OpenCV includes
 #include <opencv/cv.h>
@@ -16,35 +16,6 @@
 
 using namespace std;
 using namespace cv;
-
-int readPDSFileToIplImage( const string &filename, IplImage* &dest );
-int readPDSFileToMat( const string &filename, Mat &dest );
-
-class PDSTileReader
-   {
-   public:
-   PDSTileReader();
-   ~PDSTileReader();
-   int init(const string &inputFilename);
-   int getHeaderInfo( long &cols, long &rows, long &bands, long &bits);
-   int readPDSTileToMat( Mat &dest, CvRect roi);
-   int readPDSTileToIplImage( IplImage* &dest, CvRect roi);
-
-   private:
-   unsigned short maxVal;
-   long nRows;
-   long nCols;
-   long nBands;
-   long nBits;
-   ODLTREE odltree;
-   ODLTREE image_node;
-   bool initialized;
-   string filename;
-   int _readPartialPDSImage( unsigned char* &dataBuffer, CvRect roi );
-};
-
-int _readFullPDSImage(const string &strInFilename, unsigned char* &dataBuffer, 
-                   long &nCols, long &nRows, long &nBands, long &nBits);
 
 
 int readPDSFileToIplImage( const string &filename, IplImage* &dest )
@@ -252,7 +223,7 @@ PDSTileReader::~PDSTileReader()
       OdlFreeTree( odltree );
 }
 
-int PDSTileReader::init(const string &inputFilename)
+int PDSTileReader::initialize(const string &inputFilename)
 {
    if(initialized)
       OdlFreeTree( odltree );
