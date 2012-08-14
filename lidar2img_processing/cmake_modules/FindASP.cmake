@@ -26,19 +26,19 @@ set( PACKAGE_DIR ASP )
 set(ALL_ASP_LIBRARIES
 	aspIsisIO
 	isis3
-	libQtCore.so.4
-	libQtGui.so.4
-	libQtNetwork.so.4
-	libQtSql.so.4
-	libQtSvg.so.4
-	libQtXml.so.4
-	libQtXmlPatterns.so.4
-	libQtWebKit.so.4
+	#libQtCore.so.4
+	#libQtGui.so.4
+	#libQtNetwork.so.4
+	#libQtSql.so.4
+	#libQtSvg.so.4
+	#libQtXml.so.4
+	#libQtXmlPatterns.so.4
+	#libQtWebKit.so.4
 	#	boost_filesystem-mt
 	#	boost_system-mt
 	#	boost_thread-mt
 	#	boost_program_options-mt
-	superlu
+	#superlu
 )
 
 # Set the root to 3 directories above Core.h
@@ -75,11 +75,13 @@ mark_as_advanced(ASP_INCLUDE_H ISIS_INCLUDE_H BASE_INCLUDE_H)
 set( ASP_INCLUDE_DIR 
 	${ASP_ROOT_DIR}/include
 	${BASE_SYSTEM_ROOT_DIR}/include
+        /opt/local/include
 	#${BASE_SYSTEM_ROOT_DIR}/include/boost-1_46_1/ 
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include/QtCore
 	${ISIS_ROOT_DIR}/3rdParty/include
 	${ISIS_ROOT_DIR}/inc
+	
 )
 
 set( ASP_LIBRARY_DIR ${ASP_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/3rdParty/lib ${BASE_SYSTEM_ROOT_DIR}/lib )
