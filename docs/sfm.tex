@@ -24,9 +24,12 @@ Structure from motion is the process of estimating camera pose from a sequence o
 \subsection{How to run:}
 \textbf{Running SFM:} \\
 ./sfmDepth\_test testConfig.txt testImageList.txt results/ \\
-***Note: Stereo Mode (depthInfo = 1) does not use the image list parameter, it simply ignores it. \\
+***Note: Stereo Mode (depthInfo = 1) does not use the image list parameter, it simply ignores it. The default setting is depthInfo == 1. In order to run in the other modes, this parameter must be changed in the configuration file. See below. \\
+\textbf{The Output:} \\
+The output of sfmDepth is a set of images with matches and a text file containing the point clouds from those images. To view the point clouds, use pc\_vis from the Common module. See the documentation for Common. \\
 \textbf{Running Feature Extraction:} \\
-./FE\_test 0 testImageList results/
+./FE\_test 0 testImageList results/ \\
+***Note: The 0 is for SURF feature detection on the images in testImageList, and the results are saved in the results/ directory.
 \subsubsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
