@@ -36,29 +36,10 @@ FeatureExtraction::~FeatureExtraction()
 	}
 }
 
-void FeatureExtraction::printWarning(string configFilename)
-{
-	//Warning for default parameters
-	cout << endl;
-	cout << "**************************************************************" << endl;
-	cout << "WARNING: Unable to open file " << configFilename << "..." << endl;
-	cout << "Using default parameters..." << endl;
-	cout << "**************************************************************" << endl;
-	cout << endl;
-}
-
-void FeatureExtraction::printUsage()
-{
-	cout << endl;
-	cout << "********************** USAGE *********************" << endl;
-	cout << "./sfm_test <featureMethod> <inputFile> <outputDir> " << endl;
-	cout << "**************************************************" << endl;
-	cout << endl;
-}
-
+//Open list of image files and save in string vector.
 void FeatureExtraction::readImageFiles(string filename, vector<string>& imageFiles)
 {
-	//Open list of image files and save in string vector.
+
 	ifstream fin;
 	string temp;
 	fin.open(filename.c_str());
@@ -72,9 +53,10 @@ void FeatureExtraction::readImageFiles(string filename, vector<string>& imageFil
 	fin.close();
 }
 
+//Create new detector/extractor objects.
 void FeatureExtraction::setDetectExtract(int type)
 {
-	//Create new detector/extractor objects.
+
 	switch(type)
 	{
 		case 1: //Orb
@@ -103,11 +85,9 @@ void FeatureExtraction::extractKeyPoints(IplImage* image)
 	extractor->compute(image, key_points, point_descriptors);
 }
 
-
-//Show Key Points
+//Display keypoints on current image using small rectangles
 void FeatureExtraction::showKeyPoints(IplImage* image)
 {
-	//Display keypoints on current image using small rectangles
 	CvPoint pt1, pt2; 
 	for (int i = 0; i < key_points.size(); i++)
 	{
@@ -119,13 +99,10 @@ void FeatureExtraction::showKeyPoints(IplImage* image)
 	}
 }
 
+//Detect key points and extract descriptors from entire image
 void FeatureExtraction::process(IplImage* image)
 {
 	//Clean Up
-	vector<cv::KeyPoint> temp;
-	int cnt = 0;
-	int xLoc, yLoc, width = image->width;
-	temp.clear();
 	key_points.clear();
 	point_descriptors.release();
 	if(detector != NULL)
@@ -145,6 +122,7 @@ void FeatureExtraction::process(IplImage* image)
 	extractKeyPoints(image);
 }
 
+//Clear FeatureExtraction members
 void FeatureExtraction::clear()
 {
 	key_points.clear();

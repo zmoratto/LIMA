@@ -58,8 +58,6 @@ public:
 	//Mask which says which matches are inliers and which are outliers
 	cv::Mat outlierMask;
 
-	//Point projections for SBA
-	std::vector<pointProjection> projectedPoints;
 
 	//Rotation and Translation
 	CvMat *prevGlobal_R;
@@ -107,9 +105,5 @@ public:
 	void removeDuplicates(IplImage* image);
 	void removeOutliers(int depthInfo, IplImage* image);
 
-	//Point Projection -- For SBA
-	int searchPointProj(cv::Point2f find);
-	void appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex);
-	void savePointProj(int frameIndex, int firstFrame);
-	void writePointProj(std::string& pointProjFile);
+
 };

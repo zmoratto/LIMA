@@ -63,7 +63,6 @@ PoseEstimation::PoseEstimation()
 	relative_T = cvCreateMat(3,1,CV_32F);
 
 	//Clear All Other Vectors
-	projectedPoints.clear();
 	validPix.clear();
 	matchWeights.clear();
 	curr_x.clear();
@@ -97,7 +96,6 @@ PoseEstimation::~PoseEstimation()
 	globalCurrMatchedPix.clear();
 	globalCurrKeyPoints.clear();
 	globalPrevKeyPoints.clear();
-	projectedPoints.clear();
 	validPix.clear();
 	matchWeights.clear();
 	curr_x.clear();
@@ -506,83 +504,6 @@ void PoseEstimation::clear()
 	outlierMask.release();
 }
 
-//Search for point projection matches
-int PoseEstimation::searchPointProj(cv::Point2f find)
-{
-	int match;
-	int end;
-	for(int i=0; i<projectedPoints.size(); i++)
-	{
-		match = i;
-		end = projectedPoints[i].pixels.size()-1;
-
-		if(fabs(projectedPoints[i].pixels[end].x-find.x)+fabs(projectedPoints[i].pixels[end].y-find.y)<0.001)
-			return match;
-	}
-	return -1;
-}
-
-//Add new point projection
-void PoseEstimation::appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex)
-{
-	projectedPoints[loc].pixels.push_back(pix);
-	projectedPoints[loc].allPoints.push_back(pt);
-	projectedPoints[loc].frames.push_back(frameIndex);
-}
-
-//Save All new points into point projection
-void PoseEstimation::savePointProj(int frameIndex, int firstFrame)
-{
-	int index, match;
-	pointProjection tempPoints;
-
-	for(int i=0; i<validPix.size(); i++)
-	{
-		index = validPix[i];
-		tempPoints.point = globalCurrMatchedPts[index];
-		tempPoints.allPoints.push_back(globalPrevMatchedPts[index]);
-		tempPoints.pixels.push_back(globalPrevMatchedPix[index]);
-		tempPoints.pixels.push_back(globalCurrMatchedPix[index]);
-		tempPoints.frames.push_back(frameIndex-1);
-		tempPoints.frames.push_back(frameIndex);
-
-		if(frameIndex == firstFrame)
-			projectedPoints.push_back(tempPoints);
-		else
-		{
-			match = searchPointProj(globalPrevMatchedPix[index]);
-			if(match != -1)
-			{
-				appendPointProj(globalCurrMatchedPix[index], globalCurrMatchedPts[index], match, frameIndex+1);
-			}
-			else
-			{
-				projectedPoints.push_back(tempPoints);
-			}
-		}
-		tempPoints.allPoints.clear();
-		tempPoints.pixels.clear();
-		tempPoints.frames.clear();
-	}
-}
-
-//Write projected points to a file
-void PoseEstimation::writePointProj(string& pointProjFile)
-{
-	ofstream fout;
-
-	fout.open(pointProjFile.c_str());
-	for(int i=0; i<projectedPoints.size(); i++)
-	{
-		fout << projectedPoints[i].point.x << " " << projectedPoints[i].point.y << " "<< projectedPoints[i].point.z << " " << projectedPoints[i].frames.size() << " ";
-		for(int j=0; j<projectedPoints[i].frames.size(); j++)
-		{
-			fout << projectedPoints[i].frames[j] << " " << projectedPoints[i].pixels[j].x << " " << projectedPoints[i].pixels[j].y << " ";
-		}
-		fout << endl;
-	}
-	fout.close();
-}
 
 //Remove duplicate key points before matching
 void PoseEstimation::removeDuplicates(IplImage* image)

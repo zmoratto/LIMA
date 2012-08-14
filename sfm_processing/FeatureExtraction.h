@@ -36,8 +36,6 @@ public:
 	int octaveLayers;
 
 	//Methods
-	void printWarning(std::string configFilename);
-	void printUsage();
 	void readImageFiles(std::string filename, std::vector<std::string>& imageFiles);
 	void setDetectExtract(int type);
 	void detectKeyPoints(IplImage* image);

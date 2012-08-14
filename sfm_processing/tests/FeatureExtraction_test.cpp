@@ -14,10 +14,6 @@
 using namespace cv;
 using namespace std;
 
-void printUsage();
-void printWarning(string configFilename);
-void readImageFiles(string filename, vector<string>& imageFiles);
-
 int main(int argc, char** argv)
 {
 	string configFilename;
@@ -30,7 +26,11 @@ int main(int argc, char** argv)
 	//Command line arguments
 	if(argc!=4)
 	{
-		feat.printUsage();
+		cout << endl;
+		cout << "********************** USAGE *********************" << endl;
+		cout << "./sfm_test <featureMethod> <inputFile> <outputDir> " << endl;
+		cout << "**************************************************" << endl;
+		cout << endl;
 		return (0);
 	}
 

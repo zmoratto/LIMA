@@ -77,6 +77,9 @@ public:
 	string stereoLeftList, stereoRightList;
 	vector<string> stereoLeftFiles, stereoRightFiles;
 
+	//Point projections for SBA
+	std::vector<pointProjection> projectedPoints;
+
 	//Methods
 	void setUpSFM(char* inputFilename, IplImage* image);
 	void printUsage();
@@ -98,6 +101,12 @@ public:
 	void savePointCloud(int iteration, IplImage* image);
 	void printCurrentGlobal_R_T();
 	int ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams);
+
+	//Point Projection -- For SBA
+	int searchPointProj(cv::Point2f find);
+	void appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex);
+	void savePointProj(int frameIndex);
+	void writePointProj(std::string& pointProjFile);
 };
 
 #endif

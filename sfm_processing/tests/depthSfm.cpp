@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 		sfmTest.process(image, frameIndex);
 	}
 
+	sfmTest.writePointProj(sfmTest.configParams.pointProjFilename);
 	return 0;
 }
 

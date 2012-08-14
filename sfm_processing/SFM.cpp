@@ -69,6 +69,7 @@ SFM::SFM(char* configFile, char* inputFilename)
 		setUpSFM(inputFilename, image);
 	}
 
+	projectedPoints.clear();
 	cvReleaseImage(&image);
 	image = NULL;
 }
@@ -88,6 +89,7 @@ SFM::~SFM()
 		cvReleaseImage(&prevImage);
 		prevImage = NULL;
 	}
+	projectedPoints.clear();
 }
 
 void SFM::setUpSFM(char* inputFilename, IplImage* image)
@@ -600,7 +602,8 @@ void SFM::process(IplImage* image, int frameIndex)
 		}
 	}
 
-	pose.savePointProj(frameIndex, configParams.firstFrame);
+	//Save point projections for SBA
+	savePointProj(frameIndex);
 
 	//Update
 	update(image);
@@ -942,141 +945,190 @@ void SFM::printCurrentGlobal_R_T()
 	cout<<"global_T=["<<pose.currGlobal_T->data.fl[0]<<" "<<pose.currGlobal_T->data.fl[1]<<" "<<pose.currGlobal_T->data.fl[2]<<"]"<<endl;
 }
 
-
-
+//Read stereo configuration file for depthInfo == 1
 int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams)
 {
-  ifstream configFile (stereoConfigFilename.c_str());
-  std::string line;
-  double val; 
-  std::string identifier;
-  std::string param;
+	ifstream configFile (stereoConfigFilename.c_str());
+	std::string line;
+	double val; 
+	std::string identifier;
+	std::string param;
 
-  if (configFile.is_open()){ 
-    
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline; 
-    sline<<line;
-    sline >> identifier >> val;
-    cout<<val<<endl;
-    thisStereoParams->preFilterSize=val;
+	if (configFile.is_open())
+	{
+		getline(configFile,line);
+		stringstream sline; 
+		sline<<line;
+		sline >> identifier >> val;
+		thisStereoParams->preFilterSize=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline1; 
-    sline1<<line;
-    sline1 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->preFilterCap=val;
-  
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline2; 
-    sline2<<line;
-    sline2 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->sadWindowSize=val;
- 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline3; 
-    sline3<<line;
-    sline3 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->minDisparity= val;
-  
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline4; 
-    sline4<<line;
-    sline4 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->numberOfDisparities= val;
-  
+		getline (configFile,line);
+		stringstream sline1; 
+		sline1<<line;
+		sline1 >> identifier >> val;
+		thisStereoParams->preFilterCap=val;
+		  
+		getline (configFile,line);
+		stringstream sline2; 
+		sline2<<line;
+		sline2 >> identifier >> val;
+		thisStereoParams->sadWindowSize=val;
+		 
+		getline (configFile,line);
+		stringstream sline3; 
+		sline3<<line;
+		sline3 >> identifier >> val;
+		thisStereoParams->minDisparity= val;
+		  
+		getline (configFile,line);
+		stringstream sline4; 
+		sline4<<line;
+		sline4 >> identifier >> val;
+		thisStereoParams->numberOfDisparities= val;
+		  
+		getline (configFile,line);
+		stringstream sline5; 
+		sline5<<line;
+		sline5 >> identifier >> val;
+		thisStereoParams->textureThreshold=val;
+		 
+		getline (configFile,line);
+		stringstream sline6; 
+		sline6<<line;
+		sline6 >> identifier >> val;
+		thisStereoParams->uniquenessRatio=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline5; 
-    sline5<<line;
-    sline5 >> identifier >> val;
-   cout<<val<<endl;
-    thisStereoParams->textureThreshold=val;
- 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline6; 
-    sline6<<line;
-    sline6 >> identifier >> val;
-      cout<<val<<endl;
-    thisStereoParams->uniquenessRatio=val;
+		getline (configFile,line);
+		stringstream sline7; 
+		sline7<<line;
+		sline7 >> identifier >> param;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline7; 
-    sline7<<line;
-    sline7 >> identifier >> param;
-      cout<<param<<endl;
-    if(param[0]=='N' || param[0]=='n')
-      thisStereoParams->needRectification=false;
-    else if(param[0]=='Y' || param[0]=='y')
-      thisStereoParams->needRectification=true;
-    else{
-      cout << "Error reading stereo settings file"<<endl;
-      configFile.close();
-      return 0;
-    }
+		if(param[0]=='N' || param[0]=='n')
+			thisStereoParams->needRectification=false;
+		else if(param[0]=='Y' || param[0]=='y')
+			thisStereoParams->needRectification=true;
+		else
+		{
+			cout << "Error reading stereo settings file"<<endl;
+			configFile.close();
+			return 0;
+		}
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline8; 
-    sline8<<line;
-    sline8 >> identifier >> val;
-    cout<<val<<endl;
-    thisStereoParams->scaleFactor=val;
+		getline (configFile,line);
+		stringstream sline8; 
+		sline8<<line;
+		sline8 >> identifier >> val;
+		thisStereoParams->scaleFactor=val;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline9; 
-    sline9<<line;
-    sline9 >> identifier >> thisStereoParams->calibrationFilename;
-    cout<<thisStereoParams->calibrationFilename<<endl;
+		getline (configFile,line);
+		stringstream sline9; 
+		sline9<<line;
+		sline9 >> identifier >> thisStereoParams->calibrationFilename;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline10; 
-    sline10<<line;
-    sline10 >> identifier;
-    if( sline10 >> val ){
-       cout<<val<<endl;
-       thisStereoParams->tileWidth=val;
-       }
-    else{
-       cout<<"TILE_Width: "<<-1<<endl;
-       thisStereoParams->tileWidth=-1;
-       }
+		getline (configFile,line);
+		stringstream sline10; 
+		sline10<<line;
+		sline10 >> identifier;
+		if( sline10 >> val )
+			thisStereoParams->tileWidth=val;
+		else
+			thisStereoParams->tileWidth=-1;
 
-    getline (configFile,line);
-    cout<<line<<endl;
-    stringstream sline11; 
-    sline11<<line;
-    sline11 >> identifier;
-    if( sline11 >> val ){
-       cout<<val<<endl;
-       thisStereoParams->tileHeight=val;
-       }
-    else{
-       cout<<"TILE_HEIGHT: "<<-1<<endl;
-       thisStereoParams->tileHeight=-1;
-       }
+		getline (configFile,line);
+		stringstream sline11; 
+		sline11<<line;
+		sline11 >> identifier;
+		if( sline11 >> val )
+			thisStereoParams->tileHeight=val;
+		else
+			thisStereoParams->tileHeight=-1;
 
-    configFile.close();
-    return 1;
-  }
-  else{
-    cout << "Unable to open settings file"<<endl; 
-    return 0;
-  }
-  
+		configFile.close();
+		return 1;
+	}
+	else
+	{
+		cout << "Unable to open settings file"<<endl; 
+		return 0;
+	}
 }
+
+//Search for point projection matches
+int SFM::searchPointProj(cv::Point2f find)
+{
+	int match;
+	int end;
+	for(int i=0; i<projectedPoints.size(); i++)
+	{
+		match = i;
+		end = projectedPoints[i].pixels.size()-1;
+
+		if(fabs(projectedPoints[i].pixels[end].x-find.x)+fabs(projectedPoints[i].pixels[end].y-find.y)<0.001)
+			return match;
+	}
+	return -1;
+}
+
+//Add new point projection
+void SFM::appendPointProj(cv::Point2f pix, cv::Point3f pt, int loc, int frameIndex)
+{
+	projectedPoints[loc].pixels.push_back(pix);
+	projectedPoints[loc].allPoints.push_back(pt);
+	projectedPoints[loc].frames.push_back(frameIndex);
+}
+
+//Save All new points into point projection
+void SFM::savePointProj(int frameIndex)
+{
+	int index, match;
+	pointProjection tempPoints;
+
+	for(int i=0; i<pose.validPix.size(); i++)
+	{
+		index = pose.validPix[i];
+		tempPoints.point = pose.globalCurrMatchedPts[index];
+		tempPoints.allPoints.push_back(pose.globalPrevMatchedPts[index]);
+		tempPoints.pixels.push_back(pose.globalPrevMatchedPix[index]);
+		tempPoints.pixels.push_back(pose.globalCurrMatchedPix[index]);
+		tempPoints.frames.push_back(frameIndex-1);
+		tempPoints.frames.push_back(frameIndex);
+
+		if(frameIndex == configParams.firstFrame)
+			projectedPoints.push_back(tempPoints);
+		else
+		{
+			match = searchPointProj(pose.globalPrevMatchedPix[index]);
+			if(match != -1)
+			{
+				appendPointProj(pose.globalCurrMatchedPix[index], pose.globalCurrMatchedPts[index], match, frameIndex);
+			}
+			else
+			{
+				projectedPoints.push_back(tempPoints);
+			}
+		}
+		tempPoints.allPoints.clear();
+		tempPoints.pixels.clear();
+		tempPoints.frames.clear();
+	}
+}
+
+//Write projected points to a file
+void SFM::writePointProj(string& pointProjFile)
+{
+	ofstream fout;
+
+	fout.open(pointProjFile.c_str());
+	for(int i=0; i<projectedPoints.size(); i++)
+	{
+		fout << projectedPoints[i].point.x << " " << projectedPoints[i].point.y << " "<< projectedPoints[i].point.z << " " << projectedPoints[i].frames.size() << " ";
+		for(int j=0; j<projectedPoints[i].frames.size(); j++)
+		{
+			fout << projectedPoints[i].frames[j] << " " << projectedPoints[i].pixels[j].x << " " << projectedPoints[i].pixels[j].y << " ";
+		}
+		fout << endl;
+	}
+	fout.close();
+}
+
 
