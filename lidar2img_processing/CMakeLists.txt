@@ -1,5 +1,7 @@
 project(lidar2img)
 cmake_minimum_required(VERSION 2.6)
+add_definitions(-arch i386)
+add_definitions(-DQT_NO_KEYWORDS)
 
 set( PROJECT_SRC_DIR ".." )
 
@@ -8,6 +10,9 @@ set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} 
 if( CMAKE_COMPILER_IS_GNUCXX )
   set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
+
+
+find_package(Qt)
 
 find_package( VisionWorkbench )
 if (NOT VW_FOUND)
@@ -42,6 +47,7 @@ target_link_libraries(lima ${Boost_LIBRARIES} )
 target_link_libraries(lima ${VW_LIBRARIES} )
 target_link_libraries(lima ${ASP_LIBRARIES} )
 
-add_executable(lidar2img ../lidar2img.cc )
+add_executable(lidar2img lidar2img.cc )
 target_link_libraries(lidar2img lima )
-
+SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
+SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
