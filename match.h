@@ -43,6 +43,11 @@ using namespace std;
 Matrix3x3 find_track_homography(vector<vector<AlignedLOLAShot> > aligned, vector<vector<AlignedLOLAShot> > aligned2);
 Matrix3x3 find_image_homography(char* image1, char* image2, float lonstart, float lonend, float latstart, float latend);
 
+vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, ImageView<PixelGray<float> > cubImage,
+		Matrix3x3 & trans, string image_file = "");
+vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & image_file,
+		Matrix3x3 & trans, string outputImage = "");
+
 float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL);
 void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
 Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,

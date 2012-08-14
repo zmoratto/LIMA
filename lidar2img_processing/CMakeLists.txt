@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.6)
 
 add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
+
 set( PROJECT_SRC_DIR ".." )
 
 set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} )
