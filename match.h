@@ -49,7 +49,9 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, Image
 		int transSearchWindow=DEFAULT_SEARCH_TRANS_WINDOW, int transSearchStep=DEFAULT_SEARCH_TRANS_STEP, 
 		float thetaSearchWindow=DEFAULT_SEARCH_THETA_WINDOW, float thetaSearchStep=DEFAULT_SEARCH_THETA_STEP);
 
-Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
+Matrix3x3 gauss_newton_homography(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
+		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1));
+Matrix3x3 gauss_newton_affine(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1));
 
 float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);

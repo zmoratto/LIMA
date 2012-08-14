@@ -40,13 +40,13 @@ using namespace vw::camera;
 using namespace std;
 
 #include <math.h>
-#include "../util.h"
-#include "../tracks.h"
-#include "../match.h"
-#include "../coregister.h"
-#include "../display.h"
-#include "../weights.h"
-#include "../featuresLOLA.h"
+#include "util.h"
+#include "tracks.h"
+#include "match.h"
+#include "coregister.h"
+#include "display.h"
+#include "weights.h"
+#include "featuresLOLA.h"
 
 // just initialize the tracks, don't align them
 vector<vector<AlignedLOLAShot> > setup_tracks(vector<vector<LOLAShot> > & trackPts, const string & inputCubFile,
@@ -80,7 +80,7 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 {
 	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
 	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
-	transform_tracks(aligned, trans, cubImage);
+	transform_tracks(aligned, trackTransforms[0], cubImage);
 	float error = compute_transform_error(aligned);
 	
 	if (transSearchStep > 0 && thetaSearchStep > 0.0)
@@ -95,7 +95,7 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 		vector<AlignedLOLAShot> oneTrack;
 		for (unsigned int i = 0; i < aligned.size(); i++)
 			oneTrack.insert(oneTrack.end(), aligned[i].begin(), aligned[i].end());
-		trans = gauss_newton_track(oneTrack, cubImage, trackTransforms[0]);
+		trans = gauss_newton_affine(oneTrack, cubImage, trackTransforms[0]);
 		transform_tracks(aligned, trans, cubImage);
 		for (unsigned int i = 0; i < trackTransforms.size(); i++)
 			trackTransforms[i] = trans;// * trackTransforms[i];
@@ -103,7 +103,7 @@ vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trac
 	else
 	{
 		for (unsigned int i = 0; i < aligned.size(); i++)
-			trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
+			trackTransforms[i] = gauss_newton_homography(aligned[i], cubImage, trans) * trackTransforms[i];
 	}
 	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
 	

@@ -197,9 +197,51 @@ Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, Image
 	return best;
 }
 
+Matrix<double> compute_jacobian_affine(vector<AlignedLOLAShot> & track, Matrix3x3 B, ImageView<PixelGray<float> > img, int num_points)
+{
+	Matrix<double> J(num_points, 6);
+	int index = 0;
+	for (unsigned int i = 0; i < track.size(); i++)
+	{
+		// TODO: we may ignore some points that weren't in the image when num_points was computed,
+		// but are with the new transformation
+		if (track[i].image == -1 || track[i].synth_image == -1 || index >= num_points)
+			continue;
+
+		double ox = (double)track[i].imgPt[2].x, oy = (double)track[i].imgPt[2].y;
+		int x = track[i].image_x;
+		int y = track[i].image_y;
+
+		double h = 1.0;
+		
+		// fininte difference with three points to right and left
+		double dx, dy;
+		if (x >= img.rows() - 3 || x <= 3 || y >= img.cols() - 3 || y <= 3)
+			dx = 0.0, dy = 0.0;
+		else
+		{
+			dx = (-1.0/60) * img(x-3, y) + (3.0/20) * img(x-2, y) - (3.0 / 4) * img(x-1, y) +
+				(3.0/4) * img(x+1, y) - (3.0 / 20) * img(x+2, y) + (1.0 / 60) * img(x+3, y);
+			dy = (-1.0/60) * img(x, y-3) + (3.0/20) * img(x, y-2) - (3.0 / 4) * img(x, y-1) +
+				(3.0/4) * img(x, y+1) - (3.0 / 20) * img(x, y+2) + (1.0 / 60) * img(x, y+3);
+		}
+		
+		// compute the derivatives
+		J(index, 0) = dx / (h / track[i].imgPt[2].x);
+		J(index, 1) = dx / (h / track[i].imgPt[2].y);
+		J(index, 2) = dx / h;
+		J(index, 3) = dy / (h / track[i].imgPt[2].x);
+		J(index, 4) = dy / (h / track[i].imgPt[2].y);
+		J(index, 5) = dy / h;
+		index++;
+	}
+
+	return J;
+}
+
 // J_f(B)_{ij} = dF_i / dB_j
 // transform may be marked as invalid if points have left the image window
-Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, ImageView<PixelGray<float> > img, int num_points)
+Matrix<double> compute_jacobian_homography(vector<AlignedLOLAShot> & track, Matrix3x3 B, ImageView<PixelGray<float> > img, int num_points)
 {
     	InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation> imgp
     		= interpolate(img, BilinearInterpolation(), ConstantEdgeExtension());
@@ -216,23 +258,18 @@ Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, Im
 		int x = track[i].image_x;
 		int y = track[i].image_y;
 
-		// finite difference with two points
-		//double dx = -0.5 * (img(x + 1, y) - img(x - 1, y));
-		//double dy = -0.5 * (img(x, y + 1) - img(x, y - 1));
 		double h = 1.0;
 		
 		// fininte difference with three points to right and left
 		double dx, dy, dz = 0.0, h31 = 1.0, h32 = 1.0, h33 = 1.0;
 		if (x >= img.rows() - 3 || x <= 3 || y >= img.cols() - 3 || y <= 3)
-			dx = 0.0, dy = 0.0, dz = 0.0, h31 = 1.0, h32 = 1.0, h33 = 1.0; // TODO: something better
+			dx = 0.0, dy = 0.0, dz = 0.0, h31 = 1.0, h32 = 1.0, h33 = 1.0;
 		else
 		{
 			dx = (-1.0/60) * img(x-3, y) + (3.0/20) * img(x-2, y) - (3.0 / 4) * img(x-1, y) +
 				(3.0/4) * img(x+1, y) - (3.0 / 20) * img(x+2, y) + (1.0 / 60) * img(x+3, y);
 			dy = (-1.0/60) * img(x, y-3) + (3.0/20) * img(x, y-2) - (3.0 / 4) * img(x, y-1) +
 				(3.0/4) * img(x, y+1) - (3.0 / 20) * img(x, y+2) + (1.0 / 60) * img(x, y+3);
-			//dx = -dx;
-			//dy = -dy;
 			h = B(2, 0) * ox + B(2, 1) * oy + B(2, 2);
 			if (ox == 0 || oy == 0 || x == 0 || y == 0)
 				continue;
@@ -273,10 +310,9 @@ Matrix<double> compute_jacobian(vector<AlignedLOLAShot> & track, Matrix3x3 B, Im
 		J(index, 8) = dz / h33;
 		index++;
 
-		//printf("%g %g %g\n", track[i].image - track[i].synth_image, dx / h, dy / h);
 	}
 
-	return -J;
+	return J;
 }
 
 Matrix<double> generate_error_vector(vector<AlignedLOLAShot> & track, int num_points)
@@ -302,7 +338,7 @@ Matrix<double> generate_error_vector(vector<AlignedLOLAShot> & track, int num_po
  * J_f(B)_{ij} = dF_i / dB_j
  **/
 // assumes we have already called transform_track to set image and synth_image
-Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
+Matrix3x3 gauss_newton_homography(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 matrix)
 {
 	Matrix3x3 B = matrix;
@@ -313,7 +349,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 		return matrix;
 	for (int count = 0; count < MAX_GAUSS_NEWTON_STEPS; count++)
 	{
-		Matrix<double> J = compute_jacobian(track, B, cubImage, num_points);
+		Matrix<double> J = compute_jacobian_homography(track, B, cubImage, num_points);
 		Matrix<double> trans = transpose(J);
 		Matrix<double> r = generate_error_vector(track, num_points);
 		Matrix<double> U(9, 9), S(9, 9), VT(9, 9);
@@ -325,7 +361,7 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 				S(i, i) = 1.0 / s(i);
 		}
 		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
-		Matrix<double> delta = pseudoinverse * trans * r;
+		Matrix<double> delta = pseudoinverse * -(trans * r);
 		Matrix3x3 last_matrix = B;
 		B(0, 0) += delta(0, 0);
 		B(0, 1) += delta(1, 0);
@@ -336,6 +372,55 @@ Matrix3x3 gauss_newton_track(vector<AlignedLOLAShot> & track, ImageView<PixelGra
 		B(2, 0) += delta(6, 0);
 		B(2, 1) += delta(7, 0);
 		B(2, 2) += delta(8, 0);
+		transform_track(track, B, cubImage);
+		err = compute_transform_error(track);
+		if (err == -1)
+		{
+			fprintf(stderr, "Matrix jumped too far, giving up.\n");
+			return last_matrix;
+		}
+		//printf("Error: %g Old Error: %g\n", err, last_err);
+		if (err >= last_err)
+		{
+			B = last_matrix;
+			break;
+		}
+		last_err = err;
+	}
+	return B;
+}
+
+Matrix3x3 gauss_newton_affine(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
+		Matrix3x3 matrix)
+{
+	Matrix3x3 B = matrix;
+
+	int num_points = 0;
+	float err, last_err = compute_transform_error(track, &num_points);
+	if (num_points <= 0) // no points
+		return matrix;
+	for (int count = 0; count < MAX_GAUSS_NEWTON_STEPS; count++)
+	{
+		Matrix<double> J = compute_jacobian_affine(track, B, cubImage, num_points);
+		Matrix<double> trans = transpose(J);
+		Matrix<double> r = generate_error_vector(track, num_points);
+		Matrix<double> U(6, 6), S(6, 6), VT(6, 6);
+		Vector<double> s(6);
+		svd(trans * J, U, s, VT);
+		for (int i = 0; i < 6; i++)
+		{
+			if (s(i) > 10e-15) // don't divide by 0
+				S(i, i) = 1.0 / s(i);
+		}
+		Matrix<double> pseudoinverse = transpose(VT) * S * transpose(U);
+		Matrix<double> delta = pseudoinverse * -(trans * r);
+		Matrix3x3 last_matrix = B;
+		B(0, 0) += delta(0, 0);
+		B(0, 1) += delta(1, 0);
+		B(0, 2) += delta(2, 0);
+		B(1, 0) += delta(3, 0);
+		B(1, 1) += delta(4, 0);
+		B(1, 2) += delta(5, 0);
 		transform_track(track, B, cubImage);
 		err = compute_transform_error(track);
 		if (err == -1)
