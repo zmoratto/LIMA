@@ -119,14 +119,14 @@ std::vector<vw::Vector3> GetFeatures( const vw::ImageViewBase<ViewT>&      foreI
 //find the closest background points to the fore points.
 //used in ICP_DEM_2_DEM
 template <class ViewT>
-void FindMatches( const std::vector<vw::Vector3>&      features, 
-                  const vw::ImageViewBase<ViewT>&      backImg, 
-                  const vw::cartography::GeoReference& backGeo, 
-                  const vw::cartography::GeoReference& foreGeo, 
-                        std::vector<vw::Vector3>&      referenceArray, 
-                  const vw::Vector2&                   matchWindowHalfSize, 
-                  const float                          noValData) {
- 
+vector<bool> FindMatches( const std::vector<vw::Vector3>&      features, 
+                          const vw::ImageViewBase<ViewT>&      backImg, 
+                          const vw::cartography::GeoReference& backGeo, 
+                          const vw::cartography::GeoReference& foreGeo, 
+                                std::vector<vw::Vector3>&      referenceArray, 
+                          const vw::Vector2&                   matchWindowHalfSize, 
+                          const float                          noValData) {
+  vector<bool> mask( referenceArray.size(), true );
   
   vw::ImageViewRef<typename ViewT::pixel_type> interpBackImg = 
         interpolate(edge_extend(backImg.impl(), vw::ConstantEdgeExtension()), 
@@ -135,7 +135,6 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
   for( unsigned int i = 0; i < features.size(); ++i ){
     //revert fore from cartesian to spherical coordinates
     vw::Vector3 fore_lonlat3 = foreGeo.datum().cartesian_to_geodetic( features[i] );
-   
 
     vw::Vector2 backPix = backGeo.lonlat_to_pixel( vw::Vector2( fore_lonlat3.x(), 
                                                                 fore_lonlat3.y() ) );
@@ -179,9 +178,12 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
         }
       }
     }
-
     referenceArray[i]=back_xyz;
+    if( back_xyz == vw::Vector3(0,0,0) ){
+      mask[i] = false;
+    }
   }
+  return mask;
 };
 
 //determines best DEM points that match to LOLA track points
@@ -190,29 +192,18 @@ void FindMatches( const std::vector<vw::Vector3>&      features,
 //the match is done by minimizing the Euclidian distance in the 3D cartesian space.
 //TODO: add hor and ver pixel offset together with altitude
 template <class ViewT>
-void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel, 
-                         const std::vector<vw::Vector3>&      llrModel,
-                         const vw::ImageViewBase<ViewT>&      DEM, 
-                         const vw::cartography::GeoReference& DEMGeo, 
-                               std::vector<vw::Vector3>&      xyzMatch, 
-                         const vw::Vector3&                   translation, 
-                         const vw::Matrix<float,3,3>&         rotation, 
-                         const vw::Vector3&                   xyzMatchCenter,
-                         const double                         noDEMVal, 
-                         const vw::Vector2&                   matchWindowHalfSize ) {
-  vw::ImageViewRef<float> interpDEM;
-  if( IsMasked<typename ViewT::pixel_type>::value == 0 ){
-    interpDEM = pixel_cast<float>(interpolate( edge_extend(DEM.impl(),
-                                                           vw::ConstantEdgeExtension()),
-                                               vw::BilinearInterpolation()) );
-    //cout << "NOT masked" <<endl;
-  }
-  else{
-    interpDEM = pixel_cast<float>(interpolate( edge_extend( apply_mask(DEM.impl()),
-                                                            vw::ConstantEdgeExtension()),
-                                               vw::BilinearInterpolation()) );
-    //cout << "MASKED" <<endl;
-  }
+//void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel, 
+vector<bool> FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel, 
+                                 const std::vector<vw::Vector3>&      llrModel,
+                                 const vw::ImageViewBase<ViewT>&      DEM, 
+                                 const vw::cartography::GeoReference& DEMGeo, 
+                                       std::vector<vw::Vector3>&      xyzMatch, 
+                                 const vw::Vector3&                   translation, 
+                                 const vw::Matrix<float,3,3>&         rotation, 
+                                 const vw::Vector3&                   xyzMatchCenter,
+                                 const double                         noDEMVal, 
+                                 const vw::Vector2&                   matchWindowHalfSize ) {
+  vector<bool> mask( xyzMatch.size(), true );
   
   // cout<<"XYZ_MATCH_CENTER="<<xyzMatchCenter<<endl;
   // cout<<DEMGeo<<endl;  
@@ -223,37 +214,50 @@ void FindMatchesFromDEM( const std::vector<vw::Vector3>&      xyzModel,
                                                                      llrModel[index].y() ) );
     xyzMatch[index] = vw::Vector3(0,0,0);
     float minDistance = std::numeric_limits<float>::max();
-    vw::Vector<int,2> start = DEM_pix - matchWindowHalfSize;
-    vw::Vector<int,2> limit = DEM_pix + matchWindowHalfSize + vw::Vector<int,2>( 1, 1 );
+	vw::BBox2i region_to_search( DEM_pix - matchWindowHalfSize,
+							 DEM_pix + matchWindowHalfSize + vw::Vector2i( 1, 1 ) );
+	region_to_search.crop( DEM_bbox );
+//	vw::Vector<int,2> start = DEM_pix - matchWindowHalfSize;
+//    vw::Vector<int,2> limit = DEM_pix + matchWindowHalfSize + vw::Vector<int,2>( 1, 1 );
     
-    //search in a neigborhood around x,y and determine the best match to LOLA
-    for( int k = start.y(); k < limit.y(); ++k ){
-      for( int l = start.x(); l < limit.x(); ++l){
-        if( DEM_bbox.contains(vw::Vector<int,2>( l,k )) ){
-          double interp = interpDEM(l,k);
+	// Get local copy from disk of the DEM that we are querying
+	ImageView<float> DEM_window; // Assume this is small (less than 1024^2)
+	if ( !IsMasked<typename ViewT::pixel_type>::value ) {
+      DEM_window = crop(DEM.impl(), region_to_search );
+	} else {
+      DEM_window = crop(apply_mask(DEM.impl(), noDEMVal), region_to_search );
+	}		
 
-          if( interp == noDEMVal ){ continue; }
+	// Ver2 of search in a neighborhood around x, y
+	for( int k = 0; k < DEM_window.rows(); ++k ){
+      for( int l = 0; l < DEM_window.cols(); ++l ){
+        double interp = DEM_window( l,k );
+        if( interp == noDEMVal ){ continue; }
 
-          //compute the distance to the lidar point
-          const vw::Vector2 lonlat = DEMGeo.pixel_to_lonlat( Vector2(l,k) );
+        //compute the distance to the lidar point
+        const vw::Vector2 lonlat = 
+                DEMGeo.pixel_to_lonlat( Vector2(l,k) + region_to_search.min() );
         
-          //transform into xyz coordinates of the foregound image.
-          vw::Vector3 xyzDEM = DEMGeo.datum().geodetic_to_cartesian(  
-                                              vw::Vector3(lonlat.x(), lonlat.y(), interp) );
-          xyzDEM = rotation*(xyzDEM-xyzMatchCenter) + xyzMatchCenter + translation;
+        //transform into xyz coordinates of the foregound image.
+        vw::Vector3 xyzDEM = DEMGeo.datum().geodetic_to_cartesian(  
+            	                            vw::Vector3(lonlat.x(), lonlat.y(), interp) );
+        xyzDEM = rotation*(xyzDEM-xyzMatchCenter) + xyzMatchCenter + translation;
         
-          float distance = norm_2( xyzDEM - xyzModel[index] );
+        float distance = norm_2( xyzDEM - xyzModel[index] );
 
-          //cout<<"distance="<<distance<<endl;
+        //cout<<"distance="<<distance<<endl;
 
-          if( distance < minDistance ){
-            minDistance = distance;
-            xyzMatch[index] = xyzDEM;
-          }
+        if( distance < minDistance ){
+          minDistance = distance;
+          xyzMatch[index] = xyzDEM;
         }
       }
+	}
+    if( xyzMatch[index] == vw::Vector3(0,0,0) ){
+      mask[index] = false;
     }
   }
+  return mask;
 }
 
 //used to check the quality of matches for debug purposes
@@ -304,11 +308,32 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
     std::cout << " iteration=" << numIter << std::endl;
 
     std::cout << "feature matching ..." << std::endl;
-    FindMatches( featureArray, backDEM, backDEMGeo, foreDEMGeo, 
+    std::vector<bool> mask = FindMatches( featureArray, backDEM, backDEMGeo, foreDEMGeo, 
                  referenceArray, settings.matchWindowHalfSize, settings.noDataVal);
+
+    unsigned int num_good_matches = 0;
+    for( std::vector<bool>::const_iterator i = mask.begin(); i != mask.end(); ++i ){
+      if( *i ){ ++num_good_matches; }
+    }
+
+    std::vector<vw::Vector3> temp_feature;
+    std::vector<vw::Vector3> temp_reference;
+    if( num_good_matches == mask.size() ){
+      temp_feature = featureArray;
+      temp_reference = referenceArray;
+    } else {
+      temp_feature.reserve( num_good_matches );
+      temp_reference.reserve( num_good_matches );
+      for( unsigned int i=0; i < mask.size(); ++i ){
+        if( mask[i] ){
+          temp_feature.push_back( featureArray[i] );
+          temp_reference.push_back( referenceArray[i] );
+        }
+      }
+    }
     
     std::cout << "computing the matching error ..." << std::endl; 
-    matchError = ComputeMatchingError3D( featureArray, referenceArray );
+    matchError = ComputeMatchingError3D( temp_feature, temp_reference );
     std::cout << "match error=" << matchError << std::endl;
 
     if (matchError >= std::numeric_limits<float>::max()){
@@ -316,8 +341,8 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
       return;
     }
 
-    featureCenter = find_centroid( featureArray );
-    referenceCenter = find_centroid(referenceArray);
+    featureCenter = find_centroid( temp_feature );
+    referenceCenter = find_centroid( temp_reference );
     /*
     if (matchingMode >= 2){//ICP_TRANSLATION
       std::cout << "computing DEM translation ..." << std::endl;
@@ -330,7 +355,7 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
     if (matchingMode == 3){//ICP_ROTATION
       std::cout << "computing DEM rotation ..." << std::endl;
       //std::cout << "referenceCenter=" << referenceCenter << ", featureCenter=" << featureCenter << std::endl;
-      rotation = ComputeDEMRotation( featureArray, referenceArray, featureCenter, referenceCenter );
+      rotation = ComputeDEMRotation( temp_feature, temp_reference, featureCenter, referenceCenter );
       
       //compute the rotation matrix with the origin of the referenceArray
       std::cout << "rotation matrix = " << std::endl;
@@ -341,7 +366,7 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
       std::cout << "computing DEM translation ..." << std::endl;
       //std::cout << "rotation matrix = " << std::endl;
       //PrintMatrix( rotation );
-      translation = ComputeDEMTranslation( featureArray, referenceArray, rotation);  
+      translation = ComputeDEMTranslation( temp_feature, temp_reference, rotation);  
       std::cout << "translation = " << translation << std::endl; 
     } 
 
@@ -508,24 +533,46 @@ void ICP_LIDAR_2_DEM(       std::vector<vw::Vector3>&      xyzMatchArray,
          (avgMatchError > settings.minConvThresh) ){
     vw_out(vw::InfoMessage, "icp") << " -- Iteration " << numIter << " --" << endl;
     
-    FindMatchesFromDEM( xyzModelArray, llrModelArray, DEM, DEMGeo, 
+    std::vector<bool> mask = FindMatchesFromDEM( xyzModelArray, llrModelArray, DEM, DEMGeo, 
                         xyzMatchArray, translation, rotation, xyzMatchCenter, 
                         settings.noDataVal, settings.matchWindowHalfSize );
     
+    unsigned int num_good_matches = 0;
+    for( std::vector<bool>::const_iterator i = mask.begin(); i != mask.end(); ++i ){
+      if( *i ){ ++num_good_matches; }
+    }
+
+    std::vector<vw::Vector3> temp_xyzMatch;
+    std::vector<vw::Vector3> temp_xyzModel;
+    if( num_good_matches == mask.size() ){
+      temp_xyzMatch = xyzMatchArray;
+      temp_xyzModel = xyzModelArray;
+    } else {
+      temp_xyzMatch.reserve( num_good_matches );
+      temp_xyzModel.reserve( num_good_matches );
+      for( unsigned int i=0; i < mask.size(); ++i ){
+        if( mask[i] ){
+          temp_xyzMatch.push_back( xyzMatchArray[i] );
+          temp_xyzModel.push_back( xyzModelArray[i] );
+        }
+      }
+    }
+    
     vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
-    xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
+    //xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
+    xyzErrorArray = ComputeMatchingError(temp_xyzModel, temp_xyzMatch);
     avgMatchError = xyzErrorArray.sum()/xyzErrorArray.size();
     vw_out(vw::InfoMessage, "icp") << avgMatchError << endl;
 
     //determine the xyzMatchCentroid
-    vw::Vector3 xyzMatchCenter = find_centroid( xyzMatchArray );
+    vw::Vector3 xyzMatchCenter = find_centroid( temp_xyzMatch );
 
     vw_out(vw::InfoMessage, "icp") << "computing DEM translation ... ";
-    translation = ComputeDEMTranslation(xyzMatchArray, xyzModelArray);
+    translation = ComputeDEMTranslation(temp_xyzMatch, temp_xyzModel);
     vw_out(vw::InfoMessage, "icp") << translation << endl;
 
     vw_out(vw::InfoMessage, "icp") << "computing DEM rotation ... " << endl;;
-    rotation = ComputeDEMRotation( xyzMatchArray, xyzModelArray, xyzMatchCenter, xyzModelCenter );
+    rotation = ComputeDEMRotation( temp_xyzMatch, temp_xyzModel, xyzMatchCenter, xyzModelCenter );
     vw_out(vw::InfoMessage, "icp") << rotation << endl;
     
     //apply the computed rotation and translation to the featureArray  

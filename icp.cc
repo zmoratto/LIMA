@@ -79,12 +79,7 @@ valarray<float> ComputeMatchingError( const vector<Vector3>& model,
 
   valarray<float> errors( model.size() );
   for( unsigned int i = 0; i < model.size(); ++i ){
-    if (reference[i]==vw::Vector3(0,0,0)){//invalid matched point
-       errors[i] =std::numeric_limits<float>::max();
-    }
-    else{
-      errors[i] = norm_2( model[i] - reference[i] );
-    }
+    errors[i] = norm_2( model[i] - reference[i] );
   }
   return errors;
 }
