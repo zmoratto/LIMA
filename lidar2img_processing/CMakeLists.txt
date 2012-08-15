@@ -1,7 +1,5 @@
 project(lidar2img)
 cmake_minimum_required(VERSION 2.6)
-add_definitions(-arch i386)
-add_definitions(-DQT_NO_KEYWORDS)
 
 add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
 
@@ -15,8 +13,6 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
 
-
-find_package(Qt)
 
 find_package( VisionWorkbench )
 if (NOT VW_FOUND)
@@ -53,5 +49,10 @@ target_link_libraries(lima ${ASP_LIBRARIES} )
 
 add_executable(lidar2img lidar2img.cc )
 target_link_libraries(lidar2img lima )
-SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
-SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
+	add_definitions(-arch i386)
+	SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
+	SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
