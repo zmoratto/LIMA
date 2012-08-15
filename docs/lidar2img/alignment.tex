@@ -1,0 +1,320 @@
+
+The data has two main sources of error: uncertainty in the position of the Apollo spacecraft's
+position, and uncertainty in the position of the LRO when the LOLA shots were taken.
+As Apollo 15 launched in 1971, 38 years
+before the LRO, the Apollo images are subject to much larger position errors.
+
+Uncertainty in Apollo 15's position affects the image's pose relative to all of the tracks, while
+error in the LRO's position occurs on a per-track basis. We account for each of these
+error sources separately, both using the Guass-Newton method. However, before we can align
+the two data sources, we form a \emph{synthesized image} from the LOLA tracks that
+can be easily compared to the Apollo image.
+
+% image with tracks 100 and 113 in 24n26n2e4e_updated, Hadley C and Rima Hadley
+
+{\bf Forming Synthesized Images}
+
+\begin{figure}
+	\centering
+	\subfloat[LOLA Elevation Profile]{
+	\includegraphics[width=0.8\columnwidth]{lidar2img/fig/hadley_elevation.pdf}
+	\label{fig:elevation}}\\
+	\subfloat[Before Coregistration]{
+	\includegraphics[width=0.5\columnwidth]{lidar2img/fig/hadley_c_original.png}
+	\label{fig:hadleyoriginal}}
+	\subfloat[After Coregistration]{
+	\includegraphics[width=0.5\columnwidth]{lidar2img/fig/hadley_c_adjusted.png}
+	\label{fig:hadleyadjusted}}
+	\caption{Two LOLA tracks that pass through the crater Hadley C and Rima Hadley are
+		shown. \subref{fig:elevation} shows the LOLA tracks' elevation profiles.
+		\subref{fig:hadleyoriginal} shows the tracks' estimated reflectance (the synthetic
+		image) against an Apollo 15 image with the original alignment.
+		\subref{fig:hadleyadjusted} shows the synthetic image and the Apollo 15 image after
+		coregistration. The LOLA tracks are delineated by two bright lines, and the synthetic
+		image is shown as the color between the lines.}
+	\label{fig:problem}
+\end{figure}
+
+To align the LOLA tracks to the Apollo images, we estimate the lunar reflectance $r$ for each LOLA
+shot to form a \emph{synthesized image}. The reflectance is a function of the angle of incidence
+of light, which depends on the angle to the sun and the surface normal. The surface normal
+is computed by adding the normals from each available triangle in the LOLA shot (see Figure \ref{fig:lolashots})
+and normalizing the result. Some triangles' normals may not be available since LOLA does not always
+succesfully return five surface readings.
+
+Given the surface normal and the vector from the surface to the sun, we compute the expected reflectance with
+the photometric equation presented in by McEwen. These estimated shot reflectances form
+a synthetic image, which we expect to match the actual images taken during the Apollo mission.
+
+The actual surface luminence seen in an image is given by the product of the reflectance and a constant factor, % TODO: is luminence right word?
+$\alpha r$. The value of $\alpha$ depends on two factors: the parameters of the camera that took the image,
+and the properties of the reflecting surface. The refletance properties of the lunar surface vary, particularly
+between the flat, low-lying maria and the highlands. However, they are locally consistent.
+
+Given a set of tracks, an image, and a transformation from track coordinates to image coordinates, we estimate the scaling factor $\alpha$.
+Let $p$ be the list of all LOLA shots' transformed image coordinates, where $p_i^x$ and $p_i^y$ are the $x$ and $y$
+coordinates of LOLA shot $i$ transformed by a matrix $M$, let $r$ be a list of all LOLA shots' estimated reflectances, and let $I$ be an image.
+Then we compute the scaling
+factor as the value which makes the average value of the actual image equal the 
+average value of the synthetic image, $\alpha = \left(\sum I(p_i^x, p_i^y)\right) / \left(\sum L_i^r\right)$.
+So $\alpha$ is a function of $M$.
+
+{\bf The Gauss Newton Algorithm}
+
+Let $L$ be a list of LOLA shots, where $L_i^x$ and $L_i^y$ denote the initial image coordinates and
+$L_i^r$ denotes the estimated reflectance. Our goal is to find 
+$$\arg \min_M S(M) = \arg \min_M \sum_i r_i(M)^2\mbox{,}$$
+where $r_i(M)$ is the error for a single LOLA shot's synthetic image given the transformation matrix $M$,
+the $3 \times 3$ homography that minimizes the error between the synthetic and the observed images.
+$$r_i(m) = I\left(M \left[\begin{array}{c}L_i^x\\ L_i^y\\ 1\end{array}\right]\right) - \alpha L_i^r\mbox{.}$$
+The true error in the satellites' positions cannot be accounted for with a planar homography, since the
+surface of the moon and the LRO's motion are both non-planar. However, we have found that planar
+homographies are an effective approximation across limited areas.
+
+Minimizing this objective function is a non-linear least squares problem. A common tool for solving
+such problems is the Gauss-Newton algorithm, a variant of Newton's method which doesn't require
+the computation of second derivatives.
+
+In each step of the algorithm, we find a change $\Delta$ to the parameters $\beta$ (the entries of $M$ written as
+a vector) such that the error decreases, where $\beta_{t+1} = \beta_t + \Delta$. As with Newton's method,
+we choose $\beta_{t+1}$ to be the point where the second-order Taylor expansion of $S$ 
+reaches zero.
+
+The second-order Taylor expansion of $S$ is given by
+$$S(\beta + \Delta) \approx S(\beta) + J_S(\beta) \Delta + \frac{1}{2}\Delta^T H_S(\beta) \Delta$$
+where $J_S(\beta)$ and $H_S(\beta)$ are the Jacobian and Hessian with respect to $\beta$, respectively.
+Since $S$ is a function of $r$ (the error vector), we can rewrite the Jacobian of $S$ as a function of $r$.
+
+\begin{eqnarray*}
+	J_S(\beta) &=& \left[ \begin{array}{ccc}\frac{dS}{d\beta_1} & \ldots & \frac{dS}{d\beta_9}\end{array}\right]\\
+	&=& \left[ \begin{array}{ccc}\frac{d}{d\beta_1}\sum_i r_i^2 & \ldots & \frac{d}{d\beta_9}\sum_i r_i^2\end{array}\right]\\
+	&=& 2 \left[ \begin{array}{ccc}\sum_ir_i \frac{dr_i}{d\beta_1} & \ldots & \sum_i r_i \frac{dr_i}{d\beta_9}\end{array}\right]\\
+	&=& 2 \left[ \begin{array}{ccc}r_1 & \cdots & r_n \end{array} \right]\left[
+		\begin{array}{ccc}
+		\frac{dr_1}{d\beta_1} & \ldots & \frac{dr_1}{d\beta_9}\\
+		\vdots & \vdots & \vdots\\
+		\frac{dr_n}{d\beta_1} & \ldots & \frac{dr_n}{d\beta_9}
+		\end{array}\right]\\
+	&=& 2 r^T J_r(\beta)
+\end{eqnarray*}
+
+\noindent Likewise, we can write the Hessian of $S$ as a function of $J_r(\beta)$.
+
+\begin{eqnarray*}
+	H_S(\beta) &=& \frac{d}{d\beta} \frac{dS}{d\beta}\\
+	&=& \frac{d}{d\beta} 2 r^T J_r(\beta)\\
+	&=& 2 \left(\left(\frac{dr}{d\beta}\right)^T J_r(\beta) + r^T \frac{d}{d\beta}J_r(\beta)\right)\\
+	&=& 2 \left(J_r(\beta)^T J_r(\beta) + r^T \frac{d}{d\beta}J_r(\beta)\right)\\
+	&\approx& 2 J_r(\beta)^T J_r(\beta)
+\end{eqnarray*}
+
+\noindent We approximate $H_S(\beta)$ with the simplifying assumptation that the error $r$ is low.
+
+Now, we can rewrite the second-order Taylor approximation in terms of $J_r(\beta)$.
+\begin{eqnarray*}
+	S(\beta + \Delta) &\approx& S(\beta) + J_S(\beta) \Delta + \frac{1}{2}\Delta^T H_S(\beta) \Delta\\
+	&\approx& S(\beta) + 2 r^T J_r(\beta) \Delta + \Delta^T J_r(\beta)^T J_r(\beta) \Delta\\
+\end{eqnarray*}
+\noindent The minimum occurs when the derivative of $S$ with respect to $\Delta$ is zero. We find this point based
+on the second order-approximation.
+\begin{eqnarray*}
+0 &=& \frac{d}{d\Delta} S(\beta + \Delta)\\
+  &\approx& 2 r^T J_r(\beta) + 2 \Delta^T J_r(\beta)^T J_r(\beta)\\
+  -r^T J_r(\beta) &=& \Delta^T J_r(\beta)^T J_r(\beta)\\
+  -\left(J_r(\beta)^T r\right)^T &=& \left(\left(J_r(\beta)^T J_r(\beta)\right)^T \Delta\right)^T\\
+  -J_r(\beta)^T r &=& J_r(\beta)^T J_r(\beta) \Delta\\
+\end{eqnarray*}
+We solve this system of linear equations for $\Delta$ with an application of singular value decomposition.
+
+Then, we continue taking steps with new $\delta$ until the error doesn't decrease. The full Gauss-Newton
+algorithm is shown in Algorithm \ref{alg:gaussnewton}.
+
+\begin{algorithm}
+	\begin{algorithmic}
+		\STATE $err_{old} = \infty$
+		\LOOP
+		\STATE $\forall i \in \{1,..,|L|\}~\left[\begin{array}{c}p_i^x\\p_i^y\\1\end{array}\right] =
+				M \left[\begin{array}{c}L_i^x\\L_i^y\\1\end{array}\right]$
+		\STATE $\alpha = \left(\sum I(p_i^x, p_i^y)\right) / \left(\sum L_i^r\right)$
+		\STATE $\forall i \in \{1,..,|L|\}~E_i = I(p_i^x, p_i^y) - \alpha L_i^r$
+		\STATE $err = \sum_i E_i^2$
+		\IF{$err \ge err_{old}$}
+			\RETURN $M_{prev}$
+		\ENDIF
+		\STATE $err_{old} = err$
+		\STATE $J = \left[\begin{array}{cccccc}
+			\frac{dI(p_1^x, p_1^y)}{dM_{1,1}}&\frac{dI(p_1^x, p_1^y)}{dM_{1,2}}&\frac{dI(p_1^x, p_1^y)}{dM_{1,3}}&\frac{dI(p_1^x, p_1^y)}{dM_{2,1}}&\frac{dI(p_1^x, p_1^y)}{dM_{2,2}}&\frac{dI(p_1^x, p_1^y)}{dM_{2,3}}\\
+			\vdots&\vdots&\vdots&\vdots&\vdots&\vdots\\
+			\frac{dI(p_n^x, p_n^y)}{dM_{1,1}}&\frac{dI(p_n^x, p_n^y)}{dM_{1,2}}&\frac{dI(p_n^x, p_n^y)}{dM_{1,3}}&\frac{dI(p_n^x, p_n^y)}{dM_{2,1}}&\frac{dI(p_n^x, p_n^y)}{dM_{2,2}}&\frac{dI(p_n^x, p_n^y)}{dM_{2,3}}\\
+			\end{array}\right]$
+		\STATE $D = \left(J^T J\right)^{-1} J^T E$
+		\STATE $\Delta = \left[\begin{array}{ccc}
+				D_1&D_2&D_3\\D_4&D_5&D_6\\0&0&1
+			\end{array}\right]$
+		\STATE $M_{prev} = M$
+		\STATE $M = M + \Delta$
+		\ENDLOOP
+	\end{algorithmic}
+	\caption{$\texttt{gauss\_newton}(L, I, M)$: Aligns a set of LOLA shots $L$ to an image $I$,
+		given an initial transformation matrix $M$.}
+	\label{alg:gaussnewton}
+\end{algorithm}
+
+%Gauss-Newton is a modification of Newton's method, designed to solve non-linear least squares problems
+%without the need to compute second derivatives. Here, we attempt to minimize the square of the error between
+%the synthetic image generated from LIDAR data and the actual image taken by Apollo 15. The Gauss-Newton
+%algorithm as applied to this domain is outlined in Algorithm \ref{alg:gaussnewton}. It takes as inputs
+%a list of LOLA shots, an Apollo image, along with an initial guess for the transformation matrix
+%from LOLA shot coordinates to image coordinates. The Gauss-Newton algorithm refines this
+%initial guess and returns an improved transformation matrix that reduces the error.
+
+
+{\bf Search Over the Image Pyramid}
+
+The Gauss-Newton algorithm, like Newton's method, is highly susceptible to local minima.
+In our problem, the LOLA tracks begin highly misaligned, and a naive application of Gauss-Newton
+will converge to nearby local minima rather than the global minima.
+
+To prevent this, we first search
+on downsampled, lower-resolution layers of the image pyramid (see Fig. \ref{fig:pyramid}).
+By downsampling we find only a coarse alignment, but the lower resolution image allows us to
+avoid local minima and coregister the tracks in the presence of large initial errors.
+
+Once a coarse alignment is found, we align the LOLA tracks on progressively higher resolution
+layers of the image pyramid using Algorithm \ref{alg:coregister}. Note that we must scale
+the translational component of the transformation matrix between layers of the image
+pyramid to account for the changed image coordinate system.
+
+\begin{figure}
+	\includegraphics[width=0.235\columnwidth]{lidar2img/fig/hadley_rille_8.png}
+	\includegraphics[width=0.235\columnwidth]{lidar2img/fig/hadley_rille_4.png}
+	\includegraphics[width=0.235\columnwidth]{lidar2img/fig/hadley_rille_2.png}
+	\includegraphics[width=0.235\columnwidth]{lidar2img/fig/hadley_rille_1.png}
+	\caption{Hadley Rille, as seen in multiple layers of the image pyramid. From left to right,
+	downscaled by factors of 8, 4, 2, and 1.}
+	\label{fig:pyramid}
+\end{figure}
+
+\begin{algorithm}
+	\begin{algorithmic}
+		\STATE $P = \texttt{image\_pyramid}(I, n)$
+		\STATE $T_0 = \left[\begin{array}{ccc}1/2^n&0&0\\0&1/2^n&0\\0&0&1\end{array}\right]$
+		\STATE $G = \texttt{gauss\_newton}(L, P_{n}, T_0)$
+		\STATE $\forall~i\in\{1,\ldots,|T|\}~M_i = G$
+		\FOR{$i$ from $n-1$ to $0$}
+			\FOR{$j \in \{1,..,|T|\}$}
+			\STATE $M_j = \left[\begin{array}{ccc}2&0&0\\0&2&0\\0&0&1\end{array}\right] M_j
+				\left[\begin{array}{ccc}0.5&0&0\\0&0.5&0\\0&0&1\end{array}\right]$
+			\STATE $M_j = \texttt{gauss\_newton}(L, P_{i}, M_j)$
+			\ENDFOR
+		\ENDFOR
+		\RETURN $M$
+	\end{algorithmic}
+	\caption{$\texttt{coregister}(L, I)$: Given a list of LOLA tracks $L$ and an image $I$,
+		return a list of transformations from track coordinates to image coordinates.}
+	\label{alg:coregister}
+\end{algorithm}
+
+{\bf Computing the Jacobian}
+
+Recall that the Gauss-Newton algorithm requires us to compute the Jacobian $J_r(\beta)$ of the error
+with respect to the parameters of the transformation matrix. We skipped over this
+previously, but now we discuss this in detail.
+
+We aim to find the homography $H$ from track coordinates $(x, y)$ to image coordinates $(x', y')$.
+
+\begin{eqnarray*}
+\left[\begin{array}{ccc}
+H_{11} & H_{12} & H_{13}\\
+H_{21} & H_{22} & H_{23}\\
+H_{31} & H_{32} & H_{33}
+\end{array}\right]
+\left[\begin{array}{c}x\\y\\1\end{array}\right] &=&
+\left[\begin{array}{c}wx'\\wy'\\w\end{array}\right]\\
+\left[\begin{array}{c}
+H_{11}x + H_{12}y + H_{13}\\
+H_{21}x + H_{22}y + H_{23}\\
+H_{31}x + H_{32}y + H_{33}
+\end{array}\right]
+&=& \left[\begin{array}{c}wx'\\wy'\\w\end{array}\right]
+\end{eqnarray*}
+
+\begin{eqnarray*}
+x' &=& \frac{H_{11}x + H_{12}y + H_{13}}{H_{31}x + H_{32}y + H_{33}}\\
+y' &=& \frac{H_{21}x + H_{22}y + H_{23}}{H_{31}x + H_{32}y + H_{33}}\\
+\end{eqnarray*}
+
+For the Gauss-Newton algorithm, we require the partial derivatives of the image
+with respect to each entry of the homography. For the first two rows of $H$, we
+compute this by taking a finite difference with three points on the image, either
+over a row in the image (for the first row of the homography) or over a column 
+(for the second row). We use the finite difference with six points.
+
+\begin{eqnarray*}
+	\Delta I_x(x', y') &=& -\frac{1}{60}I(x'-3, y) + \frac{3}{20}I(x'-2, y') - \frac{3}{4} I(x'-1, y) +\\
+			&& \frac{3}{4} I(x'+1, y) -\frac{3}{20}I(x'+2, y') + \frac{1}{60}I(x'+3, y)
+\end{eqnarray*}
+
+Once we find the change in the horizontal direction of the image, we find the change in the entries of $H$ with induces
+a change of a single pixel in the image coordinates.
+
+\begin{eqnarray*}
+	\frac{(H_{11} + \Delta_{H_{11}}) x + H_{12}y + H_{13}}{H_{31}x + H_{32}y + H_{33}} - \frac{H_{11}x + H_{12}y + H_{13}}{H_{31}x + H_{32}y + H_{33}} &=& 1\\
+	H_{31}x + H_{32}y + H_{33} &=& \Delta_{H_{11}} x\\
+	\frac{H_{31}x + H_{32}y + H_{33}}{x} &=& \Delta_{H_{11}}\\
+	\frac{H_{31}x + H_{32}y + H_{33}}{y} &=& \Delta_{H_{12}}\\
+	H_{31}x + H_{32}y + H_{33} &=& \Delta_{H_{13}}
+\end{eqnarray*}
+
+Then we can approximate the partial derivatives as
+
+$$\frac{dI}{dH_{11}} = \frac{\Delta I_x(x', y')}{\Delta H_{11}}, 
+\frac{dI}{dH_{12}} = \frac{\Delta I_x(x', y')}{\Delta H_{12}}, 
+\frac{dI}{dH_{13}} = \frac{\Delta I_x(x', y')}{\Delta H_{13}}$$
+
+The equations are the same for the second row of $H$, except we take a finite
+difference in the vertical direction instead:
+
+$$\frac{dI}{dH_{21}} = \frac{\Delta I_y(x', y')}{\Delta H_{21}}, 
+\frac{dI}{dH_{22}} = \frac{\Delta I_y(x', y')}{\Delta H_{22}}, 
+\frac{dI}{dH_{23}} = \frac{\Delta I_y(x', y')}{\Delta H_{23}}$$
+
+The third row of $H$ determines the scaling factor, which will multiply both
+$x$ and $y$ by the same amount. If $x'> y'$, we find the change in $H$ which
+brings us to the next pixel in the $x$ direction, if $y > x$ we find the change
+to bring us to the next pixel in the $y$ direction. We interpolate between
+neighboring pixels for non-integral image coordinates.
+
+Let $m = \frac{y'}{x'}$. If $m \le 1$, we sample find the divided difference using pixels
+with an even vertical offset. 
+
+\begin{eqnarray*}
+	\Delta I(x', y') &=& -\frac{1}{60}I(x'-3, y-3m) + \frac{3}{20}I(x'-2, y'-2m) - \frac{3}{4} I(x'-1, y-m) +\\
+			&& \frac{3}{4} I(x'+1, y+m) -\frac{3}{20}I(x'+2, y'+2m) + \frac{1}{60}I(x'+3, y+3m)
+\end{eqnarray*}
+
+Likewise, if $m \ge 1$, we find the divided difference from pixels with a horizontal offset.
+
+\begin{eqnarray*}
+	\Delta I(x', y') &=& -\frac{1}{60}I(x'-\frac{3}{m}, y-3) + \frac{3}{20}I(x'-\frac{2}{m}, y'-2) - \frac{3}{4} I(x'-\frac{1}{m}, y-1) +\\
+			&& \frac{3}{4} I(x'+\frac{1}{m}, y+1) -\frac{3}{20}I(x'+\frac{2}{m}, y'+2) + \frac{1}{60}I(x'+\frac{3}{m}, y+3)
+\end{eqnarray*}
+
+Next, we once again find the changes in $H$ which produce this $x$ or $y$ offset. First, if it is an $x$ offset:
+
+$$\frac{H_{11} x + H_{12}y + H_{13}}{(H_{31} + \Delta H_{31})x + H_{32}y + H_{33}} - \frac{H_{11}x + H_{12}y + H_{13}}{H_{31}x + H_{32}y + H_{33}} = 1$$
+$$\frac{H_{11} x + H_{12}y + H_{13}}{(H_{31} + \Delta H_{31})x + H_{32}y + H_{33}} = 1 + x'$$
+$$H_{11} x + H_{12}y + H_{13} - (H_{32}y + H_{33})(1 + x') = (1 + x')\left(H_{31} + \Delta H_{31}\right)x$$
+$$\frac{1}{x}\left(\frac{H_{11} x + H_{12}y + H_{13}}{(1+x')}- H_{32}y - H_{33}\right) - H_{31} = \Delta H_{31}$$
+$$\frac{1}{y}\left(\frac{H_{11} x + H_{12}y + H_{13}}{(1+x')}- H_{31}x - H_{33}\right) - H_{32} = \Delta H_{32}$$
+$$\frac{H_{11} x + H_{12}y + H_{13}}{(1+x')}- H_{31}x - H_{32}y - H_{33} = \Delta H_{33}$$
+
+If it is a $y$ offset ($y' > x'$), the results are the same, except the entries from the first row of $H$ are replaced with
+entries from the second row. Furthermore, $x'$ becomes $y'$. Then, once again, we find the derivatives.
+
+$$\frac{dI}{dH_{31}} = \frac{\Delta I_y(x', y')}{\Delta H_{31}}, 
+\frac{dI}{dH_{32}} = \frac{\Delta I_y(x', y')}{\Delta H_{32}}, 
+\frac{dI}{dH_{33}} = \frac{\Delta I_y(x', y')}{\Delta H_{33}}$$
+
+Now we are able to generate the Jacobian $J_r(\beta)$.
+

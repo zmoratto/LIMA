@@ -1,0 +1,52 @@
+%File: formatting-instruction.tex
+\documentclass[letterpaper]{article}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\frenchspacing
+
+\begin{document}
+\title{LIDAR to Image Coregistration Using Orbital Data}
+\author{Brian Coltin and Ara Nefian}
+\maketitle
+\begin{abstract}
+\begin{quote}
+In 2009, the Lunar Reconnaissance Orbiter (LRO) launched with the Lunar Orbiter Laser
+Altimeter (LOLA), an instrument that precisely measures the distance to the Moon's
+surface. The LOLA data is recorded in tracks tracing the LRO's orbit above the Moon,
+consisting of "shots" of five distance measurements each. In this work, we seek to
+coregister these tracks to images taken during the Apollo program to form a consistent
+map of the moon, merging both data sources. The coregistration problem is challenging
+due to significant uncertainty in both spacecrafts' positions. We introduce an algorithm
+to coregister the LOLA data to the Apollo images. First, we compute each LOLA shot's
+surface normal and, from this normal and the approximate LRO and sun positions,
+estimate the lunar albedo. We then perform a local brute-force search comparing the
+estimated albedo to a low-resolution Apollo image to find a coarse alignment. Finally,
+we use the Gauss-Newton algorithm to precisely align the LOLA tracks to progressively
+higher resolution layers of the image pyramid.
+\end{quote}
+\end{abstract}
+
+\section{Introduction}
+\input{introduction.tex}
+\section{Related Work}
+\input{related.tex}
+\section{Problem Statement}
+\input{problem.tex}
+\section{Aligning LIDAR to Images}
+\input{alignment.tex}
+\section{Selected Results}
+\input{results.tex}
+\section{Conclusion}
+\input{conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{biblio}
+
+\end{document}
+

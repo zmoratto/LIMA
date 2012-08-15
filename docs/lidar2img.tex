@@ -54,11 +54,20 @@ The following options may be passed to {\texttt{lidar2img}} at runtime.
 	\item{\texttt{-i, --inputCubFile FILE}} : a cub image to align tracks to
 	\item{\texttt{-o, --outputFile FILE}} : a file to output the transformation matrix to (if none is specified, stdout is used)
 	\item{\texttt{--outputImage FILE}} : a file to output an image visualizing the aligned tracks to
-	\item{\texttt{-d, --dataFile FILE}} : a file to output track data too, in format used for visualization script
+	\item{\texttt{-d, --dataFile FILE}} : a file to output track data to, in a format used for the visualization script
 	\item{\texttt{-g, --gcpDir DIRECTORY}} : a directory to output ground control points to
 	\item{\texttt{-h, --help}} : display a help message
 \end{itemize}
 
 \subsection{The LIDAR to Image Alignment Algorithm}
 
+\input{lidar2img/introduction.tex}
+\subsubsection{Problem Statement}
+\input{lidar2img/problem.tex}
+\subsubsection{Aligning LIDAR to Images}
+\input{lidar2img/alignment.tex}
+\subsubsection{Selected Results}
+\input{lidar2img/results.tex}
+\subsubsection{Conclusion}
+\input{lidar2img/conclusion.tex}
 

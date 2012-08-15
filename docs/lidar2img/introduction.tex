@@ -1,0 +1,29 @@
+
+Many different spacecraft have succesfully returned various types of extraplanetary data to Earth,
+including imagery and elevation data. However, due to small uncertainties in space craft
+position, these different data sources have errors in alignment which makes forming a
+consistent multi-source map a challenging problem. Finding transformations from one data
+set to another to form a consistent map is the {\emph{coregistration}} problem.
+
+The problem of coregistering different sources of imagery data has been succesfully adressed
+with bundle adjustment. However, the problem of coregistering different classes
+of data, in particular aligning LIDAR measurements with images, has not been well-studied.
+This coregistration problem is particularly challenging because the types of data are
+fundamentally different. Furthermore, the available LIDAR data is much sparser than
+the image data.
+
+The {\texttt{lidar2img}} program coregisters images
+from the Apollo 15 metric camera to data from the recently deployed Lunar Reconaissance Orbiter's
+Lunar Orbiter Laser Altimeter (LOLA). To do so, we first convert the LOLA data to a
+{\emph{synthetic image}} by inputting measured surface normals, and estimated sun and spacecraft
+positions into a lunar reflectance model. Then, we find a planar homography which aligns the synthetic
+image to the actual image using the Gauss-Newton algorithm.  However, the Gauss-Newton algorithm is
+susceptible to local minima, and a naive application will fail. Instead, we first
+apply Gauss-Newton to lower-resolution images which smooth over local minima. Then, we
+refine the transformation on successively higher-resolution layers of the image pyramid.
+
+We first present and discuss the data sources in detail. Next, we introduce the
+Gauss-Newton algorithm as applied to the LIDAR to image coregistration problem,
+and its use in conjunction with the image pyramid. Finally, we present selected
+results demonstrating the effectiveness of the coregistration process.
+
