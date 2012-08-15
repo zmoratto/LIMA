@@ -40,13 +40,136 @@ using namespace vw::camera;
 using namespace std;
 
 #include <math.h>
-#include "util.h"
-#include "tracks.h"
-#include "match.h"
-#include "coregister.h"
-#include "display.h"
-#include "weights.h"
-#include "featuresLOLA.h"
+#include "../util.h"
+#include "../tracks.h"
+#include "../match.h"
+#include "../coregister.h"
+#include "../display.h"
+#include "../weights.h"
+#include "../featuresLOLA.h"
+
+// just initialize the tracks, don't align them
+vector<vector<AlignedLOLAShot> > setup_tracks(vector<vector<LOLAShot> > & trackPts, const string & inputCubFile,
+		Matrix3x3 trans)
+{
+	DiskImageResourceIsis rsrc(inputCubFile);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
+
+	camera::IsisCameraModel model(inputCubFile);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	//initialization step for LIMA - START	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+	transform_tracks(aligned, trans, cubImage);
+	return aligned;
+}
+
+vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, ImageView<PixelGray<float> > cubImage,
+		vector<Matrix3x3> & trackTransforms, bool globalAlignment=true, int transSearchWindow=0, int transSearchStep=0,
+		float thetaSearchWindow=0.0, float thetaSearchStep=0.0, string image_file = "")
+{
+	vector<vector< AlignedLOLAShot> > aligned = initialize_aligned_lola_shots(trackPts);
+	Matrix3x3 trans(1, 0, 0, 0, 1, 0, 0, 0, 1);
+	transform_tracks(aligned, trans, cubImage);
+	float error = compute_transform_error(aligned);
+	
+	if (transSearchStep > 0 && thetaSearchStep > 0.0)
+	{
+		printf("Brute force alignment.\n");
+		trans = find_tracks_transform(aligned, cubImage, 
+			transSearchWindow, transSearchStep, thetaSearchWindow, thetaSearchStep);
+	}
+	else if (globalAlignment)
+	{
+		printf("Global Gauss-Newton alignment.\n");
+		vector<AlignedLOLAShot> oneTrack;
+		for (unsigned int i = 0; i < aligned.size(); i++)
+			oneTrack.insert(oneTrack.end(), aligned[i].begin(), aligned[i].end());
+		trans = gauss_newton_track(oneTrack, cubImage, trackTransforms[0]);
+		transform_tracks(aligned, trans, cubImage);
+		for (unsigned int i = 0; i < trackTransforms.size(); i++)
+			trackTransforms[i] = trans;// * trackTransforms[i];
+	}
+	else
+	{
+		for (unsigned int i = 0; i < aligned.size(); i++)
+			trackTransforms[i] = gauss_newton_track(aligned[i], cubImage, trans) * trackTransforms[i];
+	}
+	printf("Initial Error: %g Final Error: %g\n", error, compute_transform_error(aligned));
+	
+	if (image_file.length() > 0)
+		SaveReflectanceImages(aligned, cubImage, image_file);
+
+	return aligned;
+}
+
+vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & image_file,
+		vector<Matrix3x3> & trackTransforms, string outputImage = "")
+{
+	int ZOOM_MULTIPLIER = 2;
+	
+	int zoom_factor = 8;
+
+	vector<vector< AlignedLOLAShot> > aligned;
+
+	bool first = true;
+	DiskImageResourceIsis rsrc(image_file);
+	ImageView<PixelGray<float> > cubImage;
+	read_image(cubImage, rsrc);
+	//double nodataVal = rsrc.nodata_read();
+	cubImage = normalize(cubImage);//apply_mask(normalize(create_mask(cubImage,nodataVal)),0);
+	
+	camera::IsisCameraModel model(image_file);
+	Vector3 center_of_moon(0,0,0);
+	Vector2 pixel_location = model.point_to_pixel( center_of_moon );
+	Vector3 cameraPosition = model.camera_center( pixel_location );
+	Vector3 lightPosition = model.sun_position( pixel_location );
+	
+	GetAllPtsFromCub(trackPts, model, cubImage);
+	ComputeAllReflectance(trackPts, cameraPosition, lightPosition);
+
+	transform_tracks_by_matrix(trackPts, Matrix3x3(1.0 / zoom_factor, 0, 0, 0, 1.0 / zoom_factor, 0, 0, 0, 0));
+
+	while (zoom_factor >= 1.0)
+	{
+		if (!first) // transform previous matrices
+		{
+			Matrix3x3 t1((float)ZOOM_MULTIPLIER, 0, 0, 0, (float)ZOOM_MULTIPLIER, 0, 0, 0, 1);
+			Matrix3x3 t2(1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1.0/ZOOM_MULTIPLIER, 0, 0, 0, 1);
+			for (unsigned int i = 0; i < trackTransforms.size(); i++)
+				trackTransforms[i] = t1 * trackTransforms[i] * t2;
+			transform_tracks_by_matrix(trackPts, Matrix3x3(ZOOM_MULTIPLIER, 0, 0, 0, ZOOM_MULTIPLIER, 0, 0, 0, 1));
+		}
+		else
+		{
+			first = false;
+		}
+		if (zoom_factor == 1) // last level, save image
+		{
+			aligned = align_to_image(trackPts, cubImage, trackTransforms, true,
+				0.0, 0.0, 0.0, 0.0, outputImage);
+		}
+		else
+		{
+			ImageView<PixelGray<float> > img = resize(cubImage, cubImage.rows() / zoom_factor, cubImage.cols() / zoom_factor);
+			
+			aligned = align_to_image(trackPts, img, trackTransforms);
+		}
+		zoom_factor /= ZOOM_MULTIPLIER;
+	}
+
+	return aligned;
+}
 
 int main( int argc, char *argv[] )
 {

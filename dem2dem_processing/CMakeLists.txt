@@ -23,11 +23,6 @@ if (NOT VW_FOUND)
 	message(FATAL_ERROR "Package VisionWorkbench required, but not found.")
 endif (NOT VW_FOUND)
 
-find_package( ASP )
-if (NOT ASP_FOUND)
-	message(FATAL_ERROR "Package ASP required, but not found.")
-endif (NOT ASP_FOUND)
-
 find_package( Boost REQUIRED system thread filesystem program_options )
 if (NOT Boost_FOUND)
 	message(FATAL_ERROR "Package Boost required, but not found.")
@@ -44,14 +39,11 @@ include_directories(
   )
 # ISIS include directories
 
-set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
+set( COMMON_SRCS ../coregister.cc ../icp.cc ../string_util.cc ../pyr_tiling.cc )
 
-add_library( lima ${COMMON_SRCS})
-target_link_libraries(lima ${Boost_LIBRARIES} )
-target_link_libraries(lima ${VW_LIBRARIES} )
-target_link_libraries(lima ${ASP_LIBRARIES} )
+add_library( assembler ${COMMON_SRCS})
+target_link_libraries(assembler ${Boost_LIBRARIES} )
+target_link_libraries(assembler ${VW_LIBRARIES} )
 
-add_executable(lidar2img lidar2img.cc )
-target_link_libraries(lidar2img lima )
-SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
-SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
+SET_TARGET_PROPERTIES(assembler PROPERTIES LINK_FLAGS "-arch i386")
+SET_TARGET_PROPERTIES(assembler PROPERTIES LINK_FLAGS "-arch i386")

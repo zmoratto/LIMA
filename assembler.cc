@@ -32,6 +32,7 @@ namespace po = boost::program_options;
 #include "icp.h"
 #include "assembler.h"
 #include "string_util.h"
+#include "pyr_tiling.h"
 
 using namespace vw;
 using namespace vw::math;
@@ -40,7 +41,102 @@ using namespace std;
 
 
 
+/*
+void ComputeTileParams(int orig_backImgWidth, int orig_backImgHeight, 
+		       GeoReference const &foreGeo, GeoReference const &backGeo, 
+                       int tileSize, Vector4 paddingParams, float foreNoDataVal,
+		       int imageType, Vector4 lonlatBB, std::vector<struct TilingParams> &tileParamsArray)
+{
+  
+  Matrix<double> backH;
+  backH = backGeo.transform();
+  cout<<"COMPUTE_TILE_PARAMS: back meter per pixel="<<backH(0,0)<<", "<<backH(1,1)<<endl;
+  Matrix<double> foreH;
+  foreH = foreGeo.transform();
+  cout<<"COMPUTE_TILE_PARAMS: fore meter per pixel="<<foreH(0,0)<<", "<<foreH(1,1)<<endl;  
+  if (foreH(0,0) < 0.015625){foreH(0,0)=0.015625;}//1/64
+  float backUpsamplingFactor = fabs(backH(0,0)/foreH(0,0));
+  cout<<"COMPUTE_TILE_PARAMS: backUpsamplingFactor="<<backUpsamplingFactor<<endl;
+  
 
+  int numPyrTiles;
+  Vector2 offsetPix;
+  int maxNumPyrLevels;
+  
+  ComputePyramidTilingParams(orig_backImgWidth, orig_backImgHeight, tileSize, numPyrTiles, offsetPix, maxNumPyrLevels);
+  int numSubPyrLevels;
+  Vector2 numSubPyrTiles;
+  Vector2 topLeftPix, bottomRightPix; 
+  Vector2 topLeftTile;
+
+  ComputeSubPyramidTilingParams(backGeo, lonlatBB, tileSize, offsetPix, backUpsamplingFactor, 
+                                topLeftPix, bottomRightPix, topLeftTile, numSubPyrTiles, numSubPyrLevels);
+
+  //efectively fill in  the tiling structures - START
+  float leftNumPixPadding = paddingParams(0);
+  float topNumPixPadding = paddingParams(1);
+  float rightNumPixPadding = paddingParams(2);
+  float bottomNumPixPadding = paddingParams(3);
+
+  int horTileIndex, verTileIndex;
+
+  horTileIndex = topLeftTile(0);
+  for (int i = topLeftPix(0); i < bottomRightPix(0); i = i + tileSize){
+    verTileIndex = topLeftTile(1);
+    for (int j = topLeftPix(1); j < bottomRightPix(1); j = j + tileSize){
+	TilingParams thisTileParams;
+  
+        thisTileParams.back_xl = i - leftNumPixPadding;
+        thisTileParams.back_xr = i + tileSize + rightNumPixPadding;
+        thisTileParams.back_yt = j - topNumPixPadding;
+        thisTileParams.back_yb = j + tileSize + bottomNumPixPadding;
+        thisTileParams.horTileIndex = horTileIndex;
+	thisTileParams.verTileIndex = verTileIndex;
+	
+	stringstream ss;
+	ss<<thisTileParams.horTileIndex<<"_"<<thisTileParams.verTileIndex;
+        string assembledFilename;
+	string assembledAccFilename;
+	string assembledPCFilename;
+
+        if (imageType == 0){//DEM
+	  assembledFilename = "assembled_"+ss.str()+"_dem.tif";
+	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileDEMFilename="<<assembledFilename<<endl;
+	  
+	  assembledAccFilename = "assembled_"+ss.str()+"_acc.tif";
+	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileAccFilename="<<assembledAccFilename<<endl;
+	  
+	  assembledPCFilename = "assembled_"+ss.str()+"_pc.txt";
+	  cout<<"COMPUTE_TILE_PARAMS: TILE: tilePCFilename="<<assembledPCFilename<<endl;
+	}
+
+        if (imageType == 1){//DRG
+	  assembledFilename = "assembled_"+ss.str()+"_drg.tif";
+	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileDRGFilename="<<assembledFilename<<endl;
+	}
+       
+        thisTileParams.filename = assembledFilename;
+        thisTileParams.accFilename = assembledAccFilename;
+	thisTileParams.pcFilename = assembledPCFilename;
+	thisTileParams.backUpsampleFactor = pow(2, (float)numSubPyrLevels);
+	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
+
+        tileParamsArray.push_back(thisTileParams);
+        
+        cout<<"COMPUTE_TILE_PARAMS: TILE: horTileIndex="<<thisTileParams.horTileIndex<<", verTileIndex="<<thisTileParams.verTileIndex<<endl;     
+        cout<<"COMPUTE_TILE_PARAMS: TILE: xl="<<thisTileParams.back_xl<<", xr="<<thisTileParams.back_xr<<", yt="<<thisTileParams.back_yt<<", yb="<<thisTileParams.back_yb<<endl;
+        cout<<"COMPUTE_TILE_PARAMS: TILE: backUpsampleFactor="<<thisTileParams.backUpsampleFactor<<endl;
+        cout<<"COMPUTE_TILE_PARAMS: TILE: foreUpsampleFactor="<<thisTileParams.foreUpsampleFactor<<endl;
+
+	verTileIndex++;
+      }
+    horTileIndex++;
+  }
+  //efectively fill in the tiling structures - END
+
+  cout<<"---------------------------------"<<endl;
+}
+*/
 float ComputeDEMAccuracy(GeoReference foreGeo, Vector2 forePix, float backAccuracy)
 {
    
@@ -453,7 +549,19 @@ int main( int argc, char *argv[] ) {
     DiskImageView<float>  foreDEM(foreDEMFilename);
     GeoReference foreDEMGeo;
     read_georeference(foreDEMGeo, foreDEMFilename);
-   
+
+    /*
+    cout.precision(9);
+    Vector2 lonlat_temp;
+    lonlat_temp(0) = 137.4417;
+    lonlat_temp(1) = -4.5895;
+    Vector2 point = backDEMGeo.lonlat_to_point(lonlat_temp);
+    cout<<"POINT="<<point<<endl;
+    Vector2 pixel = backDEMGeo.lonlat_to_pixel(lonlat_temp);
+    cout<<"PIXEL="<<pixel<<endl;
+    cout<<"height="<<backDEM(pixel(0), pixel(1));
+    */
+
     vector<Vector3> featureArray;
 
     Vector2 camPoint;
@@ -462,11 +570,20 @@ int main( int argc, char *argv[] ) {
     Vector2 camLonLat = foreDEMGeo.point_to_lonlat(camPoint);
     cout<<"camLonLat="<<camLonLat<<endl;
 
+    
+    //assemblerParams.foreLonLatOrigin = backDEMGeo.lonlat_to_point(assemblerParams.foreLonLatOrigin);
+    cout<<"fore_point_orig="<< assemblerParams.foreLonLatOrigin<<endl;
+
+    //pixel to lonlat of the initial point - START
+    assemblerParams.foreLonLatOrigin = backDEMGeo.point_to_lonlat(assemblerParams.foreLonLatOrigin);
+    cout<<"fore_lonlat_orig="<< assemblerParams.foreLonLatOrigin<<endl;
+    //pixel to lonlat of the initial point - END
+
+ 
     Vector2 offsetLonLat;
     //compute the lonlat offset between the original lonlat origin of the foregoround and the new origin in the configuration file.  
     if (assemblerParams.useForeLonLatRadOffset == 0){
       //use current values of the foreground origin
-      //if((assemblerParams.foreLonLatOrigin(0) == 0) && (assemblerParams.foreLonLatOrigin(1) == 0)){
       offsetLonLat(0) = 0.0;
       offsetLonLat(1) = 0.0;
     }
@@ -476,9 +593,7 @@ int main( int argc, char *argv[] ) {
     }
     cout<<"offsetLonLat="<<offsetLonLat<<endl; 
     
-    //TODO: read the altitude offset
-  
-    //matchingMode = 0 do notthing, no alignmment
+    //matchingMode = 0 do nothing, no alignmment
     //matchingMode = 1 altitude alignment, no ICP
     //matchingMode = 2 ICP, translation only
     //matchingMode = 3 ICP, rotation and translation
@@ -568,19 +683,14 @@ int main( int argc, char *argv[] ) {
 	   }
            transfFeatureArray.clear();
 	   */
+
            if (matchError <registrationParams.error){     
              cout<<"using initial registration parameters."<<endl;
 	     registrationParams.error = matchError;
 	     registrationParams.bestDeltaLonLat = offsetLonLat + delta_lonlat;
 	     registrationParams.rotation = currRotation;
 	     registrationParams.translation = currTranslation;
-	     /*
-             Vector3 zeroVector;
-	     zeroVector(0)=0;
-	     zeroVector(1)=0;
-	     zeroVector(2)=0;
-	     */
-	     registrationParams.center = /*zeroVector;*/currCenter;
+	     registrationParams.center = currCenter;
 	   }
    
 	 }//l
@@ -603,34 +713,11 @@ int main( int argc, char *argv[] ) {
     }//done with ICP mode
   
    
-    
-    /*
-    //TODO: debug at this stage - START
-    vector<Vector3> transfFeatureArray;
-    transfFeatureArray.resize(featureArray.size());
-    
-    for (int m = 0; m < featureArray.size(); m++){
-      transfFeatureArray[m](0) = featureArray[m](0);
-      transfFeatureArray[m](1) = featureArray[m](1);
-      transfFeatureArray[m](2) = featureArray[m](2);
-    }
-    
-    //TransformFeatures( transfFeatureArray, registrationParams.center, registrationParams.translation, registrationParams.rotation );     
-    for (int m=0; m < featureArray.size(); m++ ){
-         transfFeatureArray[m] = registrationParams.rotation*(featureArray[m]-registrationParams.center) +
-                                 registrationParams.center + registrationParams.translation; 
-    }
-    
-    for (int m = 0; m < featureArray.size(); m++){
-      Vector3 transf_fore_lon_lat_rad = foreDEMGeo.datum().cartesian_to_geodetic(transfFeatureArray[m]);
-      Vector3 origin_fore_lon_lat_rad = foreDEMGeo.datum().cartesian_to_geodetic(featureArray[m]);
-      cout<<"transf_feature :"<<transfFeatureArray[m]<<", orig:"<<featureArray[m]<<endl;
-      cout<<"transf_feature :"<<transf_fore_lon_lat_rad<<", orig:"<<origin_fore_lon_lat_rad<<endl;
-    }
+    //TODO: need to create here a unified assembled georeference
+    //it should be registered to the DEM
+    //it will be passed to all the functions below instead of backDEMGeo.
+    //this will attempt to remove the offset between DEM and DRG tiles.
 
-    transfFeatureArray.clear();
-    //TODO: debug at this stage - END
-    */
     vector<struct TilingParams> tileParamsArray;
     Vector4 foreLonLatBB;
 
@@ -638,14 +725,19 @@ int main( int argc, char *argv[] ) {
     ComputeLonLatBoxDEM(foreDEM, foreDEMGeo, assemblerParams.foreNoDataValDEM, 
                         registrationParams.bestDeltaLonLat, registrationParams, 
 			foreLonLatBB);
-    cout<<"ASSEMBLER: DEM bounding box: "<<foreLonLatBB<<endl;
 
-    cout<<"ASSEMBLER: ComputeTileBoundaries for DEMs"<<endl;
-    ComputeTileParams(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
-		      registrationParams, assemblerParams, 
-		      0, foreLonLatBB, tileParamsArray);
+    cout<<"ASSEMBLER: DEM bounding box: "<<foreLonLatBB<<endl;
+    cout<<"ASSEMBLER: ComputeTileParams for DEMs"<<endl;
+
+    int backDEMWidth = backDEM.cols(); 
+    int backDEMHeight = backDEM.rows();
+    ComputeTileParams(backDEMWidth, backDEMHeight, foreDEMGeo, backDEMGeo,
+                      assemblerParams.tileSizeDEM, assemblerParams.paddingParamsDEM, 
+                      assemblerParams.foreNoDataValDEM, 0, 
+                      foreLonLatBB, tileParamsArray);
    
-    cout<<"ASSEMBLER: ComputeAssembledDEM for each tile"<<endl;
+    cout<<"ASSEMBLER: COMPUTE_ASSEMBLED_DEM for each tile"<<endl;
+    
     for (int i= 0; i <tileParamsArray.size(); i++){
       ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			  assemblerParams.foreNoDataValDEM, assemblerParams.foreLonLatOrigin,
@@ -653,47 +745,88 @@ int main( int argc, char *argv[] ) {
 			  resDir, registrationParams, tileParamsArray[i]);   
     }
     
-
     if (mode.compare("DEM_DRG")==0){
-
-      
+  
       //large image low res - background
-      //DiskImageView<PixelRGB<uint8> >  backDRG(backFile);
-      DiskImageView<PixelGray<uint8> >  backDRG(backDRGFile);
-      GeoReference backDRGGeo;
-      //read_georeference(backDRGGeo, backFile);
-      read_georeference(backDRGGeo, backDRGFile);
       cout<<"ASSEMBLER: backDRG filename="<<backDRGFile<<endl;
 
-       //small image high res - foreground 
+      //DiskImageView<PixelRGB<uint8> >  backDRG(backFile);
+      DiskImageView<PixelGray<uint8> >  backDRG(backDRGFile);
+      GeoReference backDRGGeo;  
+      read_georeference(backDRGGeo, backDRGFile);
+      
+      //small image high res - foreground 
       string foreDRGFile = foreDEMFilename;
-      FindAndReplace( foreDRGFile, string("Height"), string("Photo"));
       cout<<"ASSEMBLER: foreDRG filename="<<foreDRGFile<<endl;
+      FindAndReplace( foreDRGFile, string("Height"), string("Photo"));
+   
       DiskImageView<PixelRGB<uint8> >  foreDRG(foreDRGFile);
       GeoReference foreDRGGeo;
       read_georeference(foreDRGGeo, foreDRGFile);
-      
-      cout<<"ASSEMBLER: DRG bounding box: "<<foreLonLatBB<<endl;
 
+         
+      //set the assembledDRGGeo NEW AND RISKY  - START
+      //creates a unified assembled georeference for DRG and DEM
+      //creates an assembledDRGGeo that is a copy of the backDEMGeo (or assembledDEMGeo)
+      //except that the pixel scale is 4 times smaller in each dimension.
+      //it creates the image size that is 4x4 bigger than the backDEM (or assembledDEM) image.
+ 
+      Matrix<double> H;
+      H = backDEMGeo.transform();
+      H(0,0) /=4.0;
+      H(1,1) /=4.0;
+      /*
+      cout.precision(7);
+      cout<<"COMPUTE_ASSEMBLED_DRG: assembled transform:"<<endl;
+      cout<<"H(0,0)="<<H(0,0)<<endl;
+      cout<<"H(0,1)="<<H(0,1)<<endl;
+      cout<<"H(0,2)="<<H(0,2)<<endl;
+      cout<<"H(1,0)="<<H(1,0)<<endl;
+      cout<<"H(1,1)="<<H(1,1)<<endl;
+      cout<<"H(1,2)="<<H(1,2)<<endl;
+      */
+      GeoReference assembledDRGGeo = backDEMGeo; 
+      assembledDRGGeo.set_transform(H);
+      int assembledDRGWidth = backDEM.cols()*4;
+      int assembledDRGHeight = backDEM.rows()*4;
+      //set the assembledDRGGeo  NEW AND RISKY - END
+
+      cout<<"ASSEMBLER: DRG bounding box: "<<foreLonLatBB<<endl;
       cout<<"ASSEMBLER: ComputeTileParams for DRG"<<endl;
       tileParamsArray.clear();
-      ComputeTileParams(foreDRG, foreDRGGeo, backDRG, backDRGGeo, 
-			registrationParams, assemblerParams, 
-			1, foreLonLatBB, tileParamsArray);
-     
-      cout<<"ASSEMBLER: ComputeAssembledDRG for each tile"<<endl;
-      for (int i= 0; i <tileParamsArray.size(); i++){   
-	ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo,
-			    foreDEM, foreDEMGeo, assemblerParams.foreNoDataValDRG, 
-			    resDir, registrationParams, tileParamsArray[i]);
-      }
-    
-    }
-    
+      ComputeTileParams(assembledDRGWidth, assembledDRGHeight, foreDRGGeo, /*backDRGGeo*/assembledDRGGeo, 
+			assemblerParams.tileSizeDRG, assemblerParams.paddingParamsDRG, 
+                        assemblerParams.foreNoDataValDRG, 1, 
+                        foreLonLatBB, tileParamsArray);
 
+
+  
+      /*
+      //old style works well except the misalignment of DEM and DRG
+      int backDRGWidth = backDRG.cols(); 
+      int backDRGHeight = backDRG.rows();
+      ComputeTileParams(backDRGWidth, backDRGHeight, foreDRGGeo, backDRGGeo, 
+			assemblerParams.tileSizeDRG, assemblerParams.paddingParamsDRG, 
+                        assemblerParams.foreNoDataValDRG, 1, 
+                        foreLonLatBB, tileParamsArray);
+      */
+      cout<<"ASSEMBLER: ComputeAssembledDRG for each tile"<<endl;
+     
+      for (int i= 0; i <tileParamsArray.size(); i++){   
+	
+	//correct interpolation of the data, correct position.
+        ComputeAssembledDRG(foreDRG, foreDRGGeo, 
+                            backDRG, backDRGGeo,
+                            backDEM, backDEMGeo,
+                            assembledDRGGeo,
+                            assemblerParams.foreNoDataValDRG, resDir, 
+                            registrationParams, tileParamsArray[i]);
+      }
+    }
   }
 
   //DRG-only assembler does not support alignment options.
+  //not that interesting for now
   if (mode.compare("DRG")==0){
   
       Vector2 DRGOffset;
@@ -741,20 +874,33 @@ int main( int argc, char *argv[] ) {
                           registrationParams.bestDeltaLonLat, foreLonLatBB);   
       
       cout<<"foreLonLatBB="<<foreLonLatBB<<endl;
-      cout<<"must be: 137.4,137.4,-4.50007,-4.49985"<<endl;
+      //cout<<"must be: 137.4,137.4,-4.50007,-4.49985"<<endl;
       //foreLonLatBB=Vector4(137.4,137.4,-4.50007,-4.49985)
 
       cout<<"computing boundaries...";
-      ComputeTileParams(foreDRG, foreDRGGeo, backDRG, backDRGGeo, 
-			    registrationParams, assemblerParams, 
-			    1, foreLonLatBB, tileParamsArray);
+
+      int backDRGWidth = backDRG.cols(); 
+      int backDRGHeight = backDRG.rows();
+      ComputeTileParams(backDRGWidth, backDRGHeight, foreDRGGeo, backDRGGeo, 
+			//assemblerParams,
+			assemblerParams.tileSizeDRG, assemblerParams.paddingParamsDRG, assemblerParams.foreNoDataValDRG,   
+			1, foreLonLatBB, tileParamsArray);
       cout<<"done";
       
+      
       for (int i= 0; i <tileParamsArray.size(); i++){
-     
-	ComputeAssembledDRG(foreDRG, foreDRGGeo, backDRG, backDRGGeo, 
-                            assemblerParams.foreNoDataValDRG, resDir, 
-                            registrationParams, tileParamsArray[i]);   
+	/*
+        //this function does not alignment of the two images.
+	ComputeAssembledDRG_old(foreDRG, foreDRGGeo, backDRG, backDRGGeo, 
+                                assemblerParams.foreNoDataValDRG, resDir, 
+                                registrationParams, tileParamsArray[i]);   
+	*/
+	
+        ComputeAssembledDRG(foreDRG, foreDRGGeo, 
+                            backDRG, backDRGGeo,
+                            assemblerParams.foreNoDataValDRG, resDir,
+                            registrationParams, tileParamsArray[i]);
+	
       }
       
    }

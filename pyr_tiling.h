@@ -46,37 +46,56 @@ typedef struct TilingParams
   string accFilename;
 };
 
+
+/*
+void ComputeTileParams(int orig_backImgWidth, int orig_backImgHeight, 
+                       GeoReference const &foreGeo, GeoReference const &backGeo, 
+		       struct RegistrationParams registrationParams, struct AssemblerParams assemblerParams, 
+		       int imageType, Vector4 lonlatBB, std::vector<struct TilingParams> &tileParamsArray);
+*/
+void ComputePyramidTilingParams(int backImgWidth, int backImgHeight,  int tileSize,  
+                                int &numTiles, Vector2 &offsetPix, int  &numPyrLevels);
+void ComputeSubPyramidTilingParams(GeoReference const &backGeo, Vector4 lonlatBB, int tileSize, Vector2 offsetPix, float backUpsamplingFactor, 
+                                   Vector2 &topLeftPix, Vector2 &bottomRightPix, Vector2 &topLeftTile, 
+                                   Vector2 &numSubPyrTiles, int  &numSubPyrLevels);
+void ComputeTileParams(int orig_backImgWidth, int orig_backImgHeight, 
+		       GeoReference const &foreGeo, GeoReference const &backGeo, 
+		       int tileSize, Vector4 paddingParams, float foreNoDataVal,
+		       int imageType, Vector4 lonlatBB, std::vector<struct TilingParams> &tileParamsArray);
+/*
+//computes the parameters of the pyramid of the assembled image
+//often the assembled image has the same size as the background image
+//(the foreground image is a small fraction of the background) 
 template <class ViewT1>
-void ComputePyramidTilingParams(ImageViewBase<ViewT1> const& backImg, GeoReference const &backGeo, 
-                                int tileSize,  int &numTiles, Vector2 &offsetPix, int  &numPyrLevels)
+void ComputePyramidTilingParams(ImageViewBase<ViewT1> const& backImg_t, GeoReference const &backGeo, 
+                                int backImgWidth, int backImgHeight,  int tileSize,  int &numTiles, Vector2 &offsetPix, int  &numPyrLevels)
 {
 
   cout<<"----------------------------------"<<endl;
 
-  int backWidth = backImg.impl().cols(); 
-  int backHeight = backImg.impl().rows();
- 
-  cout<<"PYRAMID PARAMS: image backWidth="<<backWidth<<", backHeight="<<backHeight<<endl;
+  //int backWidth = backImg.impl().cols(); 
+  //int backHeight = backImg.impl().rows();
+  //cout<<"PYRAMID PARAMS: background image size: Width = "<<backWidth<<", Height = "<<backHeight<<endl;
   
   Vector2 backLeftTopPixel(0,0);
   Vector2 backLeftTopLonLat = backGeo.pixel_to_lonlat(backLeftTopPixel);
 
-  Vector2 backRightBottomPixel(backWidth-1, backHeight-1);
+  Vector2 backRightBottomPixel(backImgWidth-1, backImgHeight-1);
   Vector2 backRightBottomLonLat = backGeo.pixel_to_lonlat(backRightBottomPixel);
 
   Vector2 assembledLeftTopLonLat = backLeftTopLonLat;
   Vector2 assembledRightBottomLonLat = backRightBottomLonLat;
   
-  //cout<<"assembled image: "<<"LeftTopLonLat="<<assembledLeftTopLonLat<<", RightBottomLonLat="<<assembledRightBottomLonLat<<endl;
   Vector2 assembledLeftTopPixel = backGeo.lonlat_to_pixel(assembledLeftTopLonLat);
   Vector2 assembledRightBottomPixel = backGeo.lonlat_to_pixel(assembledRightBottomLonLat);
-  //cout<<"assembled image: "<<"LeftTopPixel="<<assembledLeftTopPixel<<", RightBottomPixel="<<assembledRightBottomPixel<<endl;
-  
-  int assembledImgWidth = assembledRightBottomPixel(0) - assembledLeftTopPixel(0); 
-  int assembledImgHeight = assembledRightBottomPixel(1) - assembledLeftTopPixel(1); 
+
+  //int assembledImgWidth = backWidth;//assembledRightBottomPixel(0) - assembledLeftTopPixel(0) + 1; 
+  //int assembledImgHeight = backHeight;//assembledRightBottomPixel(1) - assembledLeftTopPixel(1) + 1;
+
+  int assembledImgWidth = backImgWidth;
+  int assembledImgHeight = backImgHeight; 
   cout<<"PYRAMID PARAMS: assembled image size: Width = "<<assembledImgWidth<<", Height = "<<assembledImgHeight<<endl;
   //compute the assembled image size - END
-  
   
   //determine the padded assembled image size - START
   float heightRatio = assembledImgHeight/(float)tileSize;
@@ -99,26 +118,45 @@ void ComputePyramidTilingParams(ImageViewBase<ViewT1> const& backImg, GeoReferen
   //determine the padded assembled image size - END
 
 
-  offsetPix(0) = (padImgWidth - backImg.impl().cols())/2;
-  offsetPix(1) = (padImgHeight - backImg.impl().rows())/2;
-  cout<<"PYRAMID PARAMS:offsetPix="<<offsetPix<<endl;
+  //offsetPix(0) = (padImgWidth - backImg.impl().cols())/2;
+  //offsetPix(1) = (padImgHeight - backImg.impl().rows())/2;
+
+  offsetPix(0) = (padImgWidth - backImgWidth)/2;
+  offsetPix(1) = (padImgHeight - backImgHeight)/2;
+  cout<<"PYRAMID PARAMS: offsetPix="<<offsetPix<<endl;
   
   cout<<"----------------------------------"<<endl;
 }
 
+//note that the backImg_t is not used here and can be removed
 template <class ViewT1>
-void ComputeSubPyramidTilingParams(ImageViewBase<ViewT1> const& backImg, GeoReference const &backGeo, Vector4 lonlatBB, 
-				   int tileSize, Vector2 offsetPix, float backUpsamplingFactor, 
-                                   Vector2 &topLeftPix, Vector2 &bottomRightPix, Vector2 &topLeftTile, Vector2 &numSubPyrTiles, int  &numSubPyrLevels)
+void ComputeSubPyramidTilingParams(ImageViewBase<ViewT1> const& backImg_t, GeoReference const &backGeo, 
+                                   Vector4 lonlatBB, int tileSize, Vector2 offsetPix, float backUpsamplingFactor, 
+                                   Vector2 &topLeftPix, Vector2 &bottomRightPix, Vector2 &topLeftTile, 
+                                   Vector2 &numSubPyrTiles, int  &numSubPyrLevels)
 {
   float minLon = lonlatBB(0);
   float maxLon = lonlatBB(1);
   float minLat = lonlatBB(2);
   float maxLat = lonlatBB(3);
+
   //cout<<"lonlatBB: "<<lonlatBB<<endl;
-  cout<<"---------------------"<<endl;
+  cout<<"----------------------------------"<<endl;
   cout<<"SUBPYRAMID PARAMS: foreground region minLon="<<minLon<<", maxLon="<<maxLon<<", minLat="<<minLat<<", maxLat="<<maxLat<<endl;
-  
+
+  //this can be removed - START
+  Matrix<double> H;
+  H = backGeo.transform();
+  cout.precision(7);
+  cout<<"SUBPYRAMID PARAMS: back transform:"<<endl;
+  cout<<"H(0,0)="<<H(0,0)<<endl;
+  cout<<"H(0,1)="<<H(0,1)<<endl;
+  cout<<"H(0,2)="<<H(0,2)<<endl;
+  cout<<"H(1,0)="<<H(1,0)<<endl;
+  cout<<"H(1,1)="<<H(1,1)<<endl;
+  cout<<"H(1,2)="<<H(1,2)<<endl;
+  //this can be removed - END
+
   //compute initial pixel boundaries within the HiRISE image - START
   Vector2 topLeftLonLat;
   Vector2 bottomRightLonLat;
@@ -129,47 +167,32 @@ void ComputeSubPyramidTilingParams(ImageViewBase<ViewT1> const& backImg, GeoRefe
 
   topLeftPix = backGeo.lonlat_to_pixel(topLeftLonLat);
   bottomRightPix = backGeo.lonlat_to_pixel(bottomRightLonLat);
-  cout<<"SUBPYRAMID PARAMS: BB in pixels in the original image topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
+  cout<<"SUBPYRAMID PARAMS: BB in pixels in the background image. topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
 
   //determine closest tilebreak x
   topLeftPix = floor((topLeftPix+offsetPix)/tileSize)*tileSize - offsetPix;
   bottomRightPix = ceil((bottomRightPix+offsetPix)/tileSize)*tileSize - offsetPix;
-  cout<<"SUBPYRAMID PARAMS: BB adjusted to integer tiles. topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
+  cout<<"SUBPYRAMID PARAMS: BB in pixels in the background image adjusted to tiles. topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
 
   //determine the top left tile index
   topLeftTile = floor((topLeftPix+offsetPix)/tileSize);  
   cout<<"SUBPYRAMID PARAMS: topLeftTile="<<topLeftTile<<endl;
-  cout<<"SUBPYRAMID PARAMS: adjusted to tiles: topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
-  //compute initial pixel boundaries within the HiRISE image - END  
-  
-  /*
-  //determine closest tilebreak x
-  topLeftPix = floor((topLeftPix+offsetPix)/tileSize)*tileSize;
-  bottomRightPix = ceil((bottomRightPix+offsetPix)/tileSize)*tileSize;
-  cout<<"SUBPYRAMID PARAMS: BB adjusted to integer tiles in the padded image topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
-
-  //determine the top left tile index
-  topLeftTile = floor((topLeftPix)/tileSize);  
-  cout<<"SUBPYRAMID PARAMS: topLeftTile="<<topLeftTile<<endl;
-  cout<<"SUBPYRAMID PARAMS: adjusted to tiles: topLeftPix="<<topLeftPix<<", bottomRightPix="<<bottomRightPix<<endl;
-  //compute initial pixel boundaries within the HiRISE image - END  
-  */
 
   //determine the number of tiles for the foreground region - START
-  int numHorTiles = fabs(bottomRightPix(0)-topLeftPix(0))/tileSize;
-  int numVerTiles = fabs(bottomRightPix(1)-topLeftPix(1))/tileSize;
-  numSubPyrTiles(0) = numHorTiles;
-  numSubPyrTiles(1) = numVerTiles;
-  cout<<"SUBPYRAMID PARAMS: numHorTiles = "<<numHorTiles<<", numVerTiles="<<numVerTiles<<endl;
+  numSubPyrTiles(0) = fabs(bottomRightPix(0)-topLeftPix(0))/tileSize; //numHorTiles
+  numSubPyrTiles(1) = fabs(bottomRightPix(1)-topLeftPix(1))/tileSize; //numVerTiles
+  cout<<"SUBPYRAMID PARAMS: numHorTiles = "<<numSubPyrTiles(0)<<", numVerTiles="<<numSubPyrTiles(1)<<endl;
   //determine the number of tiles for the foreground region - END
-  
   
   //pad the tiles with the N pixels where 2^N is the background upsampling ratio 
   numSubPyrLevels = ceil(log2(backUpsamplingFactor))-1;
   cout<<"SUBPYRAMID PARAMS: numSubPyramidLevels="<<numSubPyrLevels<<endl;
-  cout<<"---------------------"<<endl;
+  cout<<"----------------------------------"<<endl;
+ 
+  
+  
 }
-
+*/
 
 #endif
 
