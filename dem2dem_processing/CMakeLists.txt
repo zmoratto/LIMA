@@ -15,7 +15,6 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
 
-
 find_package(Qt)
 
 find_package( VisionWorkbench )
@@ -39,7 +38,7 @@ include_directories(
   )
 # ISIS include directories
 
-set( COMMON_SRCS ../coregister.cc ../icp.cc ../string_util.cc ../pyr_tiling.cc ../assembler.cc )
+set( COMMON_SRCS ../icp.cc ../string_util.cc pyr_tiling.cc assembler.cc )
 
 add_executable( assembler ${COMMON_SRCS})
 target_link_libraries(assembler ${Boost_LIBRARIES} )
