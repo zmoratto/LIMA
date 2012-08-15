@@ -9,16 +9,10 @@
 # Output Variables:
 # -----------------
 # OAL_FOUND                : TRUE if search succeded
-# ASP_INCLUDE_DIR          : include path
-# ASP_LIBRARIES            : All ASP libraries that were found
-# ASP_ROOT_DIR             : Root directory of ASP Install
-# BASE_SYSTEM_ROOT_DIR     : Root directory of Base System Install
-# ISIS_ROOT_DIR            : Root directory of Isis Install
+# OAL_INCLUDE_DIRS         : include paths for oal
+# OAL                      : library if found
 # 
 ######################################################################
-set( PACKAGE OAL )
-
-#set(ENV{OALROOT} "~/oal")
 
 set(OAL_ROOT_DIR $ENV{OALROOT})
 set(OAL_SRC_DIR "${OAL_ROOT_DIR}/src")
@@ -30,7 +24,7 @@ set(OAL_LIB "oal_others_c")
 set(OAL_INCLUDE_DIRS ${OAL_DIR} ${LABLIB3_DIR} ${OAL_SRC_DIR} ${OAL_ROOT_DIR})
 
 set(OAL OAL-NOTFOUND) # if we don't do this find_library caches the results
-find_library(OAL ${OAL_LIB} PATHS ${OAL_LIB_PATH} )
+find_library(OAL ${OAL_LIB} PATHS ${OAL_LIB_PATH} ${OAL_ROOT_DIR} )
 
 #if not found search in the oal root directory for liboal.a (used in old versions of oal)
 if(NOT OAL)

@@ -13,6 +13,8 @@ The files in common are used for several different modules in the Alignment Tool
 \subsection{How to install:}
 \begin{enumerate}
 	\item{Install Prerequisites} - OpenCV 2.3.1, PCL 1.5, cmake 
+   \item{Install} pds tools from http://pds.nasa.gov/tools/pds-tools-package.shtml To install run batch\_make in /src. 
+   \item{Set} environment variable OALROOT to the root of the pds tools install
 	\item{Build} - cd common/tests and type cmake . and then make
 \end{enumerate}
 
@@ -20,6 +22,7 @@ The files in common are used for several different modules in the Alignment Tool
 \begin{itemize}
 	\item{pc\_vis} - ./pc\_vis PC.txt
 	\item{tilingTest} - ./tiling tileConfig testImageList
+	\item{pdsReadTest} - ./pdsReadTest testImage.img
 \end{itemize}
 \subsubsection{Configuration Parameters}
 If the configuration file is not specified, the program will run with a set of default parameters.

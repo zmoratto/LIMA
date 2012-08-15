@@ -15,15 +15,18 @@ target_link_libraries(pc_vis ${PCL_IO_LIBRARIES})
 target_link_libraries(pc_vis ${PCL_VISUALIZATION_LIBRARIES})
 target_link_libraries(pc_vis ${PCL_COMMON_LIBRARIES})
 
-project(pds_read_test_project)
+project(pdsReadTest_project)
 set( PROJECT_SRC_DIR ".." )
 set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} )
-find_package( OAL )
 
-if( OAL )
+#possible to edit next line in place of setting environment variable
+#set(ENV{OALROOT} "~/oal")
+
+find_package( OAL )
+if( OAL_FOUND )
    include_directories(${OPENCV_INCLUDE_DIRS} ${OAL_INCLUDE_DIRS})
-   add_executable(pds_read_test test_read.cpp ../opencv_pds.cpp ../pds_read.cpp)
-   target_link_libraries(pds_read_test ${OpenCV_LIBS})
-   target_link_libraries(pds_read_test ${OAL})
-endif( OAL )
+   add_executable(pdsReadTest test_read.cpp ../opencv_pds.cpp ../pds_read.cpp)
+   target_link_libraries(pdsReadTest ${OpenCV_LIBS})
+   target_link_libraries(pdsReadTest ${OAL})
+endif( OAL_FOUND )
 

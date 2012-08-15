@@ -18,8 +18,8 @@ int main(int argc, char **argv )
 
 //check arg num
 if(argc!=2){
-   cout<<"Usage: \n"<<"./pds_read_test <filename>"<<endl; 
-   cout<<"using default: ./pds_read_test testImage.img"<<endl;
+   cout<<"Usage: \n"<<"./pdsReadTest <filename>"<<endl; 
+   cout<<"using default: ./pdsReadTest testImage.img"<<endl;
    }
 
 string filename = argv[1];
