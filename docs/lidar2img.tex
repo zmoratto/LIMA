@@ -1,26 +1,64 @@
-To be completed by Brian
+The {\bf{lidar2img}} application coregisters LIDAR and image data to form a consistent map.
+Specifically, it takes a set of Lunar Orbiter Laser Altimeter (LOLA) readings from
+the Lunar Reconaissance Orbiter (LRO) and an Apollo metric camera image as input. It then
+aligns the two data sources to form a consistent map, and outputs a transformation from
+the original imagine coordinates to the adjusted image coordinates.
 
 \subsection{Files:}
 
 \begin{itemize}
-\item{a file, does this}
+	\item{lidar2img.cc, The main method, parses command line arguments and calls high level functions.}
+	\item{display.cc / display.h, Routines to visualize the data and the alignment process.}
+	\item{featuresLOLA.cc / featuresLOLA.h, Find key points to use as ground control points.}
+	\item{match.cc / match.h, Gauss-Newton algorithm to align tracks to images. Also implements currently
+		unused brute force search, and computes homographies between pairs of images, or two sets of LOLA
+		track coordinates.}
+	\item{tracks.cc / tracks.h, Define, load and save track data structures. Compute track reflectance and
+		luminence, ann transform tracks.}
+	\item{util.cc / util.h, Helpful utility functions.}
 \end{itemize}
-
 
 \subsection{How to install:}
+
 \begin{enumerate}
-	\item{Install Prerequisites} 
-	\item{Install } 
-	\item{Build } 
-	\item{Run Examples} 
+	\item{\emph{Install Prerequisites}} The {\texttt{lidar2img}} application depends on VisionWorkbench and the
+		Ames Stereo Pipeline, which in turn depends on ISIS. See the VisionWorkbench manual
+		for how to compile and install VisionWorkbench. For ASP and ISIS, we recommend using
+		the BaseSystem tarball. % TODO: is this an official thing even? explain this better
+		For ISIS, you must install the Base data and the Apollo15 mission data. See
+		\href{http://isis.astrogeology.usgs.gov/}{the ISIS web site} for details.
+	\item{\emph{Install }}
+		In order to compile {\bf{lidar2img}} you must set three environment variables:
+		{\texttt{ISISROOT}} (which should already have been set during ISIS installation),
+		{\texttt{VWROOT}}, and {\texttt{ASPROOT}}. The variables {\texttt{VWROOT}} and
+		{\texttt{ASPROOT}} should point to the directories where VisionWorkbench and the
+		Ames Stereo Pipeline have been installed, respectively. If the desired ISISROOT
+		is not a subdirectory in the BaseSystem, you can set the {\texttt{BASESYSTEMROOT}}
+		environment variable to choose a different BaseSystem location.
+	\item{\emph{Build }}
+		In the \texttt{lidar2img\_processing} directory, run ``\texttt{cmake .}'' followed by
+		``\texttt{make}'' to create the {\texttt{lidar2img}} executable.
+	\item{\emph{Basic Usage}}
+		The command ``\texttt{lidar2img -l lola\_tracks.csv -i image.cub --outputImage alignment.png}'' will
+		align the LOLA tracks in the CSV file \texttt{lola\_tracks.csv} to the image file \texttt{image.cub}.
+		The transformation matrix will be output, and the resulting alignment will be shown in \texttt{alignment.png}.
 \end{enumerate}
 
-\subsection{Configuration Parameters}
-If the configuration file is not specified, the program will run with a set of default parameters.
-\begin{itemize}
-	\item{\textsc{parameter1 }} - does this
+\subsection{Runtime Options}
 
+The following options may be passed to {\texttt{lidar2img}} at runtime.
+
+\begin{itemize}
+	\item{\texttt{-l, --lidarFile FILE}} : a CSV file containing the LOLA shots to process
+	\item{\texttt{-t, --tracksList FILE}} : a file containing a list of LOLA CSV shots to process, separated by linebreaks
+	\item{\texttt{-i, --inputCubFile FILE}} : a cub image to align tracks to
+	\item{\texttt{-o, --outputFile FILE}} : a file to output the transformation matrix to (if none is specified, stdout is used)
+	\item{\texttt{--outputImage FILE}} : a file to output an image visualizing the aligned tracks to
+	\item{\texttt{-d, --dataFile FILE}} : a file to output track data too, in format used for visualization script
+	\item{\texttt{-g, --gcpDir DIRECTORY}} : a directory to output ground control points to
+	\item{\texttt{-h, --help}} : display a help message
 \end{itemize}
 
+\subsection{The LIDAR to Image Alignment Algorithm}
 
 
