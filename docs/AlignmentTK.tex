@@ -97,47 +97,11 @@ You can simply follow the first subsection to build and test the ATK once you in
 	\item{change CMAKE\_INSTALL\_PREFIX} - then executable files will be generated in CMAKE\_INSTALL\_PREFIX/bin directory.
 \end{enumerate}
 
-\section{How to use}
-Examples of use are given in assembler.sh, lidar2dem.sh and lidar2img.sh respectively.
 
-Each application is controlled by an optional settings file (see coregister\_settings\_example.txt) with the following example format:\\
-MATCHING\_MODE 1\\
-REFLECTANCE\_TYPE 2\\
-ANALYSE\_FLAG 0\\
-USE\_REFLECTANCE\_FEATURES 1\\
-TOP\_PERCENT\_FEATURES 1\\
-SAMPLING\_STEP 100 100\\
-MATCH\_WINDOW 5 5\\
-MAX\_NUM\_ITER 15\\
-MAX\_NUM\_STARTS 20\\
-NO\_DATA\_VAL -10000.0\\
-CONV\_THRESH 0.01\\
-
-If the settings file is not found or not entered by the user each application will run with a set of default params.
-
-Each field of the settings file is explained below:
-\begin{itemize}
-\item{MATCHING\_MODE}: 0 - no matching, 1 - affine 2D alignmment, 2 -ICP 3D alignment\\
-\item{ANALYSE\_FLAG}:  1 - will display and save verbose information, 0 - no info.\\
-\item{USE\_REFLECTANCE\_FEATURES}: 0 - no LOLA features, 1 use LOLA features.\\ 
-\item{TOP\_PERCENT\_FEATURES} integer value representing 1000 x perecntage of top features to be kept from LOLA data\\
-\item{SAMPLING\_STEP} two integers corresponding to the downsampling factor in the width and height of the image or DEM\\
-\item{MATCH\_WINDOW}: two integers corresponding to the width and height of the matching window\\
-\item{MAX\_NUM\_ITER} 15\\
-\item{MAX\_NUM\_STARTS} 20\\
-\item{NO\_DATA\_VAL} no data float value for images or DEMs that don't have geotiff specified no data value.\\
-\item{CONV\_THRESH}: float number describing the threshold under which absolute value at consecutive iterations determine 
-                                the algorithm convergence (example: 0.01)\\
-\end{itemize}
-
-
-%\section{Code Structure}
-%The following files are part of the toolkit
-%\begin{itemize}
-%\item{lidar2img.cc} - main function for lidar2img
-%\item{lidar2dem.cc} - main function for lidar2dem 
-%\item{assembler.cc} - main function for assembler
-%\end{itemize}
+\newpage
+\section{Lidar  to DEM Matching }
+\label{sec:lidar2dem}
+\input{lidar2dem.tex}
 \newpage
 \section{Assembler and DEM to DEM Matching }
 \label{sec:dem2dem}
