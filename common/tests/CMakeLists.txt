@@ -14,3 +14,16 @@ add_executable(pc_vis ../pc_vis.cpp)
 target_link_libraries(pc_vis ${PCL_IO_LIBRARIES})
 target_link_libraries(pc_vis ${PCL_VISUALIZATION_LIBRARIES})
 target_link_libraries(pc_vis ${PCL_COMMON_LIBRARIES})
+
+project(pds_read_test_project)
+set( PROJECT_SRC_DIR ".." )
+set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} )
+find_package( OAL )
+
+if( OAL )
+   include_directories(${OPENCV_INCLUDE_DIRS} ${OAL_INCLUDE_DIRS})
+   add_executable(pds_read_test test_read.cpp ../opencv_pds.cpp ../pds_read.cpp)
+   target_link_libraries(pds_read_test ${OpenCV_LIBS})
+   target_link_libraries(pds_read_test ${OAL})
+endif( OAL )
+

@@ -18,8 +18,8 @@ int main(int argc, char **argv )
 
 //check arg num
 if(argc!=2){
-   cout<<"Usage: \n"<<"pds_read <filename>"<<endl; 
-   return 0;
+   cout<<"Usage: \n"<<"./pds_read_test <filename>"<<endl; 
+   cout<<"using default: ./pds_read_test testImage.img"<<endl;
    }
 
 string filename = argv[1];
@@ -46,7 +46,7 @@ cvReleaseImage(&tile);
 IplImage *im;
 if(readPDSFileToIplImage(filename,im))
    return -1;
-cvSaveImage( "iplImage.pgm", im);
+cvSaveImage( "test_image.pgm", im);
 cvReleaseImage(&im);
 
  return 0;
