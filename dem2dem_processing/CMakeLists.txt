@@ -39,9 +39,9 @@ include_directories(
   )
 # ISIS include directories
 
-set( COMMON_SRCS ../coregister.cc ../icp.cc ../string_util.cc ../pyr_tiling.cc )
+set( COMMON_SRCS ../coregister.cc ../icp.cc ../string_util.cc ../pyr_tiling.cc ../assembler.cc )
 
-add_library( assembler ${COMMON_SRCS})
+add_executable( assembler ${COMMON_SRCS})
 target_link_libraries(assembler ${Boost_LIBRARIES} )
 target_link_libraries(assembler ${VW_LIBRARIES} )
 
