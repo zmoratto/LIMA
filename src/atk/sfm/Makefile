@@ -30,19 +30,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /opt/local/bin/cmake
+CMAKE_COMMAND = /usr/local/bin/cmake
 
 # The command to remove a file.
-RM = /opt/local/bin/cmake -E remove -f
+RM = /usr/local/bin/cmake -E remove -f
 
 # The program to use to edit the cache.
-CMAKE_EDIT_COMMAND = /opt/local/bin/ccmake
+CMAKE_EDIT_COMMAND = /usr/local/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/tkim2/Projects/lima3
+CMAKE_SOURCE_DIR = /home/chris/projects/lima
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/tkim2/Projects/lima3
+CMAKE_BINARY_DIR = /home/chris/projects/lima
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -50,7 +50,7 @@ CMAKE_BINARY_DIR = /Users/tkim2/Projects/lima3
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/opt/local/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/local/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -60,19 +60,19 @@ edit_cache/fast: edit_cache
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/opt/local/bin/cmake -P cmake_install.cmake
+	/usr/local/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/opt/local/bin/cmake -P cmake_install.cmake
+	/usr/local/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/opt/local/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/usr/local/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
@@ -82,7 +82,7 @@ install/local/fast: install/local
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/opt/local/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/usr/local/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
@@ -101,7 +101,7 @@ list_install_components/fast: list_install_components
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/opt/local/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/local/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -111,7 +111,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/opt/local/bin/ctest --force-new-ctest-process $(ARGS)
+	/usr/local/bin/ctest --force-new-ctest-process $(ARGS)
 .PHONY : test
 
 # Special rule for the target test
@@ -120,14 +120,14 @@ test/fast: test
 
 # The main all target
 all: cmake_check_build_system
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -E cmake_progress_start /Users/tkim2/Projects/lima3/CMakeFiles /Users/tkim2/Projects/lima3/src/atk/sfm/CMakeFiles/progress.marks
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tkim2/Projects/lima3/CMakeFiles 0
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -E cmake_progress_start /home/chris/projects/lima/CMakeFiles /home/chris/projects/lima/src/atk/sfm/CMakeFiles/progress.marks
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/chris/projects/lima/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/clean
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/clean
 .PHONY : clean
 
 # The main clean target
@@ -136,22 +136,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/preinstall
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/preinstall
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/atk/sfm/CMakeFiles/sfm_test.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/CMakeFiles/sfm_test.dir/rule
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/CMakeFiles/sfm_test.dir/rule
 .PHONY : src/atk/sfm/CMakeFiles/sfm_test.dir/rule
 
 # Convenience name for target.
@@ -160,12 +160,12 @@ sfm_test: src/atk/sfm/CMakeFiles/sfm_test.dir/rule
 
 # fast build rule for target.
 sfm_test/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/build
 .PHONY : sfm_test/fast
 
 # Convenience name for target.
 src/atk/sfm/CMakeFiles/sfmcommon.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/CMakeFiles/sfmcommon.dir/rule
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/CMakeFiles/sfmcommon.dir/rule
 .PHONY : src/atk/sfm/CMakeFiles/sfmcommon.dir/rule
 
 # Convenience name for target.
@@ -174,7 +174,7 @@ sfmcommon: src/atk/sfm/CMakeFiles/sfmcommon.dir/rule
 
 # fast build rule for target.
 sfmcommon/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/build
 .PHONY : sfmcommon/fast
 
 FeatureExtraction.o: FeatureExtraction.cpp.o
@@ -182,7 +182,7 @@ FeatureExtraction.o: FeatureExtraction.cpp.o
 
 # target to build an object file
 FeatureExtraction.cpp.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.o
 .PHONY : FeatureExtraction.cpp.o
 
 FeatureExtraction.i: FeatureExtraction.cpp.i
@@ -190,7 +190,7 @@ FeatureExtraction.i: FeatureExtraction.cpp.i
 
 # target to preprocess a source file
 FeatureExtraction.cpp.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.i
 .PHONY : FeatureExtraction.cpp.i
 
 FeatureExtraction.s: FeatureExtraction.cpp.s
@@ -198,7 +198,7 @@ FeatureExtraction.s: FeatureExtraction.cpp.s
 
 # target to generate assembly for a file
 FeatureExtraction.cpp.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/FeatureExtraction.cpp.s
 .PHONY : FeatureExtraction.cpp.s
 
 PoseEstimation.o: PoseEstimation.cpp.o
@@ -206,7 +206,7 @@ PoseEstimation.o: PoseEstimation.cpp.o
 
 # target to build an object file
 PoseEstimation.cpp.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.o
 .PHONY : PoseEstimation.cpp.o
 
 PoseEstimation.i: PoseEstimation.cpp.i
@@ -214,7 +214,7 @@ PoseEstimation.i: PoseEstimation.cpp.i
 
 # target to preprocess a source file
 PoseEstimation.cpp.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.i
 .PHONY : PoseEstimation.cpp.i
 
 PoseEstimation.s: PoseEstimation.cpp.s
@@ -222,7 +222,7 @@ PoseEstimation.s: PoseEstimation.cpp.s
 
 # target to generate assembly for a file
 PoseEstimation.cpp.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/PoseEstimation.cpp.s
 .PHONY : PoseEstimation.cpp.s
 
 SFM.o: SFM.cpp.o
@@ -230,7 +230,7 @@ SFM.o: SFM.cpp.o
 
 # target to build an object file
 SFM.cpp.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.o
 .PHONY : SFM.cpp.o
 
 SFM.i: SFM.cpp.i
@@ -238,7 +238,7 @@ SFM.i: SFM.cpp.i
 
 # target to preprocess a source file
 SFM.cpp.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.i
 .PHONY : SFM.cpp.i
 
 SFM.s: SFM.cpp.s
@@ -246,7 +246,7 @@ SFM.s: SFM.cpp.s
 
 # target to generate assembly for a file
 SFM.cpp.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/SFM.cpp.s
 .PHONY : SFM.cpp.s
 
 __/__/__/common/Tiling.o: __/__/__/common/Tiling.cpp.o
@@ -254,7 +254,7 @@ __/__/__/common/Tiling.o: __/__/__/common/Tiling.cpp.o
 
 # target to build an object file
 __/__/__/common/Tiling.cpp.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.o
 .PHONY : __/__/__/common/Tiling.cpp.o
 
 __/__/__/common/Tiling.i: __/__/__/common/Tiling.cpp.i
@@ -262,7 +262,7 @@ __/__/__/common/Tiling.i: __/__/__/common/Tiling.cpp.i
 
 # target to preprocess a source file
 __/__/__/common/Tiling.cpp.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.i
 .PHONY : __/__/__/common/Tiling.cpp.i
 
 __/__/__/common/Tiling.s: __/__/__/common/Tiling.cpp.s
@@ -270,7 +270,7 @@ __/__/__/common/Tiling.s: __/__/__/common/Tiling.cpp.s
 
 # target to generate assembly for a file
 __/__/__/common/Tiling.cpp.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfmcommon.dir/build.make src/atk/sfm/CMakeFiles/sfmcommon.dir/__/__/__/common/Tiling.cpp.s
 .PHONY : __/__/__/common/Tiling.cpp.s
 
 sfm_test.o: sfm_test.cpp.o
@@ -278,7 +278,7 @@ sfm_test.o: sfm_test.cpp.o
 
 # target to build an object file
 sfm_test.cpp.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.o
 .PHONY : sfm_test.cpp.o
 
 sfm_test.i: sfm_test.cpp.i
@@ -286,7 +286,7 @@ sfm_test.i: sfm_test.cpp.i
 
 # target to preprocess a source file
 sfm_test.cpp.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.i
 .PHONY : sfm_test.cpp.i
 
 sfm_test.s: sfm_test.cpp.s
@@ -294,7 +294,7 @@ sfm_test.s: sfm_test.cpp.s
 
 # target to generate assembly for a file
 sfm_test.cpp.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/CMakeFiles/sfm_test.dir/build.make src/atk/sfm/CMakeFiles/sfm_test.dir/sfm_test.cpp.s
 .PHONY : sfm_test.cpp.s
 
 # Help Target
@@ -338,6 +338,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

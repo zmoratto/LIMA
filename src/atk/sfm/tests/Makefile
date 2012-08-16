@@ -30,19 +30,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /opt/local/bin/cmake
+CMAKE_COMMAND = /usr/local/bin/cmake
 
 # The command to remove a file.
-RM = /opt/local/bin/cmake -E remove -f
+RM = /usr/local/bin/cmake -E remove -f
 
 # The program to use to edit the cache.
-CMAKE_EDIT_COMMAND = /opt/local/bin/ccmake
+CMAKE_EDIT_COMMAND = /usr/local/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/tkim2/Projects/lima3
+CMAKE_SOURCE_DIR = /home/chris/projects/lima
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/tkim2/Projects/lima3
+CMAKE_BINARY_DIR = /home/chris/projects/lima
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -50,7 +50,7 @@ CMAKE_BINARY_DIR = /Users/tkim2/Projects/lima3
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/opt/local/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/local/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -60,19 +60,19 @@ edit_cache/fast: edit_cache
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/opt/local/bin/cmake -P cmake_install.cmake
+	/usr/local/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/opt/local/bin/cmake -P cmake_install.cmake
+	/usr/local/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/opt/local/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/usr/local/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
@@ -82,7 +82,7 @@ install/local/fast: install/local
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/opt/local/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/usr/local/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
@@ -101,7 +101,7 @@ list_install_components/fast: list_install_components
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/opt/local/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/local/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -111,7 +111,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/opt/local/bin/ctest --force-new-ctest-process $(ARGS)
+	/usr/local/bin/ctest --force-new-ctest-process $(ARGS)
 .PHONY : test
 
 # Special rule for the target test
@@ -120,14 +120,14 @@ test/fast: test
 
 # The main all target
 all: cmake_check_build_system
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -E cmake_progress_start /Users/tkim2/Projects/lima3/CMakeFiles /Users/tkim2/Projects/lima3/src/atk/sfm/test/CMakeFiles/progress.marks
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tkim2/Projects/lima3/CMakeFiles 0
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -E cmake_progress_start /home/chris/projects/lima/CMakeFiles /home/chris/projects/lima/src/atk/sfm/tests/CMakeFiles/progress.marks
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/chris/projects/lima/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/clean
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/clean
 .PHONY : clean
 
 # The main clean target
@@ -136,87 +136,87 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/preinstall
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/preinstall
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
-src/atk/sfm/test/CMakeFiles/TestExample.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/CMakeFiles/TestExample.dir/rule
-.PHONY : src/atk/sfm/test/CMakeFiles/TestExample.dir/rule
+src/atk/sfm/tests/CMakeFiles/TestExample.dir/rule:
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/CMakeFiles/TestExample.dir/rule
+.PHONY : src/atk/sfm/tests/CMakeFiles/TestExample.dir/rule
 
 # Convenience name for target.
-TestExample: src/atk/sfm/test/CMakeFiles/TestExample.dir/rule
+TestExample: src/atk/sfm/tests/CMakeFiles/TestExample.dir/rule
 .PHONY : TestExample
 
 # fast build rule for target.
 TestExample/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestExample.dir/build.make src/atk/sfm/test/CMakeFiles/TestExample.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestExample.dir/build.make src/atk/sfm/tests/CMakeFiles/TestExample.dir/build
 .PHONY : TestExample/fast
 
 # Convenience name for target.
-src/atk/sfm/test/CMakeFiles/TestIO.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/CMakeFiles/TestIO.dir/rule
-.PHONY : src/atk/sfm/test/CMakeFiles/TestIO.dir/rule
+src/atk/sfm/tests/CMakeFiles/TestIO.dir/rule:
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/CMakeFiles/TestIO.dir/rule
+.PHONY : src/atk/sfm/tests/CMakeFiles/TestIO.dir/rule
 
 # Convenience name for target.
-TestIO: src/atk/sfm/test/CMakeFiles/TestIO.dir/rule
+TestIO: src/atk/sfm/tests/CMakeFiles/TestIO.dir/rule
 .PHONY : TestIO
 
 # fast build rule for target.
 TestIO/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestIO.dir/build.make src/atk/sfm/test/CMakeFiles/TestIO.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestIO.dir/build.make src/atk/sfm/tests/CMakeFiles/TestIO.dir/build
 .PHONY : TestIO/fast
 
 # Convenience name for target.
-src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/rule
-.PHONY : src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/rule
+src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/rule:
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/rule
+.PHONY : src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/rule
 
 # Convenience name for target.
-TestSomethingElse: src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/rule
+TestSomethingElse: src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/rule
 .PHONY : TestSomethingElse
 
 # fast build rule for target.
 TestSomethingElse/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/build
 .PHONY : TestSomethingElse/fast
 
 # Convenience name for target.
-src/atk/sfm/test/CMakeFiles/gtest.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/CMakeFiles/gtest.dir/rule
-.PHONY : src/atk/sfm/test/CMakeFiles/gtest.dir/rule
+src/atk/sfm/tests/CMakeFiles/gtest.dir/rule:
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/CMakeFiles/gtest.dir/rule
+.PHONY : src/atk/sfm/tests/CMakeFiles/gtest.dir/rule
 
 # Convenience name for target.
-gtest: src/atk/sfm/test/CMakeFiles/gtest.dir/rule
+gtest: src/atk/sfm/tests/CMakeFiles/gtest.dir/rule
 .PHONY : gtest
 
 # fast build rule for target.
 gtest/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest.dir/build.make src/atk/sfm/test/CMakeFiles/gtest.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest.dir/build
 .PHONY : gtest/fast
 
 # Convenience name for target.
-src/atk/sfm/test/CMakeFiles/gtest_main.dir/rule:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/test/CMakeFiles/gtest_main.dir/rule
-.PHONY : src/atk/sfm/test/CMakeFiles/gtest_main.dir/rule
+src/atk/sfm/tests/CMakeFiles/gtest_main.dir/rule:
+	cd /home/chris/projects/lima && $(MAKE) -f CMakeFiles/Makefile2 src/atk/sfm/tests/CMakeFiles/gtest_main.dir/rule
+.PHONY : src/atk/sfm/tests/CMakeFiles/gtest_main.dir/rule
 
 # Convenience name for target.
-gtest_main: src/atk/sfm/test/CMakeFiles/gtest_main.dir/rule
+gtest_main: src/atk/sfm/tests/CMakeFiles/gtest_main.dir/rule
 .PHONY : gtest_main
 
 # fast build rule for target.
 gtest_main/fast:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/test/CMakeFiles/gtest_main.dir/build
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest_main.dir/build
 .PHONY : gtest_main/fast
 
 TestExample.o: TestExample.cxx.o
@@ -224,7 +224,7 @@ TestExample.o: TestExample.cxx.o
 
 # target to build an object file
 TestExample.cxx.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestExample.dir/build.make src/atk/sfm/test/CMakeFiles/TestExample.dir/TestExample.cxx.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestExample.dir/build.make src/atk/sfm/tests/CMakeFiles/TestExample.dir/TestExample.cxx.o
 .PHONY : TestExample.cxx.o
 
 TestExample.i: TestExample.cxx.i
@@ -232,7 +232,7 @@ TestExample.i: TestExample.cxx.i
 
 # target to preprocess a source file
 TestExample.cxx.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestExample.dir/build.make src/atk/sfm/test/CMakeFiles/TestExample.dir/TestExample.cxx.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestExample.dir/build.make src/atk/sfm/tests/CMakeFiles/TestExample.dir/TestExample.cxx.i
 .PHONY : TestExample.cxx.i
 
 TestExample.s: TestExample.cxx.s
@@ -240,7 +240,7 @@ TestExample.s: TestExample.cxx.s
 
 # target to generate assembly for a file
 TestExample.cxx.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestExample.dir/build.make src/atk/sfm/test/CMakeFiles/TestExample.dir/TestExample.cxx.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestExample.dir/build.make src/atk/sfm/tests/CMakeFiles/TestExample.dir/TestExample.cxx.s
 .PHONY : TestExample.cxx.s
 
 TestIO.o: TestIO.cxx.o
@@ -248,7 +248,7 @@ TestIO.o: TestIO.cxx.o
 
 # target to build an object file
 TestIO.cxx.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestIO.dir/build.make src/atk/sfm/test/CMakeFiles/TestIO.dir/TestIO.cxx.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestIO.dir/build.make src/atk/sfm/tests/CMakeFiles/TestIO.dir/TestIO.cxx.o
 .PHONY : TestIO.cxx.o
 
 TestIO.i: TestIO.cxx.i
@@ -256,7 +256,7 @@ TestIO.i: TestIO.cxx.i
 
 # target to preprocess a source file
 TestIO.cxx.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestIO.dir/build.make src/atk/sfm/test/CMakeFiles/TestIO.dir/TestIO.cxx.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestIO.dir/build.make src/atk/sfm/tests/CMakeFiles/TestIO.dir/TestIO.cxx.i
 .PHONY : TestIO.cxx.i
 
 TestIO.s: TestIO.cxx.s
@@ -264,7 +264,7 @@ TestIO.s: TestIO.cxx.s
 
 # target to generate assembly for a file
 TestIO.cxx.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestIO.dir/build.make src/atk/sfm/test/CMakeFiles/TestIO.dir/TestIO.cxx.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestIO.dir/build.make src/atk/sfm/tests/CMakeFiles/TestIO.dir/TestIO.cxx.s
 .PHONY : TestIO.cxx.s
 
 TestSomethingElse.o: TestSomethingElse.cxx.o
@@ -272,7 +272,7 @@ TestSomethingElse.o: TestSomethingElse.cxx.o
 
 # target to build an object file
 TestSomethingElse.cxx.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.o
 .PHONY : TestSomethingElse.cxx.o
 
 TestSomethingElse.i: TestSomethingElse.cxx.i
@@ -280,7 +280,7 @@ TestSomethingElse.i: TestSomethingElse.cxx.i
 
 # target to preprocess a source file
 TestSomethingElse.cxx.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.i
 .PHONY : TestSomethingElse.cxx.i
 
 TestSomethingElse.s: TestSomethingElse.cxx.s
@@ -288,7 +288,7 @@ TestSomethingElse.s: TestSomethingElse.cxx.s
 
 # target to generate assembly for a file
 TestSomethingElse.cxx.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/test/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/build.make src/atk/sfm/tests/CMakeFiles/TestSomethingElse.dir/TestSomethingElse.cxx.s
 .PHONY : TestSomethingElse.cxx.s
 
 __/__/__/__/thirdparty/gtest/src/gtest-all.o: __/__/__/__/thirdparty/gtest/src/gtest-all.cc.o
@@ -296,7 +296,7 @@ __/__/__/__/thirdparty/gtest/src/gtest-all.o: __/__/__/__/thirdparty/gtest/src/g
 
 # target to build an object file
 __/__/__/__/thirdparty/gtest/src/gtest-all.cc.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest.dir/build.make src/atk/sfm/test/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.o
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest-all.cc.o
 
 __/__/__/__/thirdparty/gtest/src/gtest-all.i: __/__/__/__/thirdparty/gtest/src/gtest-all.cc.i
@@ -304,7 +304,7 @@ __/__/__/__/thirdparty/gtest/src/gtest-all.i: __/__/__/__/thirdparty/gtest/src/g
 
 # target to preprocess a source file
 __/__/__/__/thirdparty/gtest/src/gtest-all.cc.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest.dir/build.make src/atk/sfm/test/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.i
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest-all.cc.i
 
 __/__/__/__/thirdparty/gtest/src/gtest-all.s: __/__/__/__/thirdparty/gtest/src/gtest-all.cc.s
@@ -312,7 +312,7 @@ __/__/__/__/thirdparty/gtest/src/gtest-all.s: __/__/__/__/thirdparty/gtest/src/g
 
 # target to generate assembly for a file
 __/__/__/__/thirdparty/gtest/src/gtest-all.cc.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest.dir/build.make src/atk/sfm/test/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest.dir/__/__/__/__/thirdparty/gtest/src/gtest-all.cc.s
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest-all.cc.s
 
 __/__/__/__/thirdparty/gtest/src/gtest_main.o: __/__/__/__/thirdparty/gtest/src/gtest_main.cc.o
@@ -320,7 +320,7 @@ __/__/__/__/thirdparty/gtest/src/gtest_main.o: __/__/__/__/thirdparty/gtest/src/
 
 # target to build an object file
 __/__/__/__/thirdparty/gtest/src/gtest_main.cc.o:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/test/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.o
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.o
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest_main.cc.o
 
 __/__/__/__/thirdparty/gtest/src/gtest_main.i: __/__/__/__/thirdparty/gtest/src/gtest_main.cc.i
@@ -328,7 +328,7 @@ __/__/__/__/thirdparty/gtest/src/gtest_main.i: __/__/__/__/thirdparty/gtest/src/
 
 # target to preprocess a source file
 __/__/__/__/thirdparty/gtest/src/gtest_main.cc.i:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/test/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.i
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.i
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest_main.cc.i
 
 __/__/__/__/thirdparty/gtest/src/gtest_main.s: __/__/__/__/thirdparty/gtest/src/gtest_main.cc.s
@@ -336,7 +336,7 @@ __/__/__/__/thirdparty/gtest/src/gtest_main.s: __/__/__/__/thirdparty/gtest/src/
 
 # target to generate assembly for a file
 __/__/__/__/thirdparty/gtest/src/gtest_main.cc.s:
-	cd /Users/tkim2/Projects/lima3 && $(MAKE) -f src/atk/sfm/test/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/test/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.s
+	cd /home/chris/projects/lima && $(MAKE) -f src/atk/sfm/tests/CMakeFiles/gtest_main.dir/build.make src/atk/sfm/tests/CMakeFiles/gtest_main.dir/__/__/__/__/thirdparty/gtest/src/gtest_main.cc.s
 .PHONY : __/__/__/__/thirdparty/gtest/src/gtest_main.cc.s
 
 # Help Target
@@ -383,6 +383,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /Users/tkim2/Projects/lima3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/chris/projects/lima && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

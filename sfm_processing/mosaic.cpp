@@ -13,7 +13,7 @@
 #include <opencv/cvaux.h>
 
 // Program includes
-#include "../CAHV-to-pinhole.h"
+#include "../camera_models/CAHV-to-pinhole.h"
 #include "../common/opencv_pds.h"
 
 using namespace std;
