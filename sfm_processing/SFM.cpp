@@ -92,6 +92,7 @@ SFM::~SFM()
 	projectedPoints.clear();
 }
 
+//Load Input files and set up tiles
 void SFM::setUpSFM(char* inputFilename, IplImage* image)
 {
 	if(configParams.depthInfo != STEREO_DEPTH)
@@ -148,6 +149,7 @@ void SFM::printWarning(string& filename)
 	cout << endl;
 }
 
+//Read configuration file for SFM test
 void SFM::readConfigurationFile(string& configurationFilename)
 {
 	ifstream fin (configurationFilename.c_str());
@@ -352,39 +354,25 @@ void SFM::readImageFilenames(string& inputFile)
 	fin.close();
 }
 
-//Perform feature extraction on tile and save extracted features and descriptors in global collection variables
-void SFM::processTile(IplImage *image, int frameIndex)
+//Mask image to only extract key points in the area where they contain depth information
+void SFM::maskImage(IplImage *image)
 {
-	int index, cnt = 0;
-	pose.currMatchedPixels.clear();
-	pose.prevMatchedPixels.clear();
-	vector<cv::KeyPoint> temp;
-	temp.clear();
-	vector<int> loc;
-	cv::Mat tempMat;
-	int j = 0;	
-	int left = imageWidth, right = 0, top = imageHeight, bottom = 0, x, y;
 	CvRect mask;
-	IplImage* imageMask;
-	int tileY, tileX;
-	cv::KeyPoint tilePt;
-	int oldRow = 0;
-	int buffer = 25;
 	IplImage* copy = cvCreateImage(cvGetSize(image),image->depth,image->nChannels);
+	int left = imageWidth, right = 0, top = imageHeight, bottom = 0, x, y;
 
 	//Clear Everything
-	feat.key_points.clear();
-	feat.point_descriptors.release();
-	pose.prevKeypoints.clear();
-	pose.currMatchedPoints.clear();
-	pose.prevMatchedPoints.clear();
-	pose.prevMatchedPixels.clear();
-	pose.currMatchedPixels.clear();
+	feat.clear();
+	pose.clear();
+	mask.x = 0;
+	mask.y = 0;
+	mask.width = referenceTile.tiles[currTile].width;
+	mask.height = referenceTile.tiles[currTile].height;
 
+	//Set up mask for FE
+	//Only extract features from area where 3D information is available
 	if(configParams.depthInfo != NO_DEPTH)
 	{
-		//Set up mask for FE
-		//Only extract features from area where 3D information is available
 		for(int i=0; i<imageWidth*imageHeight; i++)
 		{
 			if(pose.curr_z[i] > 0)
@@ -420,18 +408,10 @@ void SFM::processTile(IplImage *image, int frameIndex)
 		mask.x -= referenceTile.tiles[currTile].x;
 		mask.y -= referenceTile.tiles[currTile].y;
 	}
-	else
-	{
-		mask.x = 0;
-		mask.y = 0;
-		mask.width = referenceTile.tiles[currTile].width;
-		mask.height = referenceTile.tiles[currTile].height;
-	}
-
-	cvCopy(image, copy, NULL);
-	cvSetImageROI(copy, mask);
 
 	//Feature Extraction
+	cvCopy(image, copy, NULL);
+	cvSetImageROI(copy, mask);
 	feat.process(copy);
 	cvResetImageROI(copy);
 
@@ -449,6 +429,27 @@ void SFM::processTile(IplImage *image, int frameIndex)
 
 	if(currTile == 0)
 		pose.globalCurrDescriptors.create(0, pose.currObjectData.cols, CV_32F);
+
+
+	cvReleaseImage(&copy);
+}
+
+//Remove key points with no depth
+void SFM::removeKeyPointsWithoutDepth()
+{
+	int index, cnt = 0;
+	pose.currMatchedPixels.clear();
+	pose.prevMatchedPixels.clear();
+	vector<cv::KeyPoint> temp;
+	temp.clear();
+	vector<int> loc;
+	cv::Mat tempMat;
+	int j = 0;
+	int tileY, tileX;
+	IplImage* imageMask;
+	cv::KeyPoint tilePt;
+	int oldRow = 0;
+	int buffer = 25;
 
 	if(configParams.depthInfo != NO_DEPTH)
 	{
@@ -500,9 +501,16 @@ void SFM::processTile(IplImage *image, int frameIndex)
 	cv::Mat dest1(pose.globalCurrDescriptors.rowRange(oldRow, oldRow+feat.key_points.size()));
 	pose.currObjectData.copyTo(dest1);
 	tempMat.release();
-	cvReleaseImage(&copy);
 }
 
+//Perform feature extraction on tile and save extracted features and descriptors in global collection variables
+void SFM::processTile(IplImage *image, int frameIndex)
+{
+	maskImage(image);
+	removeKeyPointsWithoutDepth();
+}
+
+//Save 3D information for stereo, point clouds, and Kinect data
 void SFM::preprocessing(IplImage* image, int frameIndex)
 {
 	int width = imageWidth;
@@ -510,7 +518,6 @@ void SFM::preprocessing(IplImage* image, int frameIndex)
 	IplImage im;
 	double const maxZ = 1.0e4;
 	int index;
-
 
 	//Read and Save Point Cloud File
 	if(configParams.depthInfo == STEREO_DEPTH)
@@ -569,10 +576,8 @@ void SFM::process(IplImage* image, int frameIndex)
 		image = &im;
 	}	
 
-
 	t1 = clock();
 	referenceTile.process(image);
-
 	pose.globalCurrKeyPoints.clear();
 
 	//Process Each Tile
@@ -582,14 +587,17 @@ void SFM::process(IplImage* image, int frameIndex)
 		processTile(referenceTile.tileImages[j], frameIndex);
 	}
 
+	//Remove duplicate key points
 	pose.removeDuplicates(image);
 
 	if(configParams.firstFrame != frameIndex)
 	{
+		//Compute camera pose from matches
 		pose.process(configParams.depthInfo, image);
 		t2 = clock();
 		cout << "SFM Time: " << (double(t2)-double(t1))/CLOCKS_PER_SEC << endl;
 
+		//Save image matches and mapped points
 		if(configParams.saveResultsFlag)
 		{
 			printCurrentGlobal_R_T();
@@ -613,6 +621,8 @@ void SFM::process(IplImage* image, int frameIndex)
 void SFM::update(IplImage* image)
 {
 	pose.clear();
+
+	pose.outlierMask.release();
 
 	//Global Parameters
 	pose.globalPrevMatchedPts.clear();
@@ -948,60 +958,22 @@ void SFM::printCurrentGlobal_R_T()
 //Read stereo configuration file for depthInfo == 1
 int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorParameters *thisStereoParams)
 {
-	ifstream configFile (stereoConfigFilename.c_str());
+	ifstream fin(stereoConfigFilename.c_str());
 	std::string line;
 	double val; 
 	std::string identifier;
 	std::string param;
 
-	if (configFile.is_open())
+	if (fin.is_open())
 	{
-		getline(configFile,line);
-		stringstream sline; 
-		sline<<line;
-		sline >> identifier >> val;
-		thisStereoParams->preFilterSize=val;
-
-		getline (configFile,line);
-		stringstream sline1; 
-		sline1<<line;
-		sline1 >> identifier >> val;
-		thisStereoParams->preFilterCap=val;
-		  
-		getline (configFile,line);
-		stringstream sline2; 
-		sline2<<line;
-		sline2 >> identifier >> val;
-		thisStereoParams->sadWindowSize=val;
-		 
-		getline (configFile,line);
-		stringstream sline3; 
-		sline3<<line;
-		sline3 >> identifier >> val;
-		thisStereoParams->minDisparity= val;
-		  
-		getline (configFile,line);
-		stringstream sline4; 
-		sline4<<line;
-		sline4 >> identifier >> val;
-		thisStereoParams->numberOfDisparities= val;
-		  
-		getline (configFile,line);
-		stringstream sline5; 
-		sline5<<line;
-		sline5 >> identifier >> val;
-		thisStereoParams->textureThreshold=val;
-		 
-		getline (configFile,line);
-		stringstream sline6; 
-		sline6<<line;
-		sline6 >> identifier >> val;
-		thisStereoParams->uniquenessRatio=val;
-
-		getline (configFile,line);
-		stringstream sline7; 
-		sline7<<line;
-		sline7 >> identifier >> param;
+		fin >> identifier >> thisStereoParams->preFilterSize;
+		fin >> identifier >> thisStereoParams->preFilterCap;
+		fin >> identifier >> thisStereoParams->sadWindowSize;
+		fin >> identifier >> thisStereoParams->minDisparity;
+		fin >> identifier >> thisStereoParams->numberOfDisparities;
+		fin >> identifier >> thisStereoParams->textureThreshold;
+		fin >> identifier >> thisStereoParams->uniquenessRatio;
+		fin >> identifier >> param;
 
 		if(param[0]=='N' || param[0]=='n')
 			thisStereoParams->needRectification=false;
@@ -1010,22 +982,14 @@ int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorPa
 		else
 		{
 			cout << "Error reading stereo settings file"<<endl;
-			configFile.close();
+			fin.close();
 			return 0;
 		}
 
-		getline (configFile,line);
-		stringstream sline8; 
-		sline8<<line;
-		sline8 >> identifier >> val;
-		thisStereoParams->scaleFactor=val;
+		fin >> identifier >> thisStereoParams->scaleFactor;
+		fin >> identifier >> thisStereoParams->calibrationFilename;
 
-		getline (configFile,line);
-		stringstream sline9; 
-		sline9<<line;
-		sline9 >> identifier >> thisStereoParams->calibrationFilename;
-
-		getline (configFile,line);
+		getline(fin, line);
 		stringstream sline10; 
 		sline10<<line;
 		sline10 >> identifier;
@@ -1034,7 +998,7 @@ int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorPa
 		else
 			thisStereoParams->tileWidth=-1;
 
-		getline (configFile,line);
+		getline(fin, line);
 		stringstream sline11; 
 		sline11<<line;
 		sline11 >> identifier;
@@ -1043,7 +1007,7 @@ int SFM::ReadStereoConfigFile(string stereoConfigFilename, CvStereoBMProcessorPa
 		else
 			thisStereoParams->tileHeight=-1;
 
-		configFile.close();
+		fin.close();
 		return 1;
 	}
 	else

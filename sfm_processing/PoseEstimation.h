@@ -92,6 +92,8 @@ public:
 	int matchingMethod;
 
 	//Methods
+	int computeRelativeR(int numMatches, int numValidMatches);
+	void computeRelativeT(int numMatches, int numWeightedMatches);
 	int estimateRelativePose();
 	void composePose();
 	void find_homography();

@@ -106,59 +106,12 @@ PoseEstimation::~PoseEstimation()
 	prev_z.clear();
 }
 
-//Estimates relative R and T between two point cloud sets. These point cloud matches are in globalMatchedPts.
-int PoseEstimation::estimateRelativePose()
+int PoseEstimation::computeRelativeR(int numMatches, int numValidMatches)
 {
+	int i=0;
 	cv::Point3f translation;
 	cv::Point3f currCenter;
 	cv::Point3f prevCenter;
-	int i=0;
-	int numValidMatches = 0;
-	float numWeightedMatches = 0.0;
-	int numMatches = globalCurrMatchedPts.size();
-	validPix.clear();
-	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
-	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
-
-	//Find Translation, Previous Center, and Current Center of Point Clouds
-	for (i = 0; i < numMatches; i++)
-	{
-		//If not an outlier and the matching coordinates are within given thresholds of each other, they are a valid match.
-		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
-                    (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
-		{
-			//Weight the translation matrix by where the match is located. More weight if the match is closer to the camera.
-			if(matchWeights[i] != NO_WEIGHT)
-			{
-				currCenter = currCenter + (globalCurrMatchedPts[i]);
-				prevCenter = prevCenter + (globalPrevMatchedPts[i]);
-				validPix.push_back(i);
-				numValidMatches++;
-			}
-			numWeightedMatches+=matchWeights[i]; //Collect the weighted values of the matches
-		}
-	}
-
-	cout << "NumMatches: " << numMatches << endl; //Total number of matches
-	cout << "NumValidMatches: " << numValidMatches << endl; //Number of matches that were used to calculate T and the centers.
-	cout << "NumWeights: " << numWeightedMatches << endl; //Collected weights of the matches used.
-
-	//Normalize the translation and centers.
-	if (numValidMatches > 0)
-	{
-		currCenter.x = currCenter.x/numValidMatches;
-		currCenter.y = currCenter.y/numValidMatches;
-		currCenter.z = currCenter.z/numValidMatches;
-		prevCenter.x = prevCenter.x/numValidMatches;
-		prevCenter.y = prevCenter.y/numValidMatches;
-		prevCenter.z = prevCenter.z/numValidMatches;
-
-	}
-	else
-	{
-		return 1; //Return ERROR, not enough matches.
-	}
-
 	float a00 = 0.0;
 	float a10 = 0.0; 
 	float a20 = 0.0; 
@@ -255,6 +208,24 @@ int PoseEstimation::estimateRelativePose()
 			cvReleaseMat(&UMat);
 			cvReleaseMat(&AMat);
 		}
+		return 0;
+	}
+	else
+	{
+		cvReleaseMat(&AMat);
+		return 1;
+	}
+	
+}
+
+void PoseEstimation::computeRelativeT(int numMatches, int numWeightedMatches)
+{
+	cv::Point3f translation;
+	cv::Point3f currCenter;
+	cv::Point3f prevCenter;
+	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
+	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
+	int i=0;
 
 		//Find Translation New Way
 		for (i = 0; i < numMatches; i++)
@@ -277,13 +248,73 @@ int PoseEstimation::estimateRelativePose()
 		cvSetReal2D(relative_T, 0, 0, translation.x);
 		cvSetReal2D(relative_T, 1, 0, translation.y);
 		cvSetReal2D(relative_T, 2, 0, translation.z);
+}
 
+//Estimates relative R and T between two point cloud sets. These point cloud matches are in globalMatchedPts.
+int PoseEstimation::estimateRelativePose()
+{
+	cv::Point3f translation;
+	cv::Point3f currCenter;
+	cv::Point3f prevCenter;
+	int rError;
+	int i=0;
+	int numValidMatches = 0;
+	float numWeightedMatches = 0.0;
+	int numMatches = globalCurrMatchedPts.size();
+	validPix.clear();
+	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
+	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
+
+	//Find Translation, Previous Center, and Current Center of Point Clouds
+	for (i = 0; i < numMatches; i++)
+	{
+		//If not an outlier and the matching coordinates are within given thresholds of each other, they are a valid match.
+		if ((outlierMask.at<bool>(i) == 1) && (fabs(globalCurrMatchedPts[i].z-globalPrevMatchedPts[i].z) < zDist) && 
+                    (fabs(globalCurrMatchedPts[i].y-globalPrevMatchedPts[i].y) < yDist) && (fabs(globalCurrMatchedPts[i].x-globalPrevMatchedPts[i].x) < xDist))
+		{
+			//Weight the translation matrix by where the match is located. More weight if the match is closer to the camera.
+			if(matchWeights[i] != NO_WEIGHT)
+			{
+				currCenter = currCenter + (globalCurrMatchedPts[i]);
+				prevCenter = prevCenter + (globalPrevMatchedPts[i]);
+				validPix.push_back(i);
+				numValidMatches++;
+			}
+			numWeightedMatches+=matchWeights[i]; //Collect the weighted values of the matches
+		}
+	}
+
+	cout << "NumMatches: " << numMatches << endl; //Total number of matches
+	cout << "NumValidMatches: " << numValidMatches << endl; //Number of matches that were used to calculate T and the centers.
+	cout << "NumWeights: " << numWeightedMatches << endl; //Collected weights of the matches used.
+
+	//Normalize the translation and centers.
+	if (numValidMatches > 0)
+	{
+		currCenter.x = currCenter.x/numValidMatches;
+		currCenter.y = currCenter.y/numValidMatches;
+		currCenter.z = currCenter.z/numValidMatches;
+		prevCenter.x = prevCenter.x/numValidMatches;
+		prevCenter.y = prevCenter.y/numValidMatches;
+		prevCenter.z = prevCenter.z/numValidMatches;
+
+	}
+	else
+	{
+		return 1; //Return ERROR, not enough matches.
+	}
+
+	//Compute Relative R
+	rError = computeRelativeR(numMatches, numValidMatches);
+	if(!rError)
+	{
+		//Compute Relative T
+		computeRelativeT(numMatches, numWeightedMatches);
 		return 0;
 	}
 	else
 	{
-		cvReleaseMat(&AMat);
-		return 1; //ERROR, not enough valid matches
+		return 1; //Error
 	}
 }
 
@@ -501,7 +532,7 @@ void PoseEstimation::clear()
 	prevObjectData.release();
 	currObjectData.release();
 	prevKeypoints.clear();
-	outlierMask.release();
+	//outlierMask.release();
 }
 
 

@@ -89,6 +89,8 @@ public:
 	int  readCameraCalibrationFile();
 	void restoreDefaultParameters();
 	void readImageFilenames(string& inputFile);
+	void maskImage(IplImage *image);
+	void removeKeyPointsWithoutDepth();
 	void processTile(IplImage* image, int frameIndex);
 	void preprocessing(IplImage* image, int frameIndex);
 	void process(IplImage* image, int frameIndex);
