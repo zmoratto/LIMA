@@ -13,9 +13,8 @@
 #include <opencv/cvaux.h>
 
 // Program includes
-#include "util.h"
-#include "CAHV-to-pinhole.h"
-#include "opencv_pds.cpp"
+#include "../CAHV-to-pinhole.h"
+#include "../common/opencv_pds.h"
 
 using namespace std;
 
@@ -44,6 +43,33 @@ struct mosaicSettings
   int makeTileMosaic;// = 1;
   int makeImageMosaic;//= 1;
 };
+
+struct ImagePairNames{
+std::string left;
+std::string right;
+};
+
+// Erases a file extension if one exists and returns the base string
+string
+prefix_from_filename(string const& filename)
+{
+  string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+      result.erase(index, result.size());
+  return result;
+}
+
+// Finds the file extension
+string
+extension_from_filename(string const& filename)
+{
+  string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(0, index);
+  return result;
+}
 
 // function to determine which images overlap the tile
 std::vector<int> makeOverlapListFromBB(struct BBox tileBox, std::vector<BBox> imageBox)
@@ -650,6 +676,14 @@ void makeTiles(string dataDir, string resultsDir, std::vector<ImagePairNames> im
   float maxPanRad = (mosaicBBox.maxPan);
   float minTiltRad = (mosaicBBox.minTilt);
   float maxTiltRad = (mosaicBBox.maxTilt);
+
+  // check for default case in width
+  if(tileWidth <= 0 || tileWidth*radPerPixX > maxPanRad - minPanRad )
+      tileWidth = (maxPanRad - minPanRad)/radPerPixX;
+
+  // check for default case in height
+  if(tileHeight <= 0 || tileHeight*radPerPixY > maxTiltRad - minTiltRad )
+      tileHeight = (maxTiltRad - minTiltRad)/radPerPixY;
 
   float tile_fov_x = tileWidth*radPerPixX;
   float tile_fov_y = tileHeight*radPerPixY;
