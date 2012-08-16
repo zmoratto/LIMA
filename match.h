@@ -40,27 +40,59 @@ using namespace std;
 #define DEFAULT_SEARCH_THETA_WINDOW (M_PI / 10)
 #define DEFAULT_SEARCH_THETA_STEP (M_PI / 40)
 
+/**
+ * Returns a homography from coordinates in aligned to coordinates in aligned2.
+ **/
 Matrix3x3 find_track_homography(vector<vector<AlignedLOLAShot> > aligned, vector<vector<AlignedLOLAShot> > aligned2);
+/**
+ * Find a homography from image1 to image2 coordinates. 
+ * The variables lonstart, lonend, latstart, latend define the overlapping region between the images.
+ **/
 Matrix3x3 find_image_homography(char* image1, char* image2, float lonstart, float lonend, float latstart, float latend);
 
+/**
+ * Align a set of LOLA tracks to an image. Returns the transformed points, and the homography found is
+ * set as trans. If an image_file is specified, a visualization of the alignment is saved to this file.
+ **/
 vector<vector<AlignedLOLAShot> > align_to_image(vector<vector<LOLAShot> > & trackPts, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 & trans, string image_file = "");
+/**
+ * Align a set of LOLA tracks to an image file by searching on an image pyramid.
+ * Returns the transformed points, and the homography found is
+ * set as trans. If an outputImage is specified, a visualization of the alignment is saved to this file.
+ **/
 vector<vector<AlignedLOLAShot> > align_to_image_pyramid(vector<vector<LOLAShot> > & trackPts, const string & image_file,
 		Matrix3x3 & trans, string outputImage = "");
 
+/**
+ * Compute squared error between a set of tracks synth_image and image.
+ * Set numpoints as the number of valid points.
+ **/
 float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* numpoints=NULL);
-void find_track_transforms(vector<vector<AlignedLOLAShot> > & tracks, string cubFile);
+
+/**
+ * Find translation and rotation to align tracks to image using brute force search.
+ * The translation and rotation to search over can be specified.
+ * Returns the translation and rotation as an affine transform.
+ **/
 Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,
 		int transSearchWindow=DEFAULT_SEARCH_TRANS_WINDOW, int transSearchStep=DEFAULT_SEARCH_TRANS_STEP, 
 		float thetaSearchWindow=DEFAULT_SEARCH_THETA_WINDOW, float thetaSearchStep=DEFAULT_SEARCH_THETA_STEP);
 
+/**
+ * Find a homography to align tracks to image.
+ * Can specify a starting point in the search with matrix.
+ **/
 Matrix3x3 gauss_newton_homography(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1));
+/**
+ * Find an affine transform to align tracks to image. Runs faster than finding a homography.
+ * Can specify a starting point in the search with matrix.
+ **/
 Matrix3x3 gauss_newton_affine(vector<AlignedLOLAShot> & track, ImageView<PixelGray<float> > cubImage,
 		Matrix3x3 matrix=Matrix3x3(1,0,0,0,1,0,0,0,1));
 
-float ComputeScaleFactor(vector<float> allImgPts, vector<float> reflectance);
-float ComputeScaleFactor(vector<Vector3> allImgPts, vector<float> reflectance);
+// TODO: The rest of these functions are unused in lidar2img. Do we need them anymore?
 
 void GenerateInitTransforms( vector<Vector<float, 6> > &initTransfArray, CoregistrationParams settings);
 void GetBestTransform(vector<Vector<float, 6> > &finalTransfArray,  vector<float> &finalMatchingErrorArray, 

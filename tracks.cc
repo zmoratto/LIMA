@@ -341,50 +341,6 @@ int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, camera::IsisCameraMod
   return numValidImgPts;
 }
 
-
-/* Deprecated?  This is commented out in the .h file.
-//computes the scale factor for all tracks at once
-float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts)
-{
-  float nominator = 0.0;
-  int numValidPts = 0;
-  float scaleFactor;// = 1;
-
-  //Vector2 minmax = ComputeMinMaxValuesFromCub(string cubFilename);
-
-  for(unsigned int k = 0; k < trackPts.size();k++){
-    for(unsigned int i = 0; i < trackPts[k].size(); i++){
-      if ((trackPts[k][i].valid == 1) && (trackPts[k][i].reflectance != 0) &&(trackPts[k][i].reflectance != -1)){//valid track and non-zero reflectance
-
-        //update the nominator for the center point
-
-        for (unsigned int j = 0; j < trackPts[k][i].LOLAPt.size(); j++){
-          if (trackPts[k][i].LOLAPt[j].s == 1){
-            //cout<< trackPts[k][i].imgPt[j].val/trackPts[k][i].reflectance<<endl;
-            nominator = nominator + (trackPts[k][i].imgPt[j].val//-minmax(0)
-                                    )/trackPts[k][i].reflectance;
-            numValidPts++;
-          }
-        }
-
-        //update the denominator
-        //numValidPts++;
-      }
-    }
-  }
-
-  //cout<<"NUM_VALID_POINTS="<<numValidPts<<endl;
-  if (numValidPts != 0){ 
-    scaleFactor = nominator/numValidPts;
-  }
-  else{
-    //invalid scaleFactor, all tracks are invalid
-    scaleFactor = -1;
-  }
-  return scaleFactor;
-}
-*/
-
 void GainBiasAccumulator( const vector<AlignedLOLAShot>& trackPts, 
                                 float&            sum_rfl, 
                                 float&            sum_img, 

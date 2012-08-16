@@ -22,11 +22,15 @@ void MakeGrid(vector<vector<LOLAShot> >trackPts, int numVerPts, int numHorPts, s
 void SaveGCPImages(string GCPFilename, string cubDirname, string assembledImgFilename);
 void SaveGCPImages(struct gcp this_gcp,  string assembledImgFilename);
 void SaveBigGCPImages(vector<gcp> gcps, string cubFile, string assembledImgFilename);
+
+/**
+ * Draw aligned tracks on top of image, and save to file imgFilename.
+ **/
 void SaveReflectanceImages(vector<vector<AlignedLOLAShot> >& trackPts,  ImageView<PixelGray<float> > cubFile, string imgFilename);
-void SaveAdjustedReflectanceImages(vector<gcp> gcps, vector<vector<LOLAShot> > tracks,  string cubFile, string filename, int image, bool is_cub);
-
-void Save3DImage(vector<vector<LOLAShot> >& trackPts, string filename);
-
+/**
+ * Save a mosaic of two overlapping images given a transformation from coordinates
+ * in image1 to image2.
+ **/
 void overlay_image(char* image1, char* image2, Matrix3x3 H, char* outFile);
 
 #endif /* DISPLAY_H */

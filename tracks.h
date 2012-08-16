@@ -157,6 +157,11 @@ class LOLAShot {
     );
 };
 
+/**
+ * AlignedLOLAShots are LOLAShots which a transformation can be
+ * applied to. The transformed image coordinates and synthetic image value
+ * can be stored.
+ **/
 class AlignedLOLAShot : public LOLAShot
 {
 public:
@@ -209,7 +214,9 @@ std::ostream& operator<< ( std::ostream& stream, LOLAShot s )
   return stream;
   }
 
-
+/**
+ * Convert a CSV file to a list of LOLA tracks.
+ **/
 std::vector<std::vector<LOLAShot> > LOLAFileRead( const std::string& );
 std::vector<std::vector<LOLAShot> > LOLAFilesRead( const std::string& );
 inline std::vector<std::vector<LOLAShot> > CSVFileRead( const std::string& f ){
@@ -221,11 +228,17 @@ inline std::vector<std::vector<LOLAShot> > CSVFileRead( const std::string& f ){
 vw::BBox2  FindShotBounds( const std::vector<std::vector<LOLAShot> >& );
 vw::Vector4 FindMinMaxLat( const std::vector<std::vector<LOLAShot> >& );
 
-
-//float ComputeScaleFactor(vector<vector<LOLAShot > >&trackPts);
+/**
+ * Compute gain and bias from a vector of LOLAShots. These factors are
+ * applied to the reflectance to create a synthetic image. We choose
+ * values such that the sum of the synthetic pixels equals the sum of
+ * the original pixels. Currently the bias is 0.
+ **/
 vw::Vector2 ComputeGainBiasFactor( const std::vector<AlignedLOLAShot>& );
 vw::Vector2 ComputeGainBiasFactor( const std::vector<std::vector<AlignedLOLAShot> >& );
-int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, camera::IsisCameraModel & model, ImageView<PixelGray<float> > & cubImage);
+/**
+ * Compute reflectance of LOLAShots from camera and sun position, and surface normals.
+ **/
 int ComputeAllReflectance(       std::vector< std::vector<LOLAShot> >& shots,
                            const vw::Vector3&                          cameraPosition,
                            const vw::Vector3&                          lightPosition);
@@ -272,6 +285,14 @@ void SaveGCPoints( const std::vector<gcp>&, const std::string& );
 vw::Vector2 ComputeMinMaxValuesFromCub( ImageView<PixelGray<float> > &  image );
 //Vector2 ComputeMinMaxValuesFromDEM(string demFilename);
 
+/**
+ * Loads each LOLAShots's imgPt array from cub image. The imgPt array contains
+ * x and y image coordinates (obtained from lat / lon) and the interpolated
+ * image value at each point.
+ *
+ * Also marks LOLA shots as invalid.
+ **/
+int GetAllPtsFromCub( vector<vector<LOLAShot> >& trackPts, camera::IsisCameraModel & model, ImageView<PixelGray<float> > & cubImage);
 
 template <class ViewT>
 void 
@@ -456,15 +477,38 @@ void GetAllPtsFromDEM_Prec(       std::vector<std::vector<LOLAShot> >& trackPts,
   }
 }
 
+/**
+ * Transform track coordinates and image samples based on the matrix transform.
+ *
+ * Also recomputes synthetic image by computing new gain and bias from image.
+ **/
 void transform_track(vector<AlignedLOLAShot> & track, Matrix3x3 transform, ImageView<PixelGray<float> >& cub);
 void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, ImageView<PixelGray<float> >& cub);
 void transform_tracks(vector<vector<AlignedLOLAShot> > & tracks, Matrix3x3 transform, string cubFile);
+
+/**
+ * Transform underlying coordinates of tracks. New calls to transform track coordinates
+ * will apply their transform to the coordinates resulting from the call to these functions
+ * rather than to the original coordintaes.
+ *
+ * Can specify a single matrix to transform all tracks by, or per-track transformations.
+ **/
 void transform_tracks_by_matrices(vector<vector<LOLAShot> > & tracks, vector<Matrix3x3> matrices);
 void transform_tracks_by_matrix(vector<vector<LOLAShot> > & tracks, Matrix3x3 M);
 
+/**
+ * Save track data in format suitable for visualization.
+ **/
 void save_track_data( const std::vector<std::vector<AlignedLOLAShot> >&, const std::string& filename);
+/**
+ * Load list of affine transformation matrices from file.
+ * Each line in the file has the six entries of one matrix separated by spaces.
+ **/
 vector<Matrix3x3> load_track_transforms(const std::string& filename);
 
+/**
+ * Create vector of AlignedLOLAShots (used for transforms) from vector of LOLAShots.
+ **/
 std::vector<std::vector< AlignedLOLAShot> > initialize_aligned_lola_shots(std::vector<std::vector<LOLAShot> >& tracks);
 
 #endif /* TRACKS_H */

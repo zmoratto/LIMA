@@ -240,6 +240,7 @@ float compute_transform_error(vector<vector<AlignedLOLAShot> > & tracks, int* nu
 	return err / num_points;
 }
 
+// brute force search
 Matrix3x3 find_tracks_transform(vector<vector<AlignedLOLAShot> > & tracks, ImageView<PixelGray<float> > & cub,
 		int transSearchWindow, int transSearchStep, float thetaSearchWindow, float thetaSearchStep)
 {
