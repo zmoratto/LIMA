@@ -86,7 +86,7 @@ public:
 	void printWarning(string& filename);
 	void readConfigurationFile(string& configurationFilename);
 	void printConfigParams();
-	int  readCameraCalibrationFile();
+	int readCameraCalibrationFile();
 	void restoreDefaultParameters();
 	void readImageFilenames(string& inputFile);
 	void maskImage(IplImage *image);

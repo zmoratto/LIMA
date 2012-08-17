@@ -250,20 +250,12 @@ void PoseEstimation::computeRelativeT(int numMatches, int numWeightedMatches)
 		cvSetReal2D(relative_T, 2, 0, translation.z);
 }
 
-//Estimates relative R and T between two point cloud sets. These point cloud matches are in globalMatchedPts.
-int PoseEstimation::estimateRelativePose()
+int PoseEstimation::computeCenters(int& numValidMatches, float& numWeightedMatches, int numMatches)
 {
+	int i;
 	cv::Point3f translation;
 	cv::Point3f currCenter;
 	cv::Point3f prevCenter;
-	int rError;
-	int i=0;
-	int numValidMatches = 0;
-	float numWeightedMatches = 0.0;
-	int numMatches = globalCurrMatchedPts.size();
-	validPix.clear();
-	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
-	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
 
 	//Find Translation, Previous Center, and Current Center of Point Clouds
 	for (i = 0; i < numMatches; i++)
@@ -284,10 +276,6 @@ int PoseEstimation::estimateRelativePose()
 		}
 	}
 
-	cout << "NumMatches: " << numMatches << endl; //Total number of matches
-	cout << "NumValidMatches: " << numValidMatches << endl; //Number of matches that were used to calculate T and the centers.
-	cout << "NumWeights: " << numWeightedMatches << endl; //Collected weights of the matches used.
-
 	//Normalize the translation and centers.
 	if (numValidMatches > 0)
 	{
@@ -297,25 +285,52 @@ int PoseEstimation::estimateRelativePose()
 		prevCenter.x = prevCenter.x/numValidMatches;
 		prevCenter.y = prevCenter.y/numValidMatches;
 		prevCenter.z = prevCenter.z/numValidMatches;
-
+		return 0;
 	}
 	else
 	{
 		return 1; //Return ERROR, not enough matches.
 	}
 
-	//Compute Relative R
-	rError = computeRelativeR(numMatches, numValidMatches);
-	if(!rError)
+}
+
+//Estimates relative R and T between two point cloud sets. These point cloud matches are in globalMatchedPts.
+int PoseEstimation::estimateRelativePose()
+{
+	cv::Point3f translation;
+	cv::Point3f currCenter;
+	cv::Point3f prevCenter;
+	int rError, cError;
+	int i=0;
+	int numValidMatches = 0;
+	float numWeightedMatches = 0.0;
+	int numMatches = globalCurrMatchedPts.size();
+	validPix.clear();
+	CvMat* inMat = cvCreateMat(3,1,CV_32FC1);
+	CvMat* outMat = cvCreateMat(3,1, CV_32FC1);
+
+	//Find Centers
+	cError = computeCenters(numValidMatches, numWeightedMatches, numMatches);
+
+	cout << "Num Valid Matches: " << numValidMatches << endl;
+
+	if(!cError)
 	{
-		//Compute Relative T
-		computeRelativeT(numMatches, numWeightedMatches);
-		return 0;
+		//Compute Relative R
+		rError = computeRelativeR(numMatches, numValidMatches);
+		if(!rError)
+		{
+			//Compute Relative T
+			computeRelativeT(numMatches, numWeightedMatches);
+			return 0;
+		}
+		else
+		{
+			return 1; //Error
+		}
 	}
 	else
-	{
 		return 1; //Error
-	}
 }
 
 //Uses relative R and T and prevGlobal R and T to compute the currGlobal R and T with respect to the first frame.
@@ -377,8 +392,7 @@ void PoseEstimation::allocatePCMemory(int width, int height)
 	prev_z.resize(width*height);
 }
 
-//Flann Nearest Neighbor Matching
-void PoseEstimation::nearestNeighborMatching(IplImage* image)
+void PoseEstimation::marryMatches()
 {
 	int numMatches;
 	int size;
@@ -387,72 +401,90 @@ void PoseEstimation::nearestNeighborMatching(IplImage* image)
 	bool match = false;
 	int k=numNN; // find the 2 nearest neighbors
 
+	//Backward
+	cv::flann::Index backwardIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
+
+	cv::Mat resultsBack(globalPrevDescriptors.rows, 1, CV_32SC1);
+	cv::Mat distsBack(globalPrevDescriptors.rows, 1, CV_32FC1);
+	backwardIndex.knnSearch(globalPrevDescriptors, resultsBack, distsBack, 1, cv::flann::SearchParams(flannCheck)); 
+
+	//Forward
+	cv::flann::Index forwardIndex(globalPrevDescriptors, cv::flann::KDTreeIndexParams());
+	cv::Mat resultsForward(globalCurrDescriptors.rows, 1, CV_32SC1);
+	cv::Mat distsForward(globalCurrDescriptors.rows, 1, CV_32FC1);
+	forwardIndex.knnSearch(globalCurrDescriptors, resultsForward, distsForward, 1, cv::flann::SearchParams(flannCheck));
+	
+	// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
+	for(int i=0; i < globalPrevKeyPoints.size(); ++i)
+	{
+		pPt = globalPrevKeyPoints.at(i);
+		pX = pPt.pt.x;
+		pY = pPt.pt.y;
+
+		cPt = globalCurrKeyPoints.at(resultsBack.at<int>(i,0));
+		cX = cPt.pt.x;
+		cY = cPt.pt.y;
+
+		for(int j=0; j<globalCurrKeyPoints.size(); j++)
+		{
+			if((globalCurrKeyPoints.at(j).pt.x == cX) && (globalCurrKeyPoints.at(j).pt.y == cY) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.x == pX) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.y == pY))
+			{
+				globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
+				globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(resultsBack.at<int>(i,0)).pt);
+				break;
+			}
+		}
+	}
+
+	resultsBack.release();
+	distsBack.release();
+	resultsForward.release();
+	distsForward.release();
+}
+
+void PoseEstimation::matchWithNNDR()
+{
+	int numMatches;
+	int size;
+	cv::KeyPoint pPt, cPt;
+	float cX, cY, pX, pY;
+	bool match = false;
+	int k=numNN; // find the 2 nearest neighbors
+
+	cv::flann::Index treeFlannIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
+	cv::Mat results(globalPrevDescriptors.rows, k, CV_32SC1);
+	cv::Mat dists(globalPrevDescriptors.rows, k, CV_32FC1);
+	treeFlannIndex.knnSearch(globalPrevDescriptors, results, dists, k, cv::flann::SearchParams(flannCheck) ); 
+
+	// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
+	for(int i=0; i < globalPrevKeyPoints.size(); ++i)
+	{
+		// Apply NNDR
+		if(dists.at<float>(i,0) <= nndrRatio * dists.at<float>(i,1))
+		{
+			//prev frame pixel coordinates for selected matches with prevFrame
+			globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
+						  
+			//curr pixel coordinates for selected matches with prevFrame
+			globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(results.at<int>(i,0)).pt);
+		}
+	}
+
+	results.release();
+	dists.release();
+}
+
+//Flann Nearest Neighbor Matching
+void PoseEstimation::nearestNeighborMatching(IplImage* image)
+{
 	//NNDR Matching
 	if(matchingMethod == 0)
 	{
-		cv::flann::Index treeFlannIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
-		cv::Mat results(globalPrevDescriptors.rows, k, CV_32SC1);
-		cv::Mat dists(globalPrevDescriptors.rows, k, CV_32FC1);
-		treeFlannIndex.knnSearch(globalPrevDescriptors, results, dists, k, cv::flann::SearchParams(flannCheck) ); 
-
-		// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
-		for(int i=0; i < globalPrevKeyPoints.size(); ++i)
-		{
-			// Apply NNDR
-			if(dists.at<float>(i,0) <= nndrRatio * dists.at<float>(i,1))
-			{
-				//prev frame pixel coordinates for selected matches with prevFrame
-				globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
-							  
-				//curr pixel coordinates for selected matches with prevFrame
-				globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(results.at<int>(i,0)).pt);
-			}
-		}
-
-		results.release();
-		dists.release();
+		matchWithNNDR();
 	}
 	else //Marrying Matches
 	{
-		//Backward
-		cv::flann::Index backwardIndex(globalCurrDescriptors, cv::flann::KDTreeIndexParams());
-
-		cv::Mat resultsBack(globalPrevDescriptors.rows, 1, CV_32SC1);
-		cv::Mat distsBack(globalPrevDescriptors.rows, 1, CV_32FC1);
-		backwardIndex.knnSearch(globalPrevDescriptors, resultsBack, distsBack, 1, cv::flann::SearchParams(flannCheck)); 
-
-		//Forward
-		cv::flann::Index forwardIndex(globalPrevDescriptors, cv::flann::KDTreeIndexParams());
-		cv::Mat resultsForward(globalCurrDescriptors.rows, 1, CV_32SC1);
-		cv::Mat distsForward(globalCurrDescriptors.rows, 1, CV_32FC1);
-		forwardIndex.knnSearch(globalCurrDescriptors, resultsForward, distsForward, 1, cv::flann::SearchParams(flannCheck));
-	
-		// Find correspondences by NNDR (Nearest Neighbor Distance Ratio)
-		for(int i=0; i < globalPrevKeyPoints.size(); ++i)
-		{
-			pPt = globalPrevKeyPoints.at(i);
-			pX = pPt.pt.x;
-			pY = pPt.pt.y;
-
-			cPt = globalCurrKeyPoints.at(resultsBack.at<int>(i,0));
-			cX = cPt.pt.x;
-			cY = cPt.pt.y;
-
-			for(int j=0; j<globalCurrKeyPoints.size(); j++)
-			{
-				if((globalCurrKeyPoints.at(j).pt.x == cX) && (globalCurrKeyPoints.at(j).pt.y == cY) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.x == pX) && (globalPrevKeyPoints.at(resultsForward.at<int>(j,0)).pt.y == pY))
-				{
-					globalPrevMatchedPix.push_back(globalPrevKeyPoints.at(i).pt);
-					globalCurrMatchedPix.push_back(globalCurrKeyPoints.at(resultsBack.at<int>(i,0)).pt);
-					break;
-				}
-			}
-		}
-
-		resultsBack.release();
-		distsBack.release();
-		resultsForward.release();
-		distsForward.release();
+		marryMatches();
 	}
 
 	//Collect 3D Point Matches

@@ -94,12 +94,15 @@ public:
 	//Methods
 	int computeRelativeR(int numMatches, int numValidMatches);
 	void computeRelativeT(int numMatches, int numWeightedMatches);
+	int computeCenters(int& numValidMatches, float& numWeightedMatches, int numMatches);
 	int estimateRelativePose();
 	void composePose();
 	void find_homography();
 	void copyGlobal_R_T();
 	void resetPrevPos();
 	void allocatePCMemory(int width, int height);
+	void marryMatches();
+	void matchWithNNDR();
 	void nearestNeighborMatching(IplImage* image);
 	void collect3DMatches(int width);
 	void process(int depthInfo, IplImage* image);
