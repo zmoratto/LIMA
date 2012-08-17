@@ -545,6 +545,12 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
  
   for( unsigned int k = 0; k < shots.size(); ++k ){
     for( unsigned int i = 0; i < shots[k].size(); ++i ){
+      shots[k][i].reflectance = -1;
+      if (shots[k][i].LOLAPt.size() > 5)
+      {
+        shots[k][i].valid = 0;
+        continue;
+      }
       // abort if we don't have the center point
       Vector3 center;
       try
@@ -553,7 +559,7 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
         centerPt.z() *= 1000;
         center = lon_lat_radius_to_xyz(centerPt);
       }
-      catch( const vw::ArgumentErr& error ){ shots[k][i].reflectance = -1; continue;}
+      catch( const vw::ArgumentErr& error ){ shots[k][i].valid = 0; continue;}
       
 
       Vector3 points[4];
@@ -571,14 +577,14 @@ int ComputeAllReflectance(       vector< vector<LOLAShot> >& shots,
       Vector3 normal(0.0, 0.0, 0.0);
       for (int m = 0; m < 4; m++)
       {
-        int n = m == 4 ? 0 : m + 1;
+        int n = m == 3 ? 0 : m + 1;
         if (!validPoints[m] || !validPoints[n])
           continue;
         normal += ComputeNormalFrom3DPointsGeneral(center, points[m], points[n]);
       }
       if (normal.x() == 0.0 && normal.y() == 0.0 && normal.z() == 0.0)
       {
-        shots[k][i].reflectance = -1;
+        shots[k][i].valid = 0;
         continue;
       }
 
