@@ -24,7 +24,7 @@ if (NOT ASP_FOUND)
 	message(FATAL_ERROR "Package ASP required, but not found.")
 endif (NOT ASP_FOUND)
 
-find_package( Boost REQUIRED system thread filesystem program_options )
+find_package( Boost REQUIRED filesystem system thread program_options )
 if (NOT Boost_FOUND)
 	message(FATAL_ERROR "Package Boost required, but not found.")
 endif (NOT Boost_FOUND)
@@ -49,6 +49,10 @@ target_link_libraries(lima ${ASP_LIBRARIES} )
 
 add_executable(lidar2img lidar2img.cc )
 target_link_libraries(lidar2img lima )
+
+#add_executable(test_tracks ../tests/Test_tracks.cc )
+#target_link_libraries(test_tracks lima )
+#target_link_libraries(test_tracks gtest )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
 	add_definitions(-arch i386)

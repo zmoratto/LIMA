@@ -98,7 +98,7 @@ int main( int argc, char *argv[] )
 	}
 
 	vector<vector<LOLAShot> > trackPts;
-	if (vm.count("Lidar-filename"))
+	if (vm.count("lidarFile"))
 		trackPts = LOLAFileRead(inputCSVFilename);
 	else if (vm.count("tracksList"))
 		trackPts = LOLAFilesRead(tracksListFile);
