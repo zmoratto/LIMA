@@ -16,9 +16,15 @@
 int main(int argc, char* argv[])
 {
   string dataDir, resultsDir, configFilename;
+  if(argc!=3)
+     {
+     cout<<"Usage: ./mosaic dataDir resultsDir"<<endl;
+     cout<<"Requires list of stereo pairs in dataDir named test-stereo-pairs.txt"<<endl;
+     }
+
   dataDir = string(argv[1])+string("/");
   resultsDir = string(argv[2]) + string("/");
-  configFilename = "mosaic_settings.txt";//string(argv[3]);
+  configFilename = "mosaic_settings.txt";
   mosaicSettings settings = ReadMosaicSettings(configFilename);
   mosaicProcessor mosaic(settings);
   PrintSettings(settings);

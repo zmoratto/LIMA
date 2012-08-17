@@ -28,6 +28,7 @@ target_link_libraries(sfmDepth_test ${Boost_LIBRARIES})
 
 
 project(mosaic_project)
+add_definitions(-g)
 set( PROJECT_SRC_DIR ".." )
 set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} )
 #possible to edit next line in place of setting environment variable
