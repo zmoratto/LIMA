@@ -40,4 +40,16 @@ If the configuration file is not specified, the program will run with a set of d
 \end{itemize}
 
 
+\subsection{Tiling}
+The tiling module is used in both the stereo\_processing and sfm\_processing modules.
+\subsubsection{Algorithm}
+Using OpenCV, the image is loaded, along with the tiling parameters which are read from a configuration file. We make a vector of bounding boxes which contain the starting x, starting y, width and height for each tile of the image. There is an allowed overlap between tiles, if there is no overlap specified, then the tiles touch along the edges with no overlapping pixels. We start from x=0, y=0 with the width = tileWidth and height = tileHeight. We save the bounding box and move horizontally. If there is an overlap specified then we move over to width-xOverlap and start again with width = tileWidth. The same process is performed vertically with height-yOverlap. If a tile has a specified with that makes it reach past the edge of the image, the edge of the image becomes the end of the tile and the beginning of the tile is moved left to make the width = tileWidth. The same is done when the height of the tile is too large. This is a portion of the algorithm that is necessary for the stereo tiling that is done. The bounding boxes are saved into a vector and can be used in other applications, such as the stereo\_processing and sfm\_processing modules.
+
+
+
+
+
+
+
+
 
