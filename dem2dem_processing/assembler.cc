@@ -28,116 +28,16 @@ namespace po = boost::program_options;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
-
 #include "icp.h"
 #include "assembler.h"
 #include "pyr_tiling.h"
 
-//#include "coregister.h"
-//#include "string_util.h"
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
 
 
-
-/*
-void ComputeTileParams(int orig_backImgWidth, int orig_backImgHeight, 
-		       GeoReference const &foreGeo, GeoReference const &backGeo, 
-                       int tileSize, Vector4 paddingParams, float foreNoDataVal,
-		       int imageType, Vector4 lonlatBB, std::vector<struct TilingParams> &tileParamsArray)
-{
-  
-  Matrix<double> backH;
-  backH = backGeo.transform();
-  cout<<"COMPUTE_TILE_PARAMS: back meter per pixel="<<backH(0,0)<<", "<<backH(1,1)<<endl;
-  Matrix<double> foreH;
-  foreH = foreGeo.transform();
-  cout<<"COMPUTE_TILE_PARAMS: fore meter per pixel="<<foreH(0,0)<<", "<<foreH(1,1)<<endl;  
-  if (foreH(0,0) < 0.015625){foreH(0,0)=0.015625;}//1/64
-  float backUpsamplingFactor = fabs(backH(0,0)/foreH(0,0));
-  cout<<"COMPUTE_TILE_PARAMS: backUpsamplingFactor="<<backUpsamplingFactor<<endl;
-  
-
-  int numPyrTiles;
-  Vector2 offsetPix;
-  int maxNumPyrLevels;
-  
-  ComputePyramidTilingParams(orig_backImgWidth, orig_backImgHeight, tileSize, numPyrTiles, offsetPix, maxNumPyrLevels);
-  int numSubPyrLevels;
-  Vector2 numSubPyrTiles;
-  Vector2 topLeftPix, bottomRightPix; 
-  Vector2 topLeftTile;
-
-  ComputeSubPyramidTilingParams(backGeo, lonlatBB, tileSize, offsetPix, backUpsamplingFactor, 
-                                topLeftPix, bottomRightPix, topLeftTile, numSubPyrTiles, numSubPyrLevels);
-
-  //efectively fill in  the tiling structures - START
-  float leftNumPixPadding = paddingParams(0);
-  float topNumPixPadding = paddingParams(1);
-  float rightNumPixPadding = paddingParams(2);
-  float bottomNumPixPadding = paddingParams(3);
-
-  int horTileIndex, verTileIndex;
-
-  horTileIndex = topLeftTile(0);
-  for (int i = topLeftPix(0); i < bottomRightPix(0); i = i + tileSize){
-    verTileIndex = topLeftTile(1);
-    for (int j = topLeftPix(1); j < bottomRightPix(1); j = j + tileSize){
-	TilingParams thisTileParams;
-  
-        thisTileParams.back_xl = i - leftNumPixPadding;
-        thisTileParams.back_xr = i + tileSize + rightNumPixPadding;
-        thisTileParams.back_yt = j - topNumPixPadding;
-        thisTileParams.back_yb = j + tileSize + bottomNumPixPadding;
-        thisTileParams.horTileIndex = horTileIndex;
-	thisTileParams.verTileIndex = verTileIndex;
-	
-	stringstream ss;
-	ss<<thisTileParams.horTileIndex<<"_"<<thisTileParams.verTileIndex;
-        string assembledFilename;
-	string assembledAccFilename;
-	string assembledPCFilename;
-
-        if (imageType == 0){//DEM
-	  assembledFilename = "assembled_"+ss.str()+"_dem.tif";
-	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileDEMFilename="<<assembledFilename<<endl;
-	  
-	  assembledAccFilename = "assembled_"+ss.str()+"_acc.tif";
-	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileAccFilename="<<assembledAccFilename<<endl;
-	  
-	  assembledPCFilename = "assembled_"+ss.str()+"_pc.txt";
-	  cout<<"COMPUTE_TILE_PARAMS: TILE: tilePCFilename="<<assembledPCFilename<<endl;
-	}
-
-        if (imageType == 1){//DRG
-	  assembledFilename = "assembled_"+ss.str()+"_drg.tif";
-	  cout<<"COMPUTE_TILE_PARAMS: TILE: tileDRGFilename="<<assembledFilename<<endl;
-	}
-       
-        thisTileParams.filename = assembledFilename;
-        thisTileParams.accFilename = assembledAccFilename;
-	thisTileParams.pcFilename = assembledPCFilename;
-	thisTileParams.backUpsampleFactor = pow(2, (float)numSubPyrLevels);
-	thisTileParams.foreUpsampleFactor = thisTileParams.backUpsampleFactor/backUpsamplingFactor;
-
-        tileParamsArray.push_back(thisTileParams);
-        
-        cout<<"COMPUTE_TILE_PARAMS: TILE: horTileIndex="<<thisTileParams.horTileIndex<<", verTileIndex="<<thisTileParams.verTileIndex<<endl;     
-        cout<<"COMPUTE_TILE_PARAMS: TILE: xl="<<thisTileParams.back_xl<<", xr="<<thisTileParams.back_xr<<", yt="<<thisTileParams.back_yt<<", yb="<<thisTileParams.back_yb<<endl;
-        cout<<"COMPUTE_TILE_PARAMS: TILE: backUpsampleFactor="<<thisTileParams.backUpsampleFactor<<endl;
-        cout<<"COMPUTE_TILE_PARAMS: TILE: foreUpsampleFactor="<<thisTileParams.foreUpsampleFactor<<endl;
-
-	verTileIndex++;
-      }
-    horTileIndex++;
-  }
-  //efectively fill in the tiling structures - END
-
-  cout<<"---------------------------------"<<endl;
-}
-*/
 float ComputeDEMAccuracy(GeoReference foreGeo, Vector2 forePix, float backAccuracy)
 {
    
@@ -732,6 +632,11 @@ int main( int argc, char *argv[] ) {
 
     int backDEMWidth = backDEM.cols(); 
     int backDEMHeight = backDEM.rows();
+    
+    Matrix<double> H;
+    H = backDEMGeo.transform();
+    cout<<"DEMGeo matrix="<<H<<endl;
+
     ComputeTileParams(backDEMWidth, backDEMHeight, foreDEMGeo, backDEMGeo,
                       assemblerParams.tileSizeDEM, assemblerParams.paddingParamsDEM, 
                       assemblerParams.foreNoDataValDEM, 0, 
@@ -740,10 +645,12 @@ int main( int argc, char *argv[] ) {
     cout<<"ASSEMBLER: COMPUTE_ASSEMBLED_DEM for each tile"<<endl;
     
     for (int i= 0; i <tileParamsArray.size(); i++){
+      
       ComputeAssembledDEM(foreDEM, foreDEMGeo, backDEM, backDEMGeo,
 			  assemblerParams.foreNoDataValDEM, assemblerParams.foreLonLatOrigin,
                           assemblerParams.weightingMode, 
 			  resDir, registrationParams, tileParamsArray[i]);   
+      
     }
     
     if (mode.compare("DEM_DRG")==0){
@@ -771,30 +678,36 @@ int main( int argc, char *argv[] ) {
       //creates an assembledDRGGeo that is a copy of the backDEMGeo (or assembledDEMGeo)
       //except that the pixel scale is 4 times smaller in each dimension.
       //it creates the image size that is 4x4 bigger than the backDEM (or assembledDEM) image.
- 
+     
+      
       Matrix<double> H;
       H = backDEMGeo.transform();
+      cout<<"DEMGeo matrix="<<H<<endl;
+     
+      H(0,2) = H(0,2)+(3.0/8.0)*H(0,0);
+      H(1,2) = H(1,2)+(3.0/8.0)*H(1,1);
       H(0,0) /=4.0;
       H(1,1) /=4.0;
-      /*
-      cout.precision(7);
-      cout<<"COMPUTE_ASSEMBLED_DRG: assembled transform:"<<endl;
-      cout<<"H(0,0)="<<H(0,0)<<endl;
-      cout<<"H(0,1)="<<H(0,1)<<endl;
-      cout<<"H(0,2)="<<H(0,2)<<endl;
-      cout<<"H(1,0)="<<H(1,0)<<endl;
-      cout<<"H(1,1)="<<H(1,1)<<endl;
-      cout<<"H(1,2)="<<H(1,2)<<endl;
-      */
+
       GeoReference assembledDRGGeo = backDEMGeo; 
       assembledDRGGeo.set_transform(H);
+      cout<<"assembledDRGGeo matrix="<<H<<endl;
+      H = backDEMGeo.transform();
+      cout<<"DEMGeo matrix="<<H<<endl;
+      
+      /*
+      GeoReference assembledDRGGeo = resample(backDEMGeo, 4.0, 4.0);
+      Matrix<double> H;
+      H = assembledDRGGeo.transform();
+      cout<<"assembledDRGGeo matrix="<<H<<endl;
+      */
       int assembledDRGWidth = backDEM.cols()*4;
       int assembledDRGHeight = backDEM.rows()*4;
       //set the assembledDRGGeo  NEW AND RISKY - END
 
       cout<<"ASSEMBLER: DRG bounding box: "<<foreLonLatBB<<endl;
       cout<<"ASSEMBLER: ComputeTileParams for DRG"<<endl;
-      tileParamsArray.clear();
+
       ComputeTileParams(assembledDRGWidth, assembledDRGHeight, foreDRGGeo, /*backDRGGeo*/assembledDRGGeo, 
 			assemblerParams.tileSizeDRG, assemblerParams.paddingParamsDRG, 
                         assemblerParams.foreNoDataValDRG, 1, 
@@ -813,6 +726,8 @@ int main( int argc, char *argv[] ) {
       */
       cout<<"ASSEMBLER: ComputeAssembledDRG for each tile"<<endl;
      
+
+      //assembledDRGGeo is the original backDEMGeo*4
       for (int i= 0; i <tileParamsArray.size(); i++){   
 	
 	//correct interpolation of the data, correct position.
