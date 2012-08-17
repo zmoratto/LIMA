@@ -1,8 +1,6 @@
 project(lidar2img)
 cmake_minimum_required(VERSION 2.6)
 
-add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 
 set( PROJECT_SRC_DIR ".." )
@@ -24,11 +22,6 @@ if (NOT ASP_FOUND)
 	message(FATAL_ERROR "Package ASP required, but not found.")
 endif (NOT ASP_FOUND)
 
-find_package( Boost REQUIRED filesystem system thread program_options )
-if (NOT Boost_FOUND)
-	message(FATAL_ERROR "Package Boost required, but not found.")
-endif (NOT Boost_FOUND)
-
 ## We must add the in-source and out-of-source
 ## include paths 
 ##--------------------------------------------
@@ -36,14 +29,12 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/..
   ${VW_INCLUDE_DIR}
   ${ASP_INCLUDE_DIR}
-  ${Boost_INCLUDE_DIR}
   )
 # ISIS include directories
 
 set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
 
 add_library( lima ${COMMON_SRCS})
-target_link_libraries(lima ${Boost_LIBRARIES} )
 target_link_libraries(lima ${VW_LIBRARIES} )
 target_link_libraries(lima ${ASP_LIBRARIES} )
 

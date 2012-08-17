@@ -3,7 +3,8 @@
 #
 # Assumes that ASP and ISIS are installed though BinaryBuilder.
 # The binary builder base system is assumed to be in the directory
-# above ISIS_ROOT.
+# above ISIS_ROOT. This package also includes the proper QT version
+# and boost version for ASP, isis3, and superlu if it is available.
 #
 # Input Environment Variables:
 # ASPROOT                  : Root of ASP Install
@@ -41,6 +42,13 @@ set(ARBITRARY_QT_LIBRARIES
 	libQtXml.so.4
 	libQtXmlPatterns.so.4
 	libQtWebKit.so.4
+)
+
+set(ARBITRARY_BOOST_LIBRARIES
+	libboost_system-mt-1_46_1.so
+	libboost_filesystem-mt-1_46_1.so
+	libboost_thread-mt-1_46_1.so
+	libboost_program_options-mt-1_46_1.so
 )
 
 # Set the root to 3 directories above Core.h
@@ -123,7 +131,37 @@ LIST(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.4")
 if (NOT ARBITRARY_QT_FOUND)
 	message(STATUS "    Using system Qt version.")
 	find_package(Qt)
+	if (NOT Qt_FOUND)
+		message(ERROR "Package Qt required for ASP, but not found.")
+		return()
+	endif (NOT Qt_FOUND)
+	set(ASP_INCLUDE_DIR ${ASP_INCLUDE_DIR} ${Qt_INCLUDE_DIR})
+	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${Qt_LIBRARIES})
 endif (NOT ARBITRARY_QT_FOUND)
+
+set( ARBITRARY_BOOST_FOUND True )
+foreach(LIB ${ARBITRARY_BOOST_LIBRARIES})
+	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
+	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
+	if(NOT BLIB)
+		message(WARNING "    Could not find Boost library ${LIB}.")
+		set( ARBITRARY_BOOST_FOUND False )
+	else(NOT BLIB)
+		set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
+	endif(NOT BLIB)
+endforeach(LIB ${ARBITRARY_BOOST_LIBRARIES})
+
+if (NOT ARBITRARY_BOOST_FOUND)
+	find_package( Boost REQUIRED filesystem system thread program_options )
+	if (NOT Boost_FOUND)
+		message(ERROR "Package Boost required for ASP, but not found.")
+		return()
+	endif (NOT Boost_FOUND)
+	set(ASP_INCLUDE_DIR ${ASP_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${Boost_LIBRARIES})
+endif (NOT ARBITRARY_BOOST_FOUND)
+
+add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
 
 set(ASP_FOUND True)
 
