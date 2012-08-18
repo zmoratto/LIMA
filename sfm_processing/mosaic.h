@@ -60,7 +60,10 @@ public:
    std::vector<int> makeOverlapListFromBB(struct BBox tileBox, std::vector<BBox> imageBox);
 
    // function to display the tile mosaic for debug
-   void displayTileMosaic(string resultsDir);
+   void displayTileMosaic(string resultsDir, BBox mosaicBBox, double radPerPixX, double radPerPixY);
+
+   //function to create the point cloud mosaic
+   void displayPCMosaic(string resultsDir, BBox mosaicBBox, double radPerPixX, double radPerPixY);
 
    //reads a list file and creates a vector of image pairs
    //vector<struct imgPair> ReadListFile(string listFilename);

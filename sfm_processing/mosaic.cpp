@@ -149,13 +149,24 @@ std::vector<int> mosaicProcessor::makeOverlapListFromBB(struct BBox tileBox, std
 }
 
 // function to display the tile mosaic for debug
-void mosaicProcessor::displayTileMosaic(string resultsDir)
+void mosaicProcessor::displayTileMosaic(string resultsDir, BBox mosaicBBox, double radPerPixX, double radPerPixY)
 {
+
+  float minPanRad = (mosaicBBox.minPan);
+  float maxPanRad = (mosaicBBox.maxPan);
+  float minTiltRad = (mosaicBBox.minTilt);
+  float maxTiltRad = (mosaicBBox.maxTilt);
+  float tile_fov_x = tileWidth*radPerPixX;
+  float tile_fov_y = tileHeight*radPerPixY;
+  int numHorTiles = ceil((maxPanRad-minPanRad)/tile_fov_x);
+  int numVerTiles = ceil((maxTiltRad-minTiltRad)/tile_fov_y);
+
+
   //check the output mosaick
   int firstHorTile = 0;
-  int lastHorTile = 40;
+  int lastHorTile = numHorTiles;
   int firstVerTile = 0;
-  int lastVerTile = 8;
+  int lastVerTile = numVerTiles;
   int newTileWidth = (int)floor(tileWidth*scaleFactor);//128; 
   int newTileHeight = (int) floor(tileHeight*scaleFactor);//128;
  
@@ -190,6 +201,56 @@ void mosaicProcessor::displayTileMosaic(string resultsDir)
   }
   string mosaicFilename = resultsDir+"tile_mosaic.jpg";
   cv::imwrite(mosaicFilename, mosaicMat);
+}
+
+// function to display the tile mosaic for debug
+void mosaicProcessor::displayPCMosaic(string resultsDir, BBox mosaicBBox, double radPerPixX, double radPerPixY)
+{
+
+  float minPanRad = (mosaicBBox.minPan);
+  float maxPanRad = (mosaicBBox.maxPan);
+  float minTiltRad = (mosaicBBox.minTilt);
+  float maxTiltRad = (mosaicBBox.maxTilt);
+  float tile_fov_x = tileWidth*radPerPixX;
+  float tile_fov_y = tileHeight*radPerPixY;
+  int numHorTiles = ceil((maxPanRad-minPanRad)/tile_fov_x);
+  int numVerTiles = ceil((maxTiltRad-minTiltRad)/tile_fov_y);
+
+
+  //check the output mosaick
+  int firstHorTile = 0;
+  int lastHorTile = numHorTiles;
+  int firstVerTile = 0;
+  int lastVerTile = numVerTiles;
+  int newTileWidth = (int)floor(tileWidth*scaleFactor);//128; 
+  int newTileHeight = (int) floor(tileHeight*scaleFactor);//128;
+
+  int counter=0;
+ 
+  ofstream fout;
+  string line;
+  fout.open((resultsDir+"point_cloud_mosaic.txt").c_str());
+
+  for (int i = firstHorTile; i <= lastHorTile; i++){
+    for (int j = firstVerTile; j <= lastVerTile; j++){
+     	string tileFilename;
+	ostringstream ss_1, ss_2;
+	ss_1 << i;
+	ss_2 << j;
+	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".txt";
+   ifstream fin;
+   fin.open(tileFilename.c_str());
+   getline(fin,line);
+   while(fin.good()){
+      counter++;
+      if( counter%10 == 0 )
+         fout<<line<<endl;
+      getline(fin,line);
+      }
+   fin.close();
+    }
+  }
+  fout.close();
 }
 
 //reads a list file and creates a vector of image pairs
@@ -646,7 +707,7 @@ void mosaicProcessor::displayImageMosaic(string resultsDir, string dataDir, vect
     cv::imwrite(mosaicFilename, mosaicMat);
 }
 
-// function that makes the tiles
+// function that makes the image tiles and point cloud tiles
 void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<ImagePairNames> imgPairVector, std::vector<BBox> BBoxArray, 
                struct BBox mosaicBBox, double radPerPixX, double radPerPixY)
 {
@@ -728,7 +789,7 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 	  //load individual images - START
      IplImage *leftImage;
 	  string imgFilename = dataDir + imgPairVector[p].left;
-     string filenameExtension = extension_from_filename(imgPairVector[i].left);
+     string filenameExtension = extension_from_filename(imgPairVector[p].left);
      if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
        readPDSFileToIplImage(imgFilename, leftImage);
      }
