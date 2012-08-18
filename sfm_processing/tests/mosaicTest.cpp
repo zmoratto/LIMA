@@ -20,10 +20,16 @@ int main(int argc, char* argv[])
      {
      cout<<"Usage: ./mosaic dataDir resultsDir"<<endl;
      cout<<"Requires list of stereo pairs in dataDir named test-stereo-pairs.txt"<<endl;
+     cout<<"Using default: ./mosaic mosaicTestData mosaicResults"<<endl;
+     sleep(5);
+     dataDir = string("mosaicTestData") +string("/");
+     resultsDir = string("mosaicResults") +string("/");
      }
-
-  dataDir = string(argv[1])+string("/");
-  resultsDir = string(argv[2]) + string("/");
+  else
+     {
+     dataDir = string(argv[1])+string("/");
+     resultsDir = string(argv[2]) + string("/");
+     }
   configFilename = "mosaic_settings.txt";
   mosaicSettings settings = ReadMosaicSettings(configFilename);
   mosaicProcessor mosaic(settings);
@@ -72,7 +78,8 @@ int main(int argc, char* argv[])
   mosaic.makeTiles(dataDir, resultsDir, imgPairVector, BBoxArray, mosaicBBox, radPerPixX, radPerPixY);
 
   if (settings.makeTileMosaic == 1){
-    mosaic.displayTileMosaic(resultsDir);
+    mosaic.displayTileMosaic(resultsDir,mosaicBBox, radPerPixX, radPerPixY);
+    mosaic.displayPCMosaic(resultsDir,mosaicBBox, radPerPixX, radPerPixY);
   }
 
   return 0;
