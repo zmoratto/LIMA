@@ -16,15 +16,14 @@ Structure from motion is the process of estimating camera pose from a sequence o
    \item{tests/mosaicTest.cpp} - main function for testing the mosaic class
 \end{itemize}
 
-
-\subsection{How to install:}
+\subsection{Structure from Motion}
+\subsubsection{How to build:}
 \begin{enumerate}
 	\item{Install Prerequisites} - Install OpenCV 2.3.1, PCL 1.5, lapack, cmake, gfortran
 	\item{Install SFM} - inside sfm\_processing/tests directory type: cmake .
 	\item{Build sfm\_test} - inside sfm\_processing/tests directory type: make
 \end{enumerate}
-
-\subsection{How to run:}
+\subsubsection{How to run:}
 \textbf{Running SFM:} \\
 ./sfmDepth\_test testConfig.txt testImageList.txt results/ \\
 ***Note: Stereo Mode (depthInfo = 1) does not use the image list parameter, it simply ignores it. The default setting is depthInfo == 1. In order to run in the other modes, this parameter must be changed in the configuration file. See below. \\
@@ -33,7 +32,7 @@ The output of sfmDepth is a set of images with matches and a text file containin
 \textbf{Running Feature Extraction:} \\
 ./FE\_test 0 testImageList results/ \\
 ***Note: The 0 is for SURF feature detection on the images in testImageList, and the results are saved in the results/ directory.
-\subsubsection{Configuration Parameters}
+\textbf{Configuration Parameters}\\
 If the configuration file is not specified, the program will run with a set of default parameters.
 \begin{itemize}
 	\item{\textsc{firstFrame}} - first frame to process in the sequence
@@ -79,8 +78,35 @@ If the configuration file is not specified, the program will run with a set of d
 	\item{\textsc{stereoFilename}} - stereo settings file name
 \end{itemize}
 
+\subsection{Feature Extraction}
+\subsubsection {How to install:}
+\subsubsection{How to run:}
+\textbf{Running Feature Extraction:} \\
+./FE\_test 0 testImageList results/ \\
+\textbf{Configuration params}\\
 
-\subsection{Algorithm}
+\subsection{Image and Point Cloud Mosaic}
+\subsubsection {How to install:}
+\subsubsection{How to run:}
+\textbf{Running mosaic:} \\
+./mosaic\_test  imgDir pcDir resultsDir\\
+imgDir contains the togeter with the image files the list of stereo pairs (left image right image each line, not separated by comma) that must be 
+called test-stereo-pairs.txt. 
+pcDir contains the point cloud file corresponding to image pair leftImage.jpg rightImage.jpg must be stored as leftImage\_point\_cloud.txt
+resultsDir is the directory were the output image, point cloud tiles and/or  mosaic are stored.\\  
+\textbf{Configuration params}\\
+The code uses by default $mosaic\_settings.txt$ in the build directory. This must be changed.
+If the configuration file is not specified, the program will run with a set of default parameters.
+\begin{itemize}
+	\item{\textsc{PIXEL\_SIZE}} - The size of the camera pixel.default (0.000012)
+	\item{\textsc{TILE\_WIDTH}} - default(512)
+	\item{\textsc{TILE\_HEIGHT}} - default(512)
+	\item{\textsc{SCALE\_FACTOR}} - default(0.25)
+	\item{\textsc{MAKE\_TILE\_MOSAIC}} - create an image and point cloud  mosaic from tiles. Values from overlapping locations are averaged over intensity and 3D values. default(1)
+	\item{\textsc{MAKE\_IMAGE\_MOSAIC}} - create a mosaic from images. this is not supported yet for point clouds. Values from overlapping locations will be overwritten. default(1)
+\end{itemize}
+
+\subsection{Algorithms in more detail}
 
 \subsubsection{Feature Extraction}
 	We make use of OpenCV's feature extraction methods for this part of the algorithm. The structure from motion utilizes three different feature detection and extraction methods: Oriented Brief (ORB), Speeded Up Robust Features (SURF), and Scale Invariant Feature Transform (SIFT). All three methods have their advantages and disadvantages. Since this application is designed for use by NASA, the features must be extremely discriminatory and robust.
@@ -95,7 +121,8 @@ If the configuration file is not specified, the program will run with a set of d
 	Since the algorithm needs to run very quickly in order to be a part of rover software, we added a few options to speed up the Feature Extraction time. If 3D information is known, we apply a mask to the image, removing areas without any 3D information, before applying feature extraction. This cuts down the feature extraction time by half. Another option that is available for speed up is subsampling the image. Subsampling the image requires subsampling the set of 3D points and then applying the mask before feature extraction. The final feature extraction speed up option is to use upright features. This takes away the constraint that the features have to be rotationally invariant. This decreases time for both feature detection and extraction.
 \end{itemize}
 
-\subsubsection{Feature Matching}
+\subsubsection{Structure from Motion}
+{\bf Feature Matching}
 	OpenCV's Fast Library for Approximate Nearest Neighbor (FLANN) is used for determining possible matches for the features extracted in the previous step. Feature points are extracted from a pair of images and FLANN is applied to both sets of feature points. We find the two nearest neighbors for each key point. From here, we have two matching options. 
 \begin{itemize}
 \item{Nearest Neighbor Distance Ratio} \\
@@ -104,7 +131,7 @@ If the configuration file is not specified, the program will run with a set of d
 	The other matching method that we employ instead of the NNDR, is to marry matches from the reference image with those in the matching image. We find the nearest neighbor for each key point in the reference image and the nearest neighbor for each key point in the matching image. If a key point in the reference image has a nearest neighbor in the reference image whose nearest neighbor is that same key point in the reference image, these two key points are said to “marry.” In this case, this is considered a “good” match.
 \end{itemize}
 
-\subsubsection{Outlier Rejection}
+{\bf Outlier Rejection}
 There are two steps in the process of outlier rejection in our structure from motion framework.
 \begin{itemize}
 \item{Standard Deviation Constraint} \\
@@ -113,7 +140,7 @@ There are two steps in the process of outlier rejection in our structure from mo
 	The standard deviation constraint is followed by another outlier removal technique. We use OpenCV to find a homography between the two images used to compute the matches. This homography tells us which of the matches that are left are outliers. These are removed, and the matches that survive this step are used to compute the camera pose in the next step. If there is no 3D information available, the rest of the algorithm is skipped.
 \end{itemize}
 
-\subsubsection{Relative Pose Estimation}
+{\bf Relative Pose Estimation}
 	This step involves computing the translation and rotation matrices that map the 3D points from the previous image to the current image.
 \begin{itemize}
 \item{Translation} \\
@@ -127,16 +154,17 @@ Where $\times$ denotes the outer product, $c_{r}$ is the center of the reference
 $$R = U*V$$
 \end{itemize}
 
-\subsubsection{Global Pose Estimation}
+{\bf Global Pose Estimation}
 	The end goal of the structure from motion system is to estimate the pose of the camera at each frame with respect to the first frame. At the beginning of the image sequence, the camera has yet to move, so the translation and rotation are both zero. From this point, matches are computed between the first and second frame, resulting in relative rotation and translation matrices. Since the rotation and translation thus far are both zero, these relative rotation and translation matrices are now the global rotation and translation. For each pair of frames to follow, new relative rotation and translation matrices are computed. These relative matrices must now be applied to the global matrices to get the new global matrices. These new global rotation and translation matrices describe the pose of the camera at this particular frame with respect to the first frame.
 $$T_g = T_p + T_c * R_p$$
 $$R_g = R_p * R_c$$
 
 Where $T_{g}$ is the new global translation, $T_{p}$ is the previous global translation, $T_{c}$ is the current relative translation, $R_{p}$ is the previous global rotation, $R_{c}$ is the current relative rotation, and $R_{g}$ is the new global rotation.
 
-\subsubsection{3D Point Mapping}
+{\bf 3D Point Mapping}
 	This step aligns the 3D point clouds from each frame of the image sequence with the first set of 3D points. In the previous step, we compute the rotation and translation from the first frame to the current frame. In this step, we need the rotation and translation that aligns the current frame with the first frame, so we must negate the translation matrix and transpose the rotation matrix. Once this is done, the new rotation and translation matrices are applied to each 3D point corresponding to the current frame.
 \begin{displaymath}
 \hat{m} \sim r = R^T * (m-T)
 \end{displaymath}
 Where $\hat{m}$ is the mapped matching point, $r$ is the reference point, $R$ is the global rotation matrix, $m$ is the matching point, and $T$ is the global translation matrix.
+
