@@ -98,11 +98,11 @@ public:
                                     float radPerPixY);
 
    // original function to display the image mosaic
-   void displayImageMosaic(string resultsDir, string dataDir, vector<ImagePairNames> imgPairVector, 
-                           struct BBox mosaicBBox,  float radPerPixX, float radPerPixY);
+   //void displayImageMosaic(string resultsDir, string dataDir, vector<ImagePairNames> imgPairVector, 
+   //                        struct BBox mosaicBBox,  float radPerPixX, float radPerPixY);
 
    // function that makes the tiles
-   void makeTiles(string dataDir, string resultsDir, std::vector<ImagePairNames> imgPairVector, std::vector<BBox> BBoxArray, 
+   void makeTiles(string dataDir, string pcDir, string resultsDir, std::vector<ImagePairNames> imgPairVector, std::vector<BBox> BBoxArray, 
                   struct BBox mosaicBBox, double radPerPixX, double radPerPixY);
 
    //function to calculate boundary boxes for each image pair

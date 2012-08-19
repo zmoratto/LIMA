@@ -125,23 +125,24 @@ mosaicProcessor::mosaicProcessor(const mosaicSettings &params)
 }
 
 // function to determine which images overlap the tile
+//imageBox is an input array of bounding boxes for each image
+//tileBox is the input bounding box of the specific tle
 std::vector<int> mosaicProcessor::makeOverlapListFromBB(struct BBox tileBox, std::vector<BBox> imageBox)
 {
-  cout<<"NUM_BBoxes="<<imageBox.size()<<endl;
+  //cout<<"MAKE_OVERLAP_LIST: NUM_BBoxes="<<imageBox.size()<<endl;
 
   std::vector<int> overlapIndices;
   overlapIndices.resize(imageBox.size());
   for (int i = 0; i< imageBox.size(); i++){
- 
     if ((tileBox.maxPan < imageBox[i].minPan)||(imageBox[i].maxPan < tileBox.minPan)
 	||(tileBox.maxTilt < imageBox[i].minTilt)||(imageBox[i].maxTilt < tileBox.minTilt)){
        overlapIndices[i] = 0;
     }
     else{
        overlapIndices[i] = 1;
-       cout<<"****i:"<<i<<" minPan, maxPan, minTilt, maxTile"<<endl;
-       cout<<"tile :"<<tileBox.minPan<<", "<<tileBox.maxPan<<", "<<tileBox.minTilt<<", "<<tileBox.maxTilt<<endl;
-       cout<<"image:"<<imageBox[i].minPan<<", "<<imageBox[i].maxPan<<", "<<imageBox[i].minTilt<<", "<<imageBox[i].maxTilt<<endl;
+       //cout<<"MAKE_OVERLAP_LIST: i:"<<i<<" minPan, maxPan, minTilt, maxTile"<<endl;
+       //cout<<"MAKE_OVERLAP_LIST: tile :"<<tileBox.minPan<<", "<<tileBox.maxPan<<", "<<tileBox.minTilt<<", "<<tileBox.maxTilt<<endl;
+       //cout<<"MAKE_OVERLAP_LIST: image:"<<imageBox[i].minPan<<", "<<imageBox[i].maxPan<<", "<<imageBox[i].minTilt<<", "<<imageBox[i].maxTilt<<endl;
     }
   }
   return overlapIndices;
@@ -307,6 +308,7 @@ std::vector<point3D> mosaicProcessor::readXYZFile(const string &inputFilename, i
   if (myfile.is_open()){
     int index = 0;
     while ( myfile.good() ){
+
       getline (myfile,line);
       stringstream sline; 
       sline<<line;
@@ -318,10 +320,13 @@ std::vector<point3D> mosaicProcessor::readXYZFile(const string &inputFilename, i
       
       index++;
     }
-    cout<<"numPoints ="<<pc.size()<<endl;
+    //cout<<"numPoints ="<<pc.size()<<endl;
     myfile.close();
+    //cout << "SUCCESS: Able to open file "<<inputFilename<<endl;
   }
-  else cout << "Unable to open file "<<inputFilename<<endl; 
+  else{
+    cout << "WARNING: Unable to open file "<<inputFilename<<endl;
+  } 
   return pc;
 }
 
@@ -476,7 +481,7 @@ void mosaicProcessor::ReadCamParamsFromPDSFile(char *filename, double*c, double*
 
 // function to display the image mosaic corrected using the quaternion
 void mosaicProcessor::displayCorrectedImageMosaic(string resultsDir, string dataDir, vector<ImagePairNames> imgPairVector, 
-                                 vector<BBox> BBoxArray, struct BBox mosaicBBox,  float radPerPixX, float radPerPixY)
+						  vector<BBox> BBoxArray, struct BBox mosaicBBox,  float radPerPixX, float radPerPixY)
 {
 
     float minRadTilt = mosaicBBox.minTilt;
@@ -503,300 +508,206 @@ void mosaicProcessor::displayCorrectedImageMosaic(string resultsDir, string data
     int mosaicWidth = (maxRadPan-minRadPan)/radPerPixX;
     mosaicHeight = mosaicHeight*scaleFactor;
     mosaicWidth = mosaicWidth*scaleFactor;   
-
-     cout<<"mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
-     cv::Mat mosaicMat = cv::Mat::zeros(cv::Size(mosaicWidth, mosaicHeight),CV_8UC1);
-
+    
+    cout<<"mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
+    cv::Mat mosaicMat = cv::Mat::zeros(cv::Size(mosaicWidth, mosaicHeight),CV_8UC1);
+    
     int numPairs = imgPairVector.size();
     cv::Mat tileMat;    
-
+    
     // loop over pairs
     for (int k=0; k<numPairs; ++k)
-         {
-  double q[4];
-         //get rotated camera parameters and read image
-         string filenameExtension = extension_from_filename(imgPairVector[k].left);
-         if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
-           ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[k].left).c_str(), c, a, h, v, &cols, &rows);
-      
-           // get origin rotation 
-           scan_file_for_origin_rotation((char*)(dataDir + imgPairVector[k].left).c_str(), q); 
-           // rotate cahv parameters with quaternion
-           rotateWithQuaternion(c,c,q);
-           rotateWithQuaternion(a,a,q);
-           rotateWithQuaternion(h,h,q);
-           rotateWithQuaternion(v,v,q);
-            
-           // read image
-           readPDSFileToMat(dataDir + imgPairVector[k].left, tileMat);
-
-         }
-         else{
-           string camFilename = dataDir + prefix_from_filename(imgPairVector[k].left) + string(".cahv");
-           ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
-           string imgFilename = dataDir + imgPairVector[k].left;
-           tileMat = cv::imread(imgFilename, 0);
-         }
-
-         if (tileMat.data==NULL){
-            cout<<"File "<< dataDir + imgPairVector[k].left <<" not found"<<endl;  
-            continue;
-            }
-
-         // determine rows and columns corresponding to BBox
-         int col_start = (BBoxArray[k].minPan - minRadPan)/radPerPixX * scaleFactor;
-         int col_end = (BBoxArray[k].maxPan - minRadPan)/radPerPixX * scaleFactor;
-
-         int row_start = (BBoxArray[k].minTilt - minRadTilt)/radPerPixY * scaleFactor;
-         int row_end = (BBoxArray[k].maxTilt - minRadTilt)/radPerPixY * scaleFactor;
-
-         // iterate over the window in the image mosaic
-         for (int row = row_start; row < row_end; ++row)
-         for (int col = col_start; col < col_end; ++col)
-            {
-
-            // get i,j position
-            int i=row % mosaicHeight;
-            int j=col % mosaicWidth;
-            if(j<0)
-               j+=mosaicWidth;
-            if(i<0)
-               i+=mosaicHeight;
-
-            // calculate the 3d position vector (p) from i,j
-            double p[3];
-            float radX = j*radPerPixX/scaleFactor+minRadPan;
-            float radY = i*radPerPixY/scaleFactor+minRadTilt;
-            p[0] = sin(-radX)*cos(radY);
-            p[1] = cos(radX)*cos(radY);
-            p[2] = sin(radY);
-
-            double x, y;
-
-            //check to make sure dont project 180 degrees off
-            // dot product is less than 0 if angle is >90
-            // this isn't needed if we use the boundary boxes
-            if(dotprod3(p,a)<0)  
-               continue;
-
-
-            // get the position where the point is in the image
-            double origin[3] = {0.0,0.0,0.0};
-            getXYFromCAHV(origin, a, h, v, x, y, p);
-
-            // if not in the image skip it
-            if(x < 0 || x > cols || y < 0 || y > rows)
-               continue;
-
-            // linear interpolation to get value since x, y are floats
-            float dx = x - floor(x);
-            float dy = y - floor(y);
-            uchar val = tileMat.at<uchar>(floor(y),floor(x))*(1-dy)*(1-dx) 
-                       + tileMat.at<uchar>(floor(y),ceil(x))*(1-dy)*(dx)
-                       + tileMat.at<uchar>(ceil(y),floor(x))*(dy)*(1-dx)
-                       + tileMat.at<uchar>(ceil(y),ceil(x))*(dy)*(dx);
-
-            // only copy value if the pixel wasn't in a black strip
-            if(tileMat.at<uchar>(floor(y),floor(x))!=0 && tileMat.at<uchar>(floor(y),ceil(x))!=0
-               && tileMat.at<uchar>(ceil(y),floor(x))!=0 && tileMat.at<uchar>(ceil(y),ceil(x))!=0 )
-                  mosaicMat.at<uchar>(i,j) = val;
-
-            }
-
-         }
-
-    string mosaicFilename = resultsDir+"img_mosaic.jpg";
-    cv::imwrite(mosaicFilename, mosaicMat);
-}
-
-
-// original function to display the image mosaic
-void mosaicProcessor::displayImageMosaic(string resultsDir, string dataDir, vector<ImagePairNames> imgPairVector, 
-                        struct BBox mosaicBBox,  float radPerPixX, float radPerPixY)
-{
-
-    float minRadTilt = mosaicBBox.minTilt;
-    float minRadPan = mosaicBBox.minPan;
-    float maxRadTilt = mosaicBBox.maxTilt;
-    float maxRadPan = mosaicBBox.maxPan;
-   
-    double c[3],a[3],h[3],v[3];
-    int cols, rows;
-
-    cout<<"radPerPixX="<<radPerPixX<<", radPerPixY="<<radPerPixY<<endl;
-
- 
-    float deltaRadTilt = maxRadTilt-minRadTilt;
-    float deltaRadPan  = maxRadPan-minRadPan;
-    cout<<"deltaRadTilt="<<deltaRadTilt<<", deltaRadPan="<<deltaRadPan<<endl;
-
-    cout<<"maxRadTilt: "<<maxRadTilt<<" minRadTilt: "<<minRadTilt<<" radPerPixY: "<<radPerPixY<<endl;
-    cout<<"maxRadPan: "<<maxRadPan<<" minRadPan: "<<minRadPan<<" radPerPixX: "<<radPerPixX<<endl;
-    cout<<"scaleFactor: "<<scaleFactor<<endl;
-
-    int mosaicHeight = (maxRadTilt-minRadTilt)/radPerPixY;
-    int mosaicWidth = (maxRadPan-minRadPan)/radPerPixX;
-    mosaicHeight = mosaicHeight*scaleFactor;
-    mosaicWidth = mosaicWidth*scaleFactor;   
-
-     cout<<"mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
-     cv::Mat mosaicMat(cv::Size(mosaicWidth, mosaicHeight),CV_8UC1);
-
-    int numPairs = imgPairVector.size();
-
-    for (int i = 0; i < numPairs; i++){
-       
-      string camFilename = dataDir + prefix_from_filename(imgPairVector[i].left) + string(".cahv");
-      cout<<camFilename<<endl;
-      
-      ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
-      
-      float rad_pan, rad_tilt;
-      
-      a2pan_tilt(a, rad_pan, rad_tilt);
-
-      rad_pan = -rad_pan;
-      rad_tilt = -rad_tilt;
-
-      double optical_center[2];    
-      double fov_X_rad;
-      double fov_Y_rad;
-      
-      GetPinholeModel(c, a, h, v, cols, rows, pixelSize, optical_center, &fov_X_rad, &fov_Y_rad);
-   
-      string imgFilename = dataDir + imgPairVector[i].left;
-      cv::Mat tileMat = cv::imread(imgFilename, 0);
-
-      if ((tileMat.data==NULL)){
-	cout<<"File "<<imgFilename<<" not found"<<endl;  
-      }
-      else{
-
-	int newTileWidth = cols*scaleFactor;
-        int newTileHeight = rows*scaleFactor;
-        double new_optical_center[2];
-        new_optical_center[0] = optical_center[0]*scaleFactor;
-	new_optical_center[1] = optical_center[1]*scaleFactor;
-        float new_rad_per_pix_X = radPerPixX/scaleFactor;
-	float new_rad_per_pix_Y = radPerPixY/scaleFactor;
-
-	cv::Mat smallTileMat(cv::Size(newTileWidth, newTileHeight),CV_8UC1);
-	cv::resize(tileMat, smallTileMat, smallTileMat.size(), 0, 0);
-      
-
-	int colStart = (rad_pan-minRadPan)/(new_rad_per_pix_X) - new_optical_center[0];
-     
-	int rowStart = (rad_tilt-minRadTilt)/(new_rad_per_pix_Y) -  new_optical_center[1];
- 
-        if (rowStart<0) rowStart = 0;
-        if (colStart<0) colStart = 0;
-
-      
-	cout<<"colStart="<<colStart<<", rowStart="<<rowStart<<", width="<<newTileWidth<<", height="<<newTileHeight<<", mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
-	cout<<"rad_pan="<<rad_pan<<", rad_tilt="<<rad_tilt<<", minRadPan="<<minRadPan<<", maxRadPan="<<maxRadPan<<", minRadTilt="<<minRadTilt<<", maxRadTilt="<<maxRadTilt<<endl;
-	if ((colStart+newTileWidth<mosaicWidth) && (rowStart+newTileHeight < mosaicHeight)){  
-	    cv::Mat mosaic_roi = mosaicMat(cv::Rect(colStart, rowStart, newTileWidth, newTileHeight));
-	    smallTileMat.copyTo(mosaic_roi);        
+      {
+	double q[4];
+	//get rotated camera parameters and read image
+	string filenameExtension = extension_from_filename(imgPairVector[k].left);
+	if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+	  ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[k].left).c_str(), c, a, h, v, &cols, &rows);
+	  
+	  // get origin rotation 
+	  scan_file_for_origin_rotation((char*)(dataDir + imgPairVector[k].left).c_str(), q); 
+	  // rotate cahv parameters with quaternion
+	  rotateWithQuaternion(c,c,q);
+	  rotateWithQuaternion(a,a,q);
+	  rotateWithQuaternion(h,h,q);
+	  rotateWithQuaternion(v,v,q);
+          
+	  // read image
+	  readPDSFileToMat(dataDir + imgPairVector[k].left, tileMat);
+	  
+	}
+	else{
+	  string camFilename = dataDir + prefix_from_filename(imgPairVector[k].left) + string(".cahv");
+	  ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
+	  string imgFilename = dataDir + imgPairVector[k].left;
+	  tileMat = cv::imread(imgFilename, 0);
 	}
 	
+	if (tileMat.data==NULL){
+	  cout<<"File "<< dataDir + imgPairVector[k].left <<" not found"<<endl;  
+	  continue;
+	}
+	
+	// determine rows and columns corresponding to BBox
+	int col_start = (BBoxArray[k].minPan - minRadPan)/radPerPixX * scaleFactor;
+	int col_end = (BBoxArray[k].maxPan - minRadPan)/radPerPixX * scaleFactor;
+	
+	int row_start = (BBoxArray[k].minTilt - minRadTilt)/radPerPixY * scaleFactor;
+	int row_end = (BBoxArray[k].maxTilt - minRadTilt)/radPerPixY * scaleFactor;
+	
+	// iterate over the window in the image mosaic
+	for (int row = row_start; row < row_end; ++row)
+	  for (int col = col_start; col < col_end; ++col)
+            {
+	      
+	      // get i,j position
+	      int i=row % mosaicHeight;
+	      int j=col % mosaicWidth;
+	      if(j<0)
+		j+=mosaicWidth;
+	      if(i<0)
+		i+=mosaicHeight;
+	      
+	      // calculate the 3d position vector (p) from i,j
+	      double p[3];
+	      float radX = j*radPerPixX/scaleFactor+minRadPan;
+	      float radY = i*radPerPixY/scaleFactor+minRadTilt;
+	      p[0] = sin(-radX)*cos(radY);
+	      p[1] = cos(radX)*cos(radY);
+	      p[2] = sin(radY);
+	      
+	      double x, y;
+	      
+	      //check to make sure dont project 180 degrees off
+	      // dot product is less than 0 if angle is >90
+	      // this isn't needed if we use the boundary boxes
+	      if(dotprod3(p,a)<0)  
+		continue;
+	      
+	      
+	      // get the position where the point is in the image
+	      double origin[3] = {0.0,0.0,0.0};
+	      getXYFromCAHV(origin, a, h, v, x, y, p);
+	      
+	      // if not in the image skip it
+	      if(x < 0 || x > cols || y < 0 || y > rows)
+		continue;
+	      
+	      // linear interpolation to get value since x, y are floats
+	      float dx = x - floor(x);
+	      float dy = y - floor(y);
+	      uchar val = tileMat.at<uchar>(floor(y),floor(x))*(1-dy)*(1-dx) 
+		+ tileMat.at<uchar>(floor(y),ceil(x))*(1-dy)*(dx)
+		+ tileMat.at<uchar>(ceil(y),floor(x))*(dy)*(1-dx)
+		+ tileMat.at<uchar>(ceil(y),ceil(x))*(dy)*(dx);
+	      
+	      // only copy value if the pixel wasn't in a black strip
+	      if(tileMat.at<uchar>(floor(y),floor(x))!=0 && tileMat.at<uchar>(floor(y),ceil(x))!=0
+		 && tileMat.at<uchar>(ceil(y),floor(x))!=0 && tileMat.at<uchar>(ceil(y),ceil(x))!=0 )
+		mosaicMat.at<uchar>(i,j) = val;
+        
+            }
       }
-     
-    }
     
     string mosaicFilename = resultsDir+"img_mosaic.jpg";
     cv::imwrite(mosaicFilename, mosaicMat);
 }
 
+
+
 // function that makes the image tiles and point cloud tiles
-void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<ImagePairNames> imgPairVector, std::vector<BBox> BBoxArray, 
-               struct BBox mosaicBBox, double radPerPixX, double radPerPixY)
+//and saves them to corresponding files
+void mosaicProcessor::makeTiles(string dataDir, string pcDir, string resultsDir, 
+                                std::vector<ImagePairNames> imgPairVector, std::vector<BBox> BBoxArray, 
+				struct BBox mosaicBBox, double radPerPixX, double radPerPixY)
 {
 
   float minPanRad = (mosaicBBox.minPan);
   float maxPanRad = (mosaicBBox.maxPan);
   float minTiltRad = (mosaicBBox.minTilt);
   float maxTiltRad = (mosaicBBox.maxTilt);
-
+  
   // check for default case in width
   if(tileWidth <= 0 || tileWidth*radPerPixX > maxPanRad - minPanRad )
-      tileWidth = (maxPanRad - minPanRad)/radPerPixX;
-
+    tileWidth = (maxPanRad - minPanRad)/radPerPixX;
+  
   // check for default case in height
   if(tileHeight <= 0 || tileHeight*radPerPixY > maxTiltRad - minTiltRad )
-      tileHeight = (maxTiltRad - minTiltRad)/radPerPixY;
-
+    tileHeight = (maxTiltRad - minTiltRad)/radPerPixY;
+  
   float tile_fov_x = tileWidth*radPerPixX;
   float tile_fov_y = tileHeight*radPerPixY;
-  cout<<"tile_fov_x="<<tile_fov_x<<", tile_fov_y="<<tile_fov_y<<endl;
-
+  cout<<"MAKE_TILES: tile_fov_x="<<tile_fov_x<<", tile_fov_y="<<tile_fov_y<<endl;
+  
   int numHorTiles = ceil((maxPanRad-minPanRad)/tile_fov_x);
   int numVerTiles = ceil((maxTiltRad-minTiltRad)/tile_fov_y);
-  cout<<"numHorTiles="<<numHorTiles<<", numVerTiles="<<numVerTiles<<endl;
-
+  cout<<"MAKE_TILES: numHorTiles="<<numHorTiles<<", numVerTiles="<<numVerTiles<<endl;
+  
   // loop over the tiles
   for (int i = 0; i < numHorTiles; i++){
     for (int j = 0; j < numVerTiles; j++){
-    
-      cout<<"i="<<i<<", j="<<j<<endl;
+      
+      cout<<"TILE INDEX: i="<<i<<", j="<<j<<endl;
+      
+      // get the tile boundary box
+      struct BBox tileBox;
+      tileBox.minPan = (i*tileWidth)*radPerPixX + minPanRad;
+      tileBox.maxPan = (i+1)*tileWidth*radPerPixX + minPanRad;
+      tileBox.minTilt = j*tileHeight*radPerPixY + minTiltRad;
+      tileBox.maxTilt = (j+1)*tileHeight*radPerPixY + minTiltRad;
+      
+      // get overlap list
+      std::vector<int> overlapIndices = makeOverlapListFromBB(tileBox, BBoxArray);
+      
+      //memory allocation - START  will be changed to std vectors instead.
+      float *imgTile    = new float[tileWidth*tileHeight];
+      unsigned char  *uchar_tile    = new unsigned char[tileWidth*tileHeight];
+      int   *counter = new int[tileWidth*tileHeight]; 
+      int   *xyzCounter = new int[tileWidth*tileHeight];
+      std::vector<point3D> xyzTile;
+      xyzTile.resize(tileWidth*tileHeight);
+      //memory allocation - END      
 
-     // get the tile boundary box
-     struct BBox tileBox;
-     tileBox.minPan = (i*tileWidth)*radPerPixX + minPanRad;
-     tileBox.maxPan = (i+1)*tileWidth*radPerPixX + minPanRad;
-     tileBox.minTilt = j*tileHeight*radPerPixY + minTiltRad;
-     tileBox.maxTilt = (j+1)*tileHeight*radPerPixY + minTiltRad;
-
-     // get overlap list
-     std::vector<int> overlapIndices = makeOverlapListFromBB(tileBox, BBoxArray);
-  
-     float *imgTile    = new float[tileWidth*tileHeight];
-     unsigned char  *uchar_tile    = new unsigned char[tileWidth*tileHeight];
-     int   *counter = new int[tileWidth*tileHeight]; 
-     int   *xyzCounter = new int[tileWidth*tileHeight];
-     std::vector<point3D> xyzTile;
-     xyzTile.resize(tileWidth*tileHeight);
-     
-     //initialize the tile - START
-     for (int l = 0; l < tileHeight; l++){//ver    
-       for (int k = 0; k < tileWidth; k++){//hor 
-	 int tileIndex = l*tileWidth+k;
-	 imgTile[tileIndex] = 0.0;
-	 uchar_tile[tileIndex] = 0;
-	 counter[tileIndex] = 0;
-	 xyzCounter[tileIndex] = 0;
-	 xyzTile[tileIndex].x = 0.0;
-	 xyzTile[tileIndex].y = 0.0;
-	 xyzTile[tileIndex].z = 0.0;
-       }
-     }
-     //initialize the tile - END
-
-   
+      //initialize the tile - START
+      for (int l = 0; l < tileHeight; l++){//ver    
+	for (int k = 0; k < tileWidth; k++){//hor 
+	  int tileIndex = l*tileWidth+k;
+	  imgTile[tileIndex] = 0.0;
+	  uchar_tile[tileIndex] = 0;
+	  counter[tileIndex] = 0;
+	  xyzCounter[tileIndex] = 0;
+	  xyzTile[tileIndex].x = 0.0;
+	  xyzTile[tileIndex].y = 0.0;
+	  xyzTile[tileIndex].z = 0.0;
+	}
+      }
+      //initialize the tile - END
+      
+      
       //update tile - START
       int numPairs = imgPairVector.size();
-      for (int p = 0; p < numPairs; p++){
 
+      for (int p = 0; p < numPairs; p++){
+	
 	unsigned char *buffer;
 	double fov_X, fov_Y; 
 	int rows;
 	int cols;
 	double optical_center[2];
-
+	
 	if (overlapIndices[p] == 1){
 	  
-	  cout<<"p="<<p<<", "<<imgPairVector[p].left<<endl;
-
-	  //load individual images - START
-     IplImage *leftImage;
+	  //read the image - START
+	  IplImage *leftImage;
 	  string imgFilename = dataDir + imgPairVector[p].left;
-     string filenameExtension = extension_from_filename(imgPairVector[p].left);
-     if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
-       readPDSFileToIplImage(imgFilename, leftImage);
-     }
-     else{
-      leftImage = cvLoadImage((imgFilename).c_str());
-     }
-
+	  string filenameExtension = extension_from_filename(imgPairVector[i].left);
+	  if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+	    readPDSFileToIplImage(imgFilename, leftImage);
+	  }
+	  else{
+	    leftImage = cvLoadImage((imgFilename).c_str());
+	  }
+	  
 	  int t_rows = leftImage->height;
 	  int t_cols = leftImage->width;
        
@@ -807,39 +718,37 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 	    }
 	  }
 	  //buffer = (unsigned char*)(leftImage->imageData);
-	  //load individual images - END
+	  //read the image - END
 	  
-	  //load individual point cloud files - START
-	  string xyzFilename = resultsDir + string("point_") + prefix_from_filename(imgPairVector[p].left)+string(".txt"); 
-	  cout<<"reading xyz file...";
+	  //read the point cloud file - START
+	  string xyzFilename = pcDir + prefix_from_filename(imgPairVector[p].left) + string("_point_cloud.txt"); 
           std::vector<point3D> points = readXYZFile(xyzFilename, t_rows, t_cols);
-	  cout<<"done."<<endl;  
-	  //load individual point cloud files - END
+	  //read the point cloud file - END
 
-     //read cam params
+	  //read cam params - START
 	  double c[3],a[3],h[3],v[3];
-     if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
-       ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[p].left).c_str(), c, a, h, v, &cols, &rows);
-       // get origin rotation quaternion
-       double q[4];
-       scan_file_for_origin_rotation((char*)(dataDir + imgPairVector[p].left).c_str(), q); 
-       // rotate cahv parameters with quaternion
-       rotateWithQuaternion(c,c,q);
-       rotateWithQuaternion(a,a,q);
-       rotateWithQuaternion(h,h,q);
-       rotateWithQuaternion(v,v,q);
-     }
-     else{
-       string camFilename = dataDir + prefix_from_filename(imgPairVector[p].left) + string(".cahv");
-       ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
-     }
+	  if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+	    ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[p].left).c_str(), c, a, h, v, &cols, &rows);
+	    // get origin rotation quaternion
+	    double q[4];
+	    scan_file_for_origin_rotation((char*)(dataDir + imgPairVector[p].left).c_str(), q); 
+	    // rotate cahv parameters with quaternion
+	    rotateWithQuaternion(c,c,q);
+	    rotateWithQuaternion(a,a,q);
+	    rotateWithQuaternion(h,h,q);
+	    rotateWithQuaternion(v,v,q);
+	  }
+	  else{
+	    string camFilename = dataDir + prefix_from_filename(imgPairVector[p].left) + string(".cahv");
+	    ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
+	  }
+	  //read cam params - END
 	  
 	  float cam_pan_rad, cam_tilt_rad;
 	  a2pan_tilt(a, cam_pan_rad, cam_tilt_rad);
 	  cam_pan_rad = -cam_pan_rad;
 	  cam_tilt_rad = -cam_tilt_rad;
 	  
-	 
 	  double fov_X_rad, fov_Y_rad; 
 	  GetPinholeModel(c, a, h, v, cols, rows, pixelSize, optical_center, &fov_X_rad, &fov_Y_rad);
 
@@ -857,60 +766,60 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 	      //x, y are the row and column in the current image corresponding to curr_pan and curr_tilt
 	      //x = (int)floor(optical_center[0] + (curr_pan_rad  - cam_pan_rad)/radPerPixX);
 	      //y = (int)floor(optical_center[1] + (curr_tilt_rad - cam_tilt_rad)/radPerPixY);
-
-         // calculate the 3d position vector (p) from current pan and tilt
-         double p[3];
-         p[0] = sin(-curr_pan_rad)*cos(curr_tilt_rad);
-         p[1] = cos(curr_pan_rad)*cos(curr_tilt_rad);
-         p[2] = sin(curr_tilt_rad);
-         double x_d,y_d;
-
-         // get the position where the point is in the image
-         double origin[3] = {0.0,0.0,0.0};
-         getXYFromCAHV(origin, a, h, v, x_d, y_d, p);
-         x = (int)x_d;
-         y = (int)y_d;
-
-         // get imgIndex and tileIndex
-         int imgIndex = y*cols+x;
-         int tileIndex = l*tileWidth+k;
-     
-         //if the point lies inside the image 
-         if ((x >=0) && (y >=0) && (x < cols) && (y <rows)){
-         int pixVal = (int)(buffer[imgIndex]);
-
-         //compute the distance the point is from the origin
-         double dist = sqrt(points[imgIndex].x*points[imgIndex].x+points[imgIndex].y*points[imgIndex].y+points[imgIndex].z*points[imgIndex].z);
-
-         // if the pixel is not 0
-         if (pixVal!=0){
-            imgTile[tileIndex]   = imgTile[tileIndex] + pixVal;
-            counter[tileIndex]   = counter[tileIndex] + 1;
-
-            // check to make sure the point wasnt (0, 0, 0)
-            if(dist > FLT_EPSILON){
-               xyzTile[tileIndex].x = xyzTile[tileIndex].x + p[0]*dist;
-               xyzTile[tileIndex].y = xyzTile[tileIndex].y + p[1]*dist;
-               xyzTile[tileIndex].z = xyzTile[tileIndex].z + p[2]*dist;
-               xyzCounter[tileIndex] = xyzCounter[tileIndex] + 1;
-               }
-            }
-
-         }
-	    
-       }
-     } 
+	      
+	      // calculate the 3d position vector (p) from current pan and tilt
+	      double p[3];
+	      p[0] = sin(-curr_pan_rad)*cos(curr_tilt_rad);
+	      p[1] = cos(curr_pan_rad)*cos(curr_tilt_rad);
+	      p[2] = sin(curr_tilt_rad);
+	      double x_d,y_d;
+	      
+	      // get the position where the point is in the image
+	      double origin[3] = {0.0,0.0,0.0};
+	      getXYFromCAHV(origin, a, h, v, x_d, y_d, p);
+	      x = (int)x_d;
+	      y = (int)y_d;
+	      
+	      // get imgIndex and tileIndex
+	      int imgIndex = y*cols+x;
+	      int tileIndex = l*tileWidth+k;
+	      
+	      //if the point lies inside the image 
+	      if ((x >=0) && (y >=0) && (x < cols) && (y <rows)){
+		int pixVal = (int)(buffer[imgIndex]);
+		
+		//compute the distance the point is from the origin
+		double dist = sqrt(points[imgIndex].x*points[imgIndex].x+points[imgIndex].y*points[imgIndex].y+points[imgIndex].z*points[imgIndex].z);
+		
+		// if the pixel is not 0
+		if (pixVal!=0){
+		  imgTile[tileIndex]   = imgTile[tileIndex] + pixVal;
+		  counter[tileIndex]   = counter[tileIndex] + 1;
+		  
+		  // check to make sure the point wasnt (0, 0, 0)
+		  if(dist > FLT_EPSILON){
+		    xyzTile[tileIndex].x = xyzTile[tileIndex].x + p[0]*dist;
+		    xyzTile[tileIndex].y = xyzTile[tileIndex].y + p[1]*dist;
+		    xyzTile[tileIndex].z = xyzTile[tileIndex].z + p[2]*dist;
+		    xyzCounter[tileIndex] = xyzCounter[tileIndex] + 1;
+		  }
+		}
+		
+	      }
+	      
+	    }
+	  } 
 	  
 	  cvReleaseImage(&leftImage);
 	  delete[] buffer;
 	  points.clear();
-	  cout<<"done."<<endl;
-	 }//if (overlapIndices[p] == 1){
-	  
+	  //cout<<"done."<<endl;
+	}//if (overlapIndices[p] == 1){
+	
       }
       //update tile - END
       
-
+      
       //normalize tile - START
       int numValidPix = 0;
       for (int l = 0; l < tileHeight; l++){
@@ -920,17 +829,17 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 	    uchar_tile[index] = (unsigned char) (imgTile[index]/counter[index]);
 	    numValidPix++;
           }
-       if(xyzCounter[index]>0){
-         xyzTile[index].x = (xyzTile[index].x/xyzCounter[index]);
-         xyzTile[index].y = (xyzTile[index].y/xyzCounter[index]);
-         xyzTile[index].z = (xyzTile[index].z/xyzCounter[index]);
-         }
-
+	  if(xyzCounter[index]>0){
+	    xyzTile[index].x = (xyzTile[index].x/xyzCounter[index]);
+	    xyzTile[index].y = (xyzTile[index].y/xyzCounter[index]);
+	    xyzTile[index].z = (xyzTile[index].z/xyzCounter[index]);
+	  }
+	  
 	}
       }
       //normalize tile - END
       cout<<"done normalizing the tile"<<endl;
-
+      
       //save tile - START
       if (numValidPix > 0){
 	string tileFilename;
@@ -939,23 +848,24 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 	ss_2 << j;
 	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".jpg";
         string xyzTileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".txt";
-
+	
 	cout<<tileFilename<<endl;
 	IplImage *tileImage = cvCreateImage(cvSize(tileWidth, tileHeight), IPL_DEPTH_8U , 1);
-
+	
 	for (int k = 0; k < tileWidth; k++){
 	  for (int l = 0; l < tileHeight; l++){
-              int index = l*tileWidth+k;
-	      ((uchar *)(tileImage->imageData +l*tileImage->widthStep))[k]=uchar_tile[index];
+	    int index = l*tileWidth+k;
+	    ((uchar *)(tileImage->imageData +l*tileImage->widthStep))[k]=uchar_tile[index];
 	  }
         }
         cvSaveImage(tileFilename.c_str(), tileImage);
 	cvReleaseImage(&tileImage);
+
         saveXYZFile(xyzTileFilename, xyzTile, uchar_tile);
       }
       cout<<"done saving the tile"<<endl;
       //save tile - END
-
+      
       delete[] uchar_tile;
       delete[] imgTile;
       delete[] counter;
@@ -967,6 +877,8 @@ void mosaicProcessor::makeTiles(string dataDir, string resultsDir, std::vector<I
 }
 
 //function to calculate boundary boxes for each image pair
+//mosaicBBBox: output of the mosaic bounding box
+//BBoxArray: array of BBoxes, one for each image
 void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> &imgPairVector, vector<BBox> &BBoxArray, BBox &mosaicBBox, float &radPerPixX, float &radPerPixY )
 {
 
@@ -1018,11 +930,11 @@ void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> 
     a2pan_tilt(a, panRad, tiltRad);
     panRad = -panRad;
     tiltRad = -tiltRad;
-    cout<<"panRad="<<panRad<<", tiltRad="<<tiltRad<<endl;
+    //cout<<"CALC_BOUNDARY_BOXES: panRad="<<panRad<<", tiltRad="<<tiltRad<<endl;
 
     GetPinholeModel(c, a, h, v, cols, rows, pixelSize, opticalCenter, &radFovX, &radFovY);
     
-    cout<<"rows: "<<rows<<endl;
+    //cout<<"CALC_BOUNDARY_BOXES: rows: "<<rows<<endl;
     radPerPixX = radFovX/cols; 
     radPerPixY = radFovY/rows; 
 
@@ -1054,7 +966,7 @@ void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> 
   minTilt = minTilt - radFovY/2;
   maxTilt = maxTilt + radFovY/2;
 
-  cout<<"minPan="<<minPan<<", maxPan="<<maxPan<<", minTilt="<<minTilt<<", maxTilt="<<maxTilt<<endl;
+  //cout<<"CALC_BOUNDARY_BOXES: minPan="<<minPan<<", maxPan="<<maxPan<<", minTilt="<<minTilt<<", maxTilt="<<maxTilt<<endl;
   if (maxPan>M_PI){maxPan = M_PI;}
   if (minPan<-M_PI){minPan = -M_PI;} 
   if (maxTilt>M_PI/2){maxTilt = M_PI/2;}
@@ -1065,9 +977,107 @@ void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> 
   mosaicBBox.maxPan  = maxPan;
 
   // calculate boundary box - END
-
-
 }
 
+
+/*
+// original function to display the image mosaic
+void mosaicProcessor::displayImageMosaic(string resultsDir, string dataDir, vector<ImagePairNames> imgPairVector, 
+					 struct BBox mosaicBBox,  float radPerPixX, float radPerPixY)
+{
+
+    float minRadTilt = mosaicBBox.minTilt;
+    float minRadPan = mosaicBBox.minPan;
+    float maxRadTilt = mosaicBBox.maxTilt;
+    float maxRadPan = mosaicBBox.maxPan;
+   
+    double c[3],a[3],h[3],v[3];
+    int cols, rows;
+    
+    cout<<"DISPLAY_IMAGE_MOSAIC: radPerPixX="<<radPerPixX<<", radPerPixY="<<radPerPixY<<endl;
+
+    float deltaRadTilt = maxRadTilt-minRadTilt;
+    float deltaRadPan  = maxRadPan-minRadPan;
+
+    cout<<"DISPLAY_IMAGE_MOSAIC: deltaRadTilt="<<deltaRadTilt<<", deltaRadPan="<<deltaRadPan<<endl;
+    cout<<"DISPLAY_IMAGE_MOSAIC: maxRadTilt: "<<maxRadTilt<<" minRadTilt: "<<minRadTilt<<" radPerPixY: "<<radPerPixY<<endl;
+    cout<<"DISPLAY_IMAGE_MOSAIC: maxRadPan: "<<maxRadPan<<" minRadPan: "<<minRadPan<<" radPerPixX: "<<radPerPixX<<endl;
+    cout<<"DISPLAY_IMAGE_MOSAIC: scaleFactor: "<<scaleFactor<<endl;
+
+    int mosaicHeight = (maxRadTilt-minRadTilt)/radPerPixY;
+    int mosaicWidth = (maxRadPan-minRadPan)/radPerPixX;
+    mosaicHeight = mosaicHeight*scaleFactor;
+    mosaicWidth = mosaicWidth*scaleFactor;   
+
+     cout<<"DISPLAY_IMAGE_MOSAIC: mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
+     cv::Mat mosaicMat(cv::Size(mosaicWidth, mosaicHeight),CV_8UC1);
+
+    int numPairs = imgPairVector.size();
+
+    for (int i = 0; i < numPairs; i++){
+       
+      string camFilename = dataDir + prefix_from_filename(imgPairVector[i].left) + string(".cahv");
+      cout<<camFilename<<endl;
+      
+      ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
+      
+      float rad_pan, rad_tilt;
+      
+      a2pan_tilt(a, rad_pan, rad_tilt);
+
+      rad_pan = -rad_pan;
+      rad_tilt = -rad_tilt;
+
+      double optical_center[2];    
+      double fov_X_rad;
+      double fov_Y_rad;
+      
+      GetPinholeModel(c, a, h, v, cols, rows, pixelSize, optical_center, &fov_X_rad, &fov_Y_rad);
+   
+      string imgFilename = dataDir + imgPairVector[i].left;
+      cv::Mat tileMat = cv::imread(imgFilename, 0);
+
+      if ((tileMat.data==NULL)){
+	cout<<"File "<<imgFilename<<" not found"<<endl;  
+      }
+      else{
+
+	int newTileWidth = cols*scaleFactor;
+        int newTileHeight = rows*scaleFactor;
+        double new_optical_center[2];
+        new_optical_center[0] = optical_center[0]*scaleFactor;
+	new_optical_center[1] = optical_center[1]*scaleFactor;
+        float new_rad_per_pix_X = radPerPixX/scaleFactor;
+	float new_rad_per_pix_Y = radPerPixY/scaleFactor;
+
+	cv::Mat smallTileMat(cv::Size(newTileWidth, newTileHeight),CV_8UC1);
+	cv::resize(tileMat, smallTileMat, smallTileMat.size(), 0, 0);
+      
+
+	int colStart = (rad_pan-minRadPan)/(new_rad_per_pix_X) - new_optical_center[0];
+     
+	int rowStart = (rad_tilt-minRadTilt)/(new_rad_per_pix_Y) -  new_optical_center[1];
+ 
+        if (rowStart<0) rowStart = 0;
+        if (colStart<0) colStart = 0;
+      
+	cout<<"DISPLAY_IMAGE_MOSAIC: colStart="<<colStart<<", rowStart="<<rowStart<<", width="<<newTileWidth<<
+              ", height="<<newTileHeight<<", mosaicWidth="<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
+	cout<<"DISPLAY_IMAGE_MOSAIC: rad_pan="<<rad_pan<<", rad_tilt="<<rad_tilt<<", minRadPan="<<minRadPan<<", maxRadPan="<<maxRadPan<<
+	      ", minRadTilt="<<minRadTilt<<", maxRadTilt="<<maxRadTilt<<endl;
+
+	if ((colStart+newTileWidth<mosaicWidth) && (rowStart+newTileHeight < mosaicHeight)){  
+	    cv::Mat mosaic_roi = mosaicMat(cv::Rect(colStart, rowStart, newTileWidth, newTileHeight));
+	    smallTileMat.copyTo(mosaic_roi);        
+	}
+	
+      }
+     
+    }
+    
+    string mosaicFilename = resultsDir+"img_mosaic.jpg";
+    cv::imwrite(mosaicFilename, mosaicMat);
+}
+*/
 
 
