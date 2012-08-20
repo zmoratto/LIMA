@@ -41,11 +41,10 @@ For beginner, check opt/local if you install them with "sudo port install." Othe
 
 - Initialize ATK
 1) svn co https://babelfish.arc.nasa.gov/svn/stereopipeline/sandbox/lima/
-2) cd lima
-3) mkdir build
-4) cd build
-5) cmake .. (here is big double dots)
-6) make install
+2) mkdir lima\build
+3) cd lima\build
+4) cmake .. (here is big double dots)
+5) make install
 
 - Configure ATK
 1) cd lima\build
@@ -58,14 +57,13 @@ For beginner, check opt/local if you install them with "sudo port install." Othe
 # Test ATK
 1) cd lima/build
 2) make test
-3) view the file in lima/build/Testing/Tempory/LastTest.log
+3) view the file in lima/build/Testing/Temporary/LastTest.log
 
 # Run SFM with an Example
-1) cd /lima
-2) mkdir examples
-3) cd examples
-4) Copy images and their depth data with their file lists (e.g., testImageList.txt and testPCList.txt) and configuration file (e.g., testConfig.txt)
-5) sfm_test testConfig.txt testImageList.txt results
+1) mkdir lima/examples
+2) cd lima/examples
+3) Copy images and their depth data with their file lists (e.g., testImageList.txt and testPCList.txt) and configuration file (e.g., testConfig.txt)
+4) sfm_test testConfig.txt testImageList.txt results
 	where testImageList.txt contains the list of input images
 
 # troubleshooting
