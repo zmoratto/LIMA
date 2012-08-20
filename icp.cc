@@ -202,7 +202,7 @@ void ICP_Report(std::vector<vw::Vector3>       origFeatureXYZArray,
 {
  
     //print the feature and reference arrays for debug - START 
-    for (int index = 0; index<featureXYZArray.size(); index++){
+    for (unsigned int index = 0; index<featureXYZArray.size(); index++){
     
       Vector3 transfFeatureXYZ = rotation*(origFeatureXYZArray[index]/*-center*/) /*+ center */+ translation; 
 

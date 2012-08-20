@@ -295,7 +295,7 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
   vw::Vector3 zeroVector;
 
   std::vector<vw::Vector3> origFeatureArray( featureArray.size() );   
-  for (int i = 0; i < featureArray.size(); i++){
+  for (unsigned int i = 0; i < featureArray.size(); i++){
     origFeatureArray[i] = featureArray[i];
   }
   origFeatureCenter = find_centroid( origFeatureArray );
