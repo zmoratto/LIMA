@@ -33,15 +33,27 @@ set(OPTIONAL_ASP_LIBRARIES
 	superlu # on mac this is not needed?
 )
 
+#set(ARBITRARY_QT_LIBRARIES
+#	libQtCore.so.4
+#	libQtGui.so.4
+#	libQtNetwork.so.4
+#	libQtSql.so.4
+#	libQtSvg.so.4
+#	libQtXml.so.4
+#	libQtXmlPatterns.so.4
+#	libQtWebKit.so.4
+#)
+
+
 set(ARBITRARY_QT_LIBRARIES
-	libQtCore.so.4
-	libQtGui.so.4
-	libQtNetwork.so.4
-	libQtSql.so.4
-	libQtSvg.so.4
-	libQtXml.so.4
-	libQtXmlPatterns.so.4
-	libQtWebKit.so.4
+	QtCore
+	QtGui
+	QtNetwork
+	QtSql
+	QtSvg
+	QtXml
+	QtXmlPatterns
+	QtWebKit
 )
 
 set(ARBITRARY_BOOST_LIBRARIES
@@ -60,12 +72,12 @@ if(NOT ASP_INCLUDE_H)
 endif(NOT ASP_INCLUDE_H)
 string(REGEX REPLACE "/[^/]*/[^/]*/[^/]*$" "" ASP_ROOT_DIR ${ASP_INCLUDE_H} )
 
-find_file( ISIS_INCLUDE_H "inc/Isis.h" $ENV{ISISROOT} NO_DEFAULT_PATH)
-if(NOT ISIS_INCLUDE_H)
-	message(ERROR "    ISIS not found. Did you set the ISISROOT environment variable?")
-	return()
-endif(NOT ISIS_INCLUDE_H)
-string(REGEX REPLACE "/[^/]*/[^/]*$" "" ISIS_ROOT_DIR ${ISIS_INCLUDE_H} )
+#find_file( ISIS_INCLUDE_H "inc/Isis.h" $ENV{ISISROOT} NO_DEFAULT_PATH)
+#if(NOT ISIS_INCLUDE_H)
+#	message(ERROR "    ISIS not found. Did you set the ISISROOT environment variable?")
+#	return()
+#endif(NOT ISIS_INCLUDE_H)
+#string(REGEX REPLACE "/[^/]*/[^/]*$" "" ISIS_ROOT_DIR ${ISIS_INCLUDE_H} )
 
 if (DEFINED ENV{BASESYSTEMROOT})
 	set(BASESYSTEMROOT "$ENV{BASESYSTEMROOT}")
@@ -86,8 +98,9 @@ set( ASP_INCLUDE_DIR
 	${ASP_ROOT_DIR}/include
 	${BASE_SYSTEM_ROOT_DIR}/include
 	${BASE_SYSTEM_ROOT_DIR}/noinstall/include
-	${BASE_SYSTEM_ROOT_DIR}/noinstall/include/QtCore
-	${ISIS_ROOT_DIR}/3rdParty/include
+	#${BASE_SYSTEM_ROOT_DIR}/noinstall/include/QtCore
+	${BASE_SYSTEM_ROOT_DIR}/include/QtCore
+        ${ISIS_ROOT_DIR}/3rdParty/include
 	${ISIS_ROOT_DIR}/inc
 	/opt/local/include # for OS X
 )
@@ -120,7 +133,7 @@ foreach(LIB ${ARBITRARY_QT_LIBRARIES})
 	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
 	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
 	if(NOT BLIB)
-		message(STATUS "    Could not find QT library ${LIB}.")
+		message(WARNING "    Could not find QT library ${LIB}.")
 		set( ARBITRARY_QT_FOUND False )
 	else(NOT BLIB)
 		set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
@@ -135,8 +148,8 @@ if (NOT ARBITRARY_QT_FOUND)
 		message(ERROR "Package Qt required for ASP, but not found.")
 		return()
 	endif (NOT QT_FOUND)
-	set(ASP_INCLUDE_DIR ${ASP_INCLUDE_DIR} ${QT_INCLUDE_DIR})
-	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${QT_LIBRARIES})
+	set(ASP_INCLUDE_DIR ${ASP_INCLUDE_DIR} ${Qt_INCLUDE_DIR})
+	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${Qt_LIBRARIES})
 endif (NOT ARBITRARY_QT_FOUND)
 
 set( ARBITRARY_BOOST_FOUND True )
@@ -144,7 +157,7 @@ foreach(LIB ${ARBITRARY_BOOST_LIBRARIES})
 	set(BLIB BLIB-NOTFOUND) # if we don't do this find_library caches the results
 	find_library(BLIB ${LIB} PATHS ${ASP_LIBRARY_DIR} NO_DEFAULT_PATH)
 	if(NOT BLIB)
-		message(STATUS "    Could not find Boost library ${LIB}.")
+		message(WARNING "    Could not find Boost library ${LIB}.")
 		set( ARBITRARY_BOOST_FOUND False )
 	else(NOT BLIB)
 		set(ASP_LIBRARIES ${ASP_LIBRARIES} ${BLIB} )
