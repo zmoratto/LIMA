@@ -40,13 +40,3 @@ target_link_libraries(lima ${ASP_LIBRARIES} )
 add_executable(lidar2img lidar2img.cc )
 target_link_libraries(lidar2img lima )
 
-#add_executable(test_tracks ../tests/Test_tracks.cc )
-#target_link_libraries(test_tracks lima )
-#target_link_libraries(test_tracks gtest )
-
-#IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
-#	add_definitions(-arch i386)
-#	SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
-#	SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
-#ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-

@@ -1,9 +1,5 @@
 project(lidar2img)
 cmake_minimum_required(VERSION 2.6)
-add_definitions(-arch i386)
-add_definitions(-DQT_NO_KEYWORDS)
-
-add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 
@@ -15,17 +11,15 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
 
-find_package(Qt)
-
 find_package( VisionWorkbench )
 if (NOT VW_FOUND)
 	message(FATAL_ERROR "Package VisionWorkbench required, but not found.")
 endif (NOT VW_FOUND)
 
-find_package( Boost REQUIRED system thread filesystem program_options )
-if (NOT Boost_FOUND)
-	message(FATAL_ERROR "Package Boost required, but not found.")
-endif (NOT Boost_FOUND)
+#find_package( ASP )
+#if (NOT ASP_FOUND)
+#	message(FATAL_ERROR "Package ASP required, but not found.")
+#endif (NOT ASP_FOUND)
 
 ## We must add the in-source and out-of-source
 ## include paths 
@@ -33,16 +27,10 @@ endif (NOT Boost_FOUND)
 include_directories(
   ${PROJECT_SOURCE_DIR}/..
   ${VW_INCLUDE_DIR}
-  ${ASP_INCLUDE_DIR}
-  ${Boost_INCLUDE_DIR}
+  #  ${ASP_INCLUDE_DIR}
   )
-# ISIS include directories
 
 set( COMMON_SRCS ../icp.cc ../string_util.cc pyr_tiling.cc assembler.cc )
 
 add_executable( assembler ${COMMON_SRCS})
-target_link_libraries(assembler ${Boost_LIBRARIES} )
 target_link_libraries(assembler ${VW_LIBRARIES} )
-
-SET_TARGET_PROPERTIES(assembler PROPERTIES LINK_FLAGS "-arch i386")
-SET_TARGET_PROPERTIES(assembler PROPERTIES LINK_FLAGS "-arch i386")
