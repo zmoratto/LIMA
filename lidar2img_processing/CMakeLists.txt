@@ -11,7 +11,6 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
 
-
 find_package( VisionWorkbench )
 if (NOT VW_FOUND)
 	message(FATAL_ERROR "Package VisionWorkbench required, but not found.")
@@ -45,9 +44,9 @@ target_link_libraries(lidar2img lima )
 #target_link_libraries(test_tracks lima )
 #target_link_libraries(test_tracks gtest )
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
-	add_definitions(-arch i386)
-	SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
-	SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
+#	add_definitions(-arch i386)
+#	SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
+#	SET_TARGET_PROPERTIES(lidar2img PROPERTIES LINK_FLAGS "-arch i386")
+#ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
