@@ -42,6 +42,12 @@ the original imagine coordinates to the adjusted image coordinates.
 		The command ``\texttt{lidar2img -l lola\_tracks.csv -i image.cub --outputImage alignment.png}'' will
 		align the LOLA tracks in the CSV file \texttt{lola\_tracks.csv} to the image file \texttt{image.cub}.
 		The transformation matrix will be output, and the resulting alignment will be shown in \texttt{alignment.png}.
+	\item{\emph{Visualization Tool}}
+		In the \texttt{scripts} directory, the \texttt{visualize\_tracks.py} script displays depth profiles along
+		with synthetic images and the original images after alignment. To use the script, output track profiles when
+		aligning with the \texttt{lidar2img} program by using the \texttt{-d} option. Pass the resulting file as
+		input to \texttt{visualize\_tracks.py} to visualize individual tracks.
+
 \end{enumerate}
 
 \subsection{Runtime Options}
