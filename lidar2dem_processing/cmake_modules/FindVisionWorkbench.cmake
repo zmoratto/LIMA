@@ -1,6 +1,10 @@
 ######################################################################
 # Find script for VisionWorkbench in releases
 #
+# Input variables:
+# ENV variable VWROOT
+# ENV variable BASESYSTEMROOT, if desired
+#
 # Output Variables:
 # -----------------
 # VW_FOUND                : TRUE if search succeded
@@ -54,6 +58,10 @@ if(NOT VW_INCLUDE_H)
 	return()
 endif(NOT VW_INCLUDE_H)
 
+if (DEFINED ENV{BASESYSTEMROOT})
+	SET(BASE_SYSTEM_INCLUDE $ENV{BASESYSTEMROOT}/include)
+endif (DEFINED ENV{BASESYSTEMROOT})
+
 # Set the root to 3 directories above vw.h
 #-----------------------------------------
 string(REGEX REPLACE "/[^/]*/[^/]*/[^/]*$" "" VW_ROOT_DIR ${VW_INCLUDE_H} )
@@ -67,7 +75,7 @@ if( VW_ROOT_DIR )
     set( VW_LIBRARY_NAMES ${VW_LIBRARY_NAMES} vw${MODULE} )
   endforeach( MODULE ${VW_MODULE_NAMES} )
   
-  set( VW_INCLUDE_DIR ${VW_ROOT_DIR}/include ${Boost_INCLUDE_DIR} )
+  set( VW_INCLUDE_DIR ${VW_ROOT_DIR}/include ${Boost_INCLUDE_DIR} ${BASE_SYSTEM_INCLUDE})
   set( VW_LIBRARY_DIR ${VW_ROOT_DIR}/lib )
   
   get_library_list(VW ${VW_LIBRARY_DIR} "d" "${VW_LIBRARY_NAMES}")
@@ -117,7 +125,7 @@ if( VW_ROOT_DIR )
             message(STATUS "               but it is needed for VisionWorkbench")
           endif(Boost_${_BOOST_PACKAGE}_LIBRARY)
         endforeach( _BOOST_PACKAGE ${_BOOST_PACKAGES} )
-
+    
       endif( VW_VECLIB_LIBRARIES )
     endif( APPLE )
   endif( NOT VW_HAS_IMPORTS )
@@ -128,4 +136,15 @@ if( VW_ROOT_DIR )
 else( VW_ROOT_DIR )
   message(STATUS "  VisionWorkbench NOT found!!! Could not find vw.h")
 endif( VW_ROOT_DIR )
+
+if (NOT Boost_FOUND)
+	set(ENV{BOOST_ROOT} $ENV{BASESYSTEMROOT}) # use base system root directory
+	find_package( Boost REQUIRED filesystem system thread program_options )
+	if (NOT Boost_FOUND)
+		message(ERROR "Package Boost required for Vision Workbench, but not found.")
+		return()
+	endif (NOT Boost_FOUND)
+	set(VW_INCLUDE_DIR ${VW_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+	set(VW_LIBRARIES ${VW_LIBRARIES} ${Boost_LIBRARIES})
+endif (NOT Boost_FOUND)
 
