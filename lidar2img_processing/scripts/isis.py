@@ -11,6 +11,34 @@ if not os.environ.has_key('ISISROOT'):
 ISISROOT = os.environ['ISISROOT']
 ISISBIN = ISISROOT + '/bin'
 
+def get_image_coords(image_file, lat, lon):
+	proc = subprocess.Popen([ISISBIN + '/campt', 'from=' + image_file, 'type=ground', 'latitude=' + str(lat), 'longitude=' + str(lon)], stdout=subprocess.PIPE)
+	proc.wait()
+	os.remove('print.prt')
+	if proc.returncode != 0:
+		print >> sys.stderr, "Error in campt, aborting."
+		return None
+	x = None
+	y = None
+	for l in proc.stdout:
+		s = l.split()
+		try:
+			if s[0] == 'Sample':
+				x = float(s[2])
+				if y != None:
+					break
+			if s[0] == 'Line':
+				y = float(s[2])
+				if x != None:
+					break
+		except ValueError:
+			print >> sys.stderr, 'Could not convert %s to float in campt output.' % (s[2])
+			return None
+	if x == None or y == None:
+		print >> sys.stderr, 'Did not find latitude and longitude in campt output.'
+		return None
+	return (x, y)
+
 # get longitude / latitude borders of image
 def get_image_bbox(image_file):
 	proc = subprocess.Popen([ISISBIN + '/camrange', 'from=' + image_file], stdout=subprocess.PIPE)
