@@ -41,7 +41,7 @@ set(ARBITRARY_QT_LIBRARIES
 	QtSvg
 	QtXml
 	QtXmlPatterns
-	QtWebKit
+#	QtWebKit
 )
 
 # Set the root to 3 directories above Core.h
@@ -68,14 +68,15 @@ string(REGEX REPLACE "/[^/]*/[^/]*$" "" BASE_SYSTEM_ROOT_DIR ${BASE_INCLUDE_H} )
 
 # see if our base system includes libisis3, if it does, we don't need ISISROOT
 find_library( ISIS_LIB isis3 PATHS ${BASE_SYSTEM_ROOT_DIR}/lib NO_DEFAULT_PATH)
-if (NOT ISIS_LIB_FOUND)
+if (NOT ISIS_LIB)
+	message(STATUS "   Looking for ISIS in ISISROOT.")
 	find_file( ISIS_INCLUDE_H "inc/Isis.h" $ENV{ISISROOT} NO_DEFAULT_PATH)
 	if(NOT ISIS_INCLUDE_H)
 		message(STATUS "    ISIS not found. Did you set the ISISROOT environment variable?")
 		return()
 	endif(NOT ISIS_INCLUDE_H)
 	string(REGEX REPLACE "/[^/]*/[^/]*$" "" ISIS_ROOT_DIR ${ISIS_INCLUDE_H} )
-endif (NOT ISIS_LIB_FOUND)
+endif (NOT ISIS_LIB)
 
 mark_as_advanced(ASP_INCLUDE_H ISIS_INCLUDE_H BASE_INCLUDE_H ISIS_LIB )
 
@@ -87,7 +88,7 @@ set( ASP_INCLUDE_DIR
 	${BASE_SYSTEM_ROOT_DIR}/include/QtCore
 	${ISIS_ROOT_DIR}/3rdParty/include
 	${ISIS_ROOT_DIR}/inc
-	/opt/local/include # for OS X
+	#/opt/local/include # for OS X
 )
 
 set( ASP_LIBRARY_DIR ${ASP_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/lib ${ISIS_ROOT_DIR}/3rdParty/lib ${BASE_SYSTEM_ROOT_DIR}/lib )
@@ -144,8 +145,8 @@ if (NOT Boost_FOUND)
 		message(ERROR "Package Boost required for Vision Workbench, but not found.")
 		return()
 	endif (NOT Boost_FOUND)
-	set(VW_INCLUDE_DIR ${VW_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
-	set(VW_LIBRARIES ${VW_LIBRARIES} ${Boost_LIBRARIES})
+	set(ASP_INCLUDE_DIR ${ASP_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+	set(ASP_LIBRARIES ${ASP_LIBRARIES} ${Boost_LIBRARIES})
 endif (NOT Boost_FOUND)
 
 add_definitions(-DQT_NO_KEYWORDS) #avoids conflict if using Boost 1.48
