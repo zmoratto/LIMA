@@ -9,18 +9,19 @@
 #include <string>
 #include <vector>
 
-#include <boost/algorithm/string.hpp>
+//#include <boost/algorithm/string.hpp>
 
 #include "string_util.h"
 
 using namespace std;
-
+/*
 vector<std::string> FindAndSplit( std::string& tInput, std::string tFind ) 
 {
     std::vector<std::string> strs;
     boost::split(strs, tInput, boost::is_any_of(tFind));
     return strs;
 }
+*/
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace ) 
 { 
 

@@ -13,7 +13,7 @@
 using namespace std;
 
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );
-vector<std::string> FindAndSplit(std::string& tInput, std::string tFind);
+//vector<std::string> FindAndSplit(std::string& tInput, std::string tFind);
 std::string GetFilenameNoExt(std::string const& filename);
 std::string GetFilenameNoPath(std::string const& filename);
 std::string GetFilenameExt(std::string const& filename);
