@@ -40,7 +40,7 @@ include_directories(
 message(STATUS ${GTEST_INCLUDE_DIR})
 message(STATUS ${GTEST_LIBRARIES})
 
-set( COMMON_SRCS ../lidar_tracks/tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
+set( COMMON_SRCS ../lidar_tracks/tracks.cc ../match.cc ../lidar_tracks/display.cc ../lidar_tracks/featuresLOLA.cc ../util.cc )
 
 add_library( lima ${COMMON_SRCS})
 target_link_libraries(lima ${VW_LIBRARIES} )

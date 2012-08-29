@@ -2,7 +2,7 @@
 
 #include "../lidar_tracks/tracks.h"
 #include "../match.h" // For FindMatches2D()
-#include "../featuresLOLA.h" // For ComputeSalientLOLAFeature()
+#include "../lidar_tracks/featuresLOLA.h" // For ComputeSalientLOLAFeature()
 #include "gtest/gtest.h"
 
 // #include <asp/IsisIO.h>
