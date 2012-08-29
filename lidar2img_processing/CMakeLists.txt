@@ -29,7 +29,6 @@ include_directories(
   ${VW_INCLUDE_DIR}
   ${ASP_INCLUDE_DIR}
   )
-# ISIS include directories
 
 set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
 

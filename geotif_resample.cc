@@ -381,35 +381,34 @@ int main( int argc, char *argv[] ) {
    istringstream (strs[1])>>horTile; 
    istringstream (strs[2])>>verTile;
    //cout<<"horTile="<<horTile<<", verTile="<<verTile<<endl; 
-
-    vector<int> quadDecomposition;
-    quadDecomposition = QuadDecomposition(horTile, verTile, numPyrLevels);
-    for (int i = numPyrLevels-1; i >=0; i--){
-      quadDecomposition[i] = quadDecomposition[i] +1; 
-      stringstream ss;//create a stringstream
-      ss << quadDecomposition[i];
-      outputDirname = outputDirname+string("/")+ss.str();
-    }
-    cout<<"outputDirname="<<outputDirname<<endl;
+   /*
+   vector<int> quadDecomposition;
+   quadDecomposition = QuadDecomposition(horTile, verTile, numPyrLevels);
+   for (int i = numPyrLevels-1; i >=0; i--){
+     quadDecomposition[i] = quadDecomposition[i] +1; 
+     stringstream ss;//create a stringstream
+     ss << quadDecomposition[i];
+     outputDirname = outputDirname+string("/")+ss.str();
+   }
+   */
    
+   cout<<"outputDirname="<<outputDirname<<endl;
+    
+   if (resampleParams.imageType == 0){//DEM
+     DiskImageView<float >  initImg(inputFilename);
+     GeoReference initGeo;
+     read_georeference(initGeo, inputFilename);
+     cout<<"make pyramid"<<endl;
+     MakePyramid(initImg, initGeo, resampleParams, outputDirname);
+   }
+   
+   if (resampleParams.imageType == 1){//DRG     
+     DiskImageView<PixelGray<uint8> >  initImg(inputFilename);
+     GeoReference initGeo;
+     read_georeference(initGeo, inputFilename);
+     MakePyramid(initImg, initGeo, resampleParams, outputDirname);
+   } 
   
-    
-    if (resampleParams.imageType == 0){//DEM
-      DiskImageView<float >  initImg(inputFilename);
-      GeoReference initGeo;
-      read_georeference(initGeo, inputFilename);
-      cout<<"make pyramid"<<endl;
-      MakePyramid(initImg, initGeo, resampleParams, outputDirname);
-    }
-    
-    if (resampleParams.imageType == 1){//DRG     
-      DiskImageView<PixelGray<uint8> >  initImg(inputFilename);
-      GeoReference initGeo;
-      read_georeference(initGeo, inputFilename);
-      MakePyramid(initImg, initGeo, resampleParams, outputDirname);
-    } 
-    
-
 }
 
 

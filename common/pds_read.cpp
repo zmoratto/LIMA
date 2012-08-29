@@ -646,7 +646,7 @@ int PDSReadImage(string strInFilename, unsigned char** r_pDataBuffer,
  
     for(int band=0; band<nBands; ++band) {
 
-      cout<<"band="<<band<<endl;
+      //cout<<"band="<<band<<endl;
       // open the image (the '1' argument is the band #, assuming band #'s
       // are 1-indexed, not zero-indexed.. -DT)
       OA_OBJECT image_handle = OaOpenImage(image_node, 1);
@@ -663,28 +663,32 @@ int PDSReadImage(string strInFilename, unsigned char** r_pDataBuffer,
         return -1;
       }
       
+ 
       switch (nBits){
       case 8: 
 	{
 	 for (long i = 0; i < nRows*nCols; ++i){
 	    pDataBuffer[band*nRows*nCols+i]=image_obj->data_ptr[i];
 	 }
+         break;
 	}
       case 16:
 	{
 	 for (long i = 0; i < nRows*nCols*2; ++i){
 	    pDataBuffer[band*nRows*nCols*2+i]=image_obj->data_ptr[i];
 	 }
+         break;
 	}
       case 32:
 	{
 	 for(long i = 0; i < nRows*nCols*4; ++i){
 	    pDataBuffer[band*nRows*nCols*4+i]=image_obj->data_ptr[i];
 	 }
+         break;
 	}
       default:
 	{
-	  OaReportError((char*) "Error in PDSReadImage(): nBits is not 8 or 16"); 
+	  OaReportError((char*) "Error in PDSReadImage(): nBits is not 8/16/32"); 
 	}    
       }
       OaCloseImage(image_handle);

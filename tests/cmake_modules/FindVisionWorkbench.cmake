@@ -75,7 +75,7 @@ if( VW_ROOT_DIR )
     set( VW_LIBRARY_NAMES ${VW_LIBRARY_NAMES} vw${MODULE} )
   endforeach( MODULE ${VW_MODULE_NAMES} )
   
-  set( VW_INCLUDE_DIR ${VW_ROOT_DIR}/include ${Boost_INCLUDE_DIR} ${BASE_SYSTEM_INCLUDE})
+  set( VW_INCLUDE_DIR ${VW_ROOT_DIR}/include ${BASE_SYSTEM_INCLUDE})
   set( VW_LIBRARY_DIR ${VW_ROOT_DIR}/lib )
   
   get_library_list(VW ${VW_LIBRARY_DIR} "d" "${VW_LIBRARY_NAMES}")
@@ -104,30 +104,30 @@ if( VW_ROOT_DIR )
   if( NOT VW_HAS_IMPORTS )
     # Transitive linking doesn't seem to work very well, on mac
     # so we manually add some extra dependencies
-    if( APPLE ) 
-      find_library( VW_VECLIB_LIBRARIES Accelerate )
-      if( VW_VECLIB_LIBRARIES )
-        set(VW_LIBRARIES ${VW_LIBRARIES} ${VW_VECLIB_LIBRARIES})
-        set(VW_vwMath_LIBRARY ${VW_vwMath_LIBRARY} ${VW_VECLIB_LIBRARIES})
-        message( STATUS "  Adding Accelerate framework to vwMath" )
-        # add boost to vwCore and LIBRARIES
-        if(NOT Boost_FOUND)
-          find_package(Boost 1.35.0 COMPONENTS program_options filesystem system thread)
-        endif(NOT Boost_FOUND)
-        set(_BOOST_PACKAGES THREAD FILESYSTEM PROGRAM_OPTIONS SYSTEM )
-        foreach( _BOOST_PACKAGE ${_BOOST_PACKAGES} )
-          message(STATUS "  Adding Boost_${_BOOST_PACKAGE}_LIBRARY to VW_LIBRARIES and vwCore")
-          if(Boost_${_BOOST_PACKAGE}_LIBRARY)
-            set(VW_LIBRARIES      ${VW_LIBRARIES}      ${Boost_${_BOOST_PACKAGE}_LIBRARY} )
-            set(VW_vwCore_LIBRARY ${VW_vwCore_LIBRARY} ${Boost_${_BOOST_PACKAGE}_LIBRARY} )
-          else(Boost_${_BOOST_PACKAGE}_LIBRARY)
-            message(STATUS "   **WARNING** Boost_${_BOOST_PACKAGE}_LIBRARY value is \"${Boost_${_BOOST_PACKAGE}_LIBRARY}\"")
-            message(STATUS "               but it is needed for VisionWorkbench")
-          endif(Boost_${_BOOST_PACKAGE}_LIBRARY)
-        endforeach( _BOOST_PACKAGE ${_BOOST_PACKAGES} )
-
-      endif( VW_VECLIB_LIBRARIES )
-    endif( APPLE )
+#    if( APPLE ) 
+#      find_library( VW_VECLIB_LIBRARIES Accelerate )
+#      if( VW_VECLIB_LIBRARIES )
+#        set(VW_LIBRARIES ${VW_LIBRARIES} ${VW_VECLIB_LIBRARIES})
+#        set(VW_vwMath_LIBRARY ${VW_vwMath_LIBRARY} ${VW_VECLIB_LIBRARIES})
+#        message( STATUS "  Adding Accelerate framework to vwMath" )
+#        # add boost to vwCore and LIBRARIES
+#        if(NOT Boost_FOUND)
+#          find_package(Boost 1.35.0 COMPONENTS program_options filesystem system thread)
+#        endif(NOT Boost_FOUND)
+#        set(_BOOST_PACKAGES THREAD FILESYSTEM PROGRAM_OPTIONS SYSTEM )
+#        foreach( _BOOST_PACKAGE ${_BOOST_PACKAGES} )
+#          message(STATUS "  Adding Boost_${_BOOST_PACKAGE}_LIBRARY to VW_LIBRARIES and vwCore")
+#          if(Boost_${_BOOST_PACKAGE}_LIBRARY)
+#            set(VW_LIBRARIES      ${VW_LIBRARIES}      ${Boost_${_BOOST_PACKAGE}_LIBRARY} )
+#            set(VW_vwCore_LIBRARY ${VW_vwCore_LIBRARY} ${Boost_${_BOOST_PACKAGE}_LIBRARY} )
+#          else(Boost_${_BOOST_PACKAGE}_LIBRARY)
+#            message(STATUS "   **WARNING** Boost_${_BOOST_PACKAGE}_LIBRARY value is \"${Boost_${_BOOST_PACKAGE}_LIBRARY}\"")
+#            message(STATUS "               but it is needed for VisionWorkbench")
+#          endif(Boost_${_BOOST_PACKAGE}_LIBRARY)
+#        endforeach( _BOOST_PACKAGE ${_BOOST_PACKAGES} )
+#    
+#      endif( VW_VECLIB_LIBRARIES )
+#    endif( APPLE )
   endif( NOT VW_HAS_IMPORTS )
   
   ## all done
@@ -139,6 +139,8 @@ endif( VW_ROOT_DIR )
 
 if (NOT Boost_FOUND)
 	set(ENV{BOOST_ROOT} $ENV{BASESYSTEMROOT}) # use base system root directory
+	set(ENV{BOOST_INCLUDEDIR} $ENV{BASESYSTEMROOT}/include/boost-1_50) # use base system root directory
+	set(ENV{BOOST_LIBRARYDIR} $ENV{BASESYSTEMROOT}/lib) # use base system root directory
 	find_package( Boost REQUIRED filesystem system thread program_options )
 	if (NOT Boost_FOUND)
 		message(ERROR "Package Boost required for Vision Workbench, but not found.")

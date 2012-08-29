@@ -11,7 +11,6 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	set( WARN_FLAG_ADDITIONS "-fno-strict-aliasing" )
 endif( CMAKE_COMPILER_IS_GNUCXX )
 
-
 find_package( VisionWorkbench )
 if (NOT VW_FOUND)
 	message(FATAL_ERROR "Package VisionWorkbench required, but not found.")
@@ -22,6 +21,11 @@ if (NOT ASP_FOUND)
 	message(FATAL_ERROR "Package ASP required, but not found.")
 endif (NOT ASP_FOUND)
 
+find_package( GTest )
+if (NOT GTEST_FOUND)
+        message(FATAL_ERROR "Package GTEST required, but not found.")
+endif (NOT GTEST_FOUND)
+
 ## We must add the in-source and out-of-source
 ## include paths 
 ##--------------------------------------------
@@ -30,8 +34,11 @@ include_directories(
   ${PROJECT_SOURCE_DIR}
   ${VW_INCLUDE_DIR}
   ${ASP_INCLUDE_DIR}
+  ${GTEST_INCLUDE_DIR}
   )
 # ISIS include directories
+message(STATUS ${GTEST_INCLUDE_DIR})
+message(STATUS ${GTEST_LIBRARIES})
 
 set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
 
@@ -44,25 +51,17 @@ target_link_libraries(lima ${ASP_LIBRARIES} )
 add_executable(test_util Test_util.cc ../util.cc ../tracks.cc)
 target_link_libraries(test_util ${VW_LIBRARIES} )
 target_link_libraries(test_util ${ASP_LIBRARIES} )
-target_link_libraries(test_util gtest )
+target_link_libraries(test_util ${GTEST_LIBRARIES} )
 
 add_executable(test_tracks Test_tracks.cc )
 target_link_libraries(test_tracks lima )
-target_link_libraries(test_tracks gtest )
 target_link_libraries(test_tracks ${VW_LIBRARIES} )
 target_link_libraries(test_tracks ${ASP_LIBRARIES} )
+target_link_libraries(test_tracks ${GTEST_LIBRARIES} )
 
 add_executable(test_icp Test_icp.cc ../icp.cc )
 target_link_libraries(test_icp lima )
 target_link_libraries(test_icp ${VW_LIBRARIES} )
 target_link_libraries(test_icp ${ASP_LIBRARIES} )
-target_link_libraries(test_icp gtest )
-
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # only 32-bit ISIS is available on Mac
-	add_definitions(-arch i386)
-	SET_TARGET_PROPERTIES(lima PROPERTIES LINK_FLAGS "-arch i386")
-	SET_TARGET_PROPERTIES(test_tracks PROPERTIES LINK_FLAGS "-arch i386")
-	SET_TARGET_PROPERTIES(test_util PROPERTIES LINK_FLAGS "-arch i386")
-	SET_TARGET_PROPERTIES(test_icp PROPERTIES LINK_FLAGS "-arch i386")
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+target_link_libraries(test_icp ${GTEST_LIBRARIES} )
 
