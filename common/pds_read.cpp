@@ -352,168 +352,7 @@ void a2pan_tilt(const double a[3], float &pan, float& tilt)
 #endif
 }
 
-int PDSReadImage(string strInFilename, unsigned char** r_pDataBuffer, 
-                   long *r_nCols, long *r_nRows, long *r_nBands, long *r_nBits)
-{
 
-    // parse the pds file to get the top level node odltree
-    ODLTREE odltree = OaParseLabelFile((char *)strInFilename.c_str(), 
-				       (char*) ERRS_LOC, ODL_EXPAND_STRUCTURE, TRUE);
-
-    if (odltree == NULL) { 
-        OaReportError((char*) "Error in OaParseLabelFile()");
-        return -1; 
-    }
- 
-    // grab the image node from the top level node
-    ODLTREE image_node = OdlFindObjDesc(odltree, (char*) "IMAGE", NULL, NULL,
-                                        ODL_RECURSIVE_DOWN, ODL_TO_END);
-
-    if (image_node == NULL) {
-        OaReportError( (char*) "Error in OaParseLabelFile()");
-        return -1;
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////
-    // process label part of PDS file
-    ///////////////////////////////////////////////////////////////////////////
-
-    const long nBands = get_pds_label_value(image_node, "BANDS");
-    *r_nBands = nBands;
-    /*
-    if (nBands != 1) {
-        cerr << "read_pds_image: only single-band images are supported, exiting.\n";
-        return -1;
-    }
-    */
-    const long nBits =  get_pds_label_value(image_node, "SAMPLE_BITS");
-    *r_nBits = nBits;
-    /* 
-    if (nBits != INPUT_BITS_PER_PIXEL) {
-        cerr << "read_pds_image: unsupported bits/pixel, exiting." << endl;
-        return -1;
-    }
-    */
-    const long nRows = get_pds_label_value(image_node, "LINES");
-    const long nCols = get_pds_label_value(image_node, "LINE_SAMPLES");
-    *r_nCols = nCols;
-    *r_nRows = nRows;
-     //printf("%ld %ld\n", nRows, nCols);
-   
-     ///////////////////////////////////////////////////////////////////////////
-    // process data part of PDS file (image data)
-    ///////////////////////////////////////////////////////////////////////////
-
-    // open the image (the '1' argument is the band #, assuming band #'s
-    // are 1-indexed, not zero-indexed.. -DT)
-    OA_OBJECT image_handle = OaOpenImage(image_node, 1);
-    if (image_handle == NULL) {
-        OaReportError((char*) "Error in OaOpenImage()");
-        return -1;
-    }
-    
-    // NOTE: batch version -- no copying done, you may want to read the
-    // image by chunks here, if it's huge, using OaReadPartialImage()
-    OA_OBJECT image_obj = OaReadImage(image_node, 1);
-    if (image_obj == NULL) {
-        OaReportError((char*) "Error in OaReadImage()");
-        return -1;
-    }
- 
-
-    if( nBits == 8 ){
-       *r_pDataBuffer = new unsigned char[nRows*nCols];
-       memcpy(*r_pDataBuffer, image_obj->data_ptr, nRows*nCols);
-      }
-    else if( nBits == 16 ){
-       *r_pDataBuffer = new unsigned char[nRows*nCols*2];
-       memcpy(*r_pDataBuffer, image_obj->data_ptr, nRows*nCols*2);
-      }
-    else{
-      OaReportError((char*) "Error in PDSReadImage(): nBits is not 8 or 16"); 
-      }    
-
-    OaCloseImage(image_handle);
-    OaDeleteObject(image_obj);
-    return 0;
-}
-
-void Convert16BitTo8BitImage(unsigned short int* inputBuffer, unsigned char *outputBuffer, int nCols, int nRows)
-{
- 
-  //determine the min max value of the inputBuffer
-  long minVal = 10000000;
-  long maxVal = -10000000; 
-  long currVal;
-  for (int i = 0; i <nRows; i++){
-    for (int j = 0; j <nCols; j++){
-      currVal = inputBuffer[i*nCols+j];
-     
-      if (currVal<minVal){
-	minVal = currVal;
-      }
-      if (currVal>=maxVal){
-	maxVal = currVal;
-      }
-    }
-  }
-  //printf("minVal = %ld, maxVal = %ld\n", minVal, maxVal);
-
-  //determine the scalling and offset 
-  float scalingFactor = 255.0/maxVal;
-   
-  for (int i = 0; i < nRows; i++){
-    for (int j = 0; j < nCols; j++){
-      float val = scalingFactor*inputBuffer[i*nCols+j];
-      if (val > 255){
-	val = 255;
-      }
-      if (val < 0){
-	val = 0;
-      }
-      outputBuffer[i*nCols+j] = (unsigned char)val; 
-    }
-  } 
-   
-}
-
-void WriteCAHVORModel(string strCalFilename, float c[3], float a[3], float h[3], float v[3], float o[3], float r[3])
-{
-  // write the CAHV params to a camera calibration file for stereo pipeline
-  printf("CalFilename = %s\n", strCalFilename.c_str());
-  FILE *cameraCalFile = fopen(strCalFilename.c_str(), "w");
-  
-  fprintf(cameraCalFile, "C = %14.6f %14.6f %14.6f\n", c[0], c[1], c[2]);
-  fprintf(cameraCalFile, "A = %14.6f %14.6f %14.6f\n", a[0], a[1], a[2]);
-  fprintf(cameraCalFile, "H = %14.6f %14.6f %14.6f\n", h[0], h[1], h[2]);
-  fprintf(cameraCalFile, "V = %14.6f %14.6f %14.6f\n", v[0], v[1], v[2]);
-  fprintf(cameraCalFile, "O = %14.6f %14.6f %14.6f\n", o[0], o[1], o[2]);
-  fprintf(cameraCalFile, "R = %14.6f %14.6f %14.6f\n", r[0], r[1], r[2]);
-  fprintf(cameraCalFile, "W = 1024\n");
-  fprintf(cameraCalFile, "H = 1024\n");
-
-  fclose(cameraCalFile);
-}
-
-void WriteCAHVModel(string strCalFilename, float c[3], float a[3], float h[3], float v[3])
-{
-  // write the CAHV params to a camera calibration file for stereo pipeline
-  printf("CalFilename = %s\n", strCalFilename.c_str());
-  FILE *cameraCalFile = fopen(strCalFilename.c_str(), "w");
-  
-  fprintf(cameraCalFile, "C = %14.6f %14.6f %14.6f\n", c[0], c[1], c[2]);
-  fprintf(cameraCalFile, "A = %14.6f %14.6f %14.6f\n", a[0], a[1], a[2]);
-  fprintf(cameraCalFile, "H = %14.6f %14.6f %14.6f\n", h[0], h[1], h[2]);
-  fprintf(cameraCalFile, "V = %14.6f %14.6f %14.6f\n", v[0], v[1], v[2]);
-  fprintf(cameraCalFile, "W = 1024\n");
-  fprintf(cameraCalFile, "H = 1024\n");
-    /*
-W =    1024
-H =    1024
-     */
-  fclose(cameraCalFile);
-}
 
 int scan_file_for_clock_start(const char* strInFilename, double &start_time)
 {
@@ -748,4 +587,185 @@ int scan_file_for_image_size( const char* strInFilename, long &nCols, long &nRow
 
 }
 
+//reads the entire data buffer in unsigned char and returns number of bands, bits and image size.
+int PDSReadImage(string strInFilename, unsigned char** r_pDataBuffer, 
+                   long *r_nCols, long *r_nRows, long *r_nBands, long *r_nBits)
+{
 
+    // parse the pds file to get the top level node odltree
+    ODLTREE odltree = OaParseLabelFile((char *)strInFilename.c_str(), 
+				       (char*) ERRS_LOC, ODL_EXPAND_STRUCTURE, TRUE);
+
+    if (odltree == NULL) { 
+        OaReportError((char*) "Error in OaParseLabelFile()");
+        return -1; 
+    }
+ 
+    // grab the image node from the top level node
+    ODLTREE image_node = OdlFindObjDesc(odltree, (char*) "IMAGE", NULL, NULL,
+                                        ODL_RECURSIVE_DOWN, ODL_TO_END);
+
+    if (image_node == NULL) {
+        OaReportError( (char*) "Error in OaParseLabelFile()");
+        return -1;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    // process label part of PDS file
+    ///////////////////////////////////////////////////////////////////////////
+
+    const long nBands = get_pds_label_value(image_node, "BANDS");
+    *r_nBands = nBands;
+    /*
+    if (nBands != 1) {
+        cerr << "read_pds_image: only single-band images are supported, exiting.\n";
+        return -1;
+    }
+    */
+    const long nBits =  get_pds_label_value(image_node, "SAMPLE_BITS");
+    *r_nBits = nBits;
+    /* 
+    if (nBits != INPUT_BITS_PER_PIXEL) {
+        cerr << "read_pds_image: unsupported bits/pixel, exiting." << endl;
+        return -1;
+    }
+    */
+    const long nRows = get_pds_label_value(image_node, "LINES");
+    const long nCols = get_pds_label_value(image_node, "LINE_SAMPLES");
+    *r_nCols = nCols;
+    *r_nRows = nRows;
+     //printf("%ld %ld\n", nRows, nCols);
+   
+     ///////////////////////////////////////////////////////////////////////////
+    // process data part of PDS file (image data)
+    ///////////////////////////////////////////////////////////////////////////
+
+
+    unsigned char *pDataBuffer = new unsigned char[nRows*nCols*nBands*nBits/8];
+ 
+    for(int band=0; band<nBands; ++band) {
+
+      cout<<"band="<<band<<endl;
+      // open the image (the '1' argument is the band #, assuming band #'s
+      // are 1-indexed, not zero-indexed.. -DT)
+      OA_OBJECT image_handle = OaOpenImage(image_node, 1);
+      if (image_handle == NULL) {
+        OaReportError((char*) "Error in OaOpenImage()");
+        return -1;
+      }
+      
+      // NOTE: batch version -- no copying done, you may want to read the
+      // image by chunks here, if it's huge, using OaReadPartialImage()
+      OA_OBJECT image_obj = OaReadImage(image_node, band+1);
+      if (image_obj == NULL) {
+        OaReportError((char*) "Error in OaReadImage()");
+        return -1;
+      }
+      
+      switch (nBits){
+      case 8: 
+	{
+	 for (long i = 0; i < nRows*nCols; ++i){
+	    pDataBuffer[band*nRows*nCols+i]=image_obj->data_ptr[i];
+	 }
+	}
+      case 16:
+	{
+	 for (long i = 0; i < nRows*nCols*2; ++i){
+	    pDataBuffer[band*nRows*nCols*2+i]=image_obj->data_ptr[i];
+	 }
+	}
+      case 32:
+	{
+	 for(long i = 0; i < nRows*nCols*4; ++i){
+	    pDataBuffer[band*nRows*nCols*4+i]=image_obj->data_ptr[i];
+	 }
+	}
+      default:
+	{
+	  OaReportError((char*) "Error in PDSReadImage(): nBits is not 8 or 16"); 
+	}    
+      }
+      OaCloseImage(image_handle);
+      OaDeleteObject(image_obj);
+    }
+    *r_pDataBuffer = pDataBuffer;
+    return 0;
+}
+
+void Convert16BitTo8BitImage(unsigned short int* inputBuffer, unsigned char *outputBuffer, int nCols, int nRows)
+{
+ 
+  //determine the min max value of the inputBuffer
+  long minVal = 10000000;
+  long maxVal = -10000000; 
+  long currVal;
+  for (int i = 0; i <nRows; i++){
+    for (int j = 0; j <nCols; j++){
+      currVal = inputBuffer[i*nCols+j];
+     
+      if (currVal<minVal){
+	minVal = currVal;
+      }
+      if (currVal>=maxVal){
+	maxVal = currVal;
+      }
+    }
+  }
+  //printf("minVal = %ld, maxVal = %ld\n", minVal, maxVal);
+
+  //determine the scalling and offset 
+  float scalingFactor = 255.0/maxVal;
+   
+  for (int i = 0; i < nRows; i++){
+    for (int j = 0; j < nCols; j++){
+      float val = scalingFactor*inputBuffer[i*nCols+j];
+      if (val > 255){
+	val = 255;
+      }
+      if (val < 0){
+	val = 0;
+      }
+      outputBuffer[i*nCols+j] = (unsigned char)val; 
+    }
+  } 
+   
+}
+
+void WriteCAHVORModel(string strCalFilename, float c[3], float a[3], float h[3], float v[3], float o[3], float r[3])
+{
+  // write the CAHV params to a camera calibration file for stereo pipeline
+  printf("CalFilename = %s\n", strCalFilename.c_str());
+  FILE *cameraCalFile = fopen(strCalFilename.c_str(), "w");
+  
+  fprintf(cameraCalFile, "C = %14.6f %14.6f %14.6f\n", c[0], c[1], c[2]);
+  fprintf(cameraCalFile, "A = %14.6f %14.6f %14.6f\n", a[0], a[1], a[2]);
+  fprintf(cameraCalFile, "H = %14.6f %14.6f %14.6f\n", h[0], h[1], h[2]);
+  fprintf(cameraCalFile, "V = %14.6f %14.6f %14.6f\n", v[0], v[1], v[2]);
+  fprintf(cameraCalFile, "O = %14.6f %14.6f %14.6f\n", o[0], o[1], o[2]);
+  fprintf(cameraCalFile, "R = %14.6f %14.6f %14.6f\n", r[0], r[1], r[2]);
+  fprintf(cameraCalFile, "W = 1024\n");
+  fprintf(cameraCalFile, "H = 1024\n");
+
+  fclose(cameraCalFile);
+}
+
+void WriteCAHVModel(string strCalFilename, float c[3], float a[3], float h[3], float v[3])
+{
+  // write the CAHV params to a camera calibration file for stereo pipeline
+  printf("CalFilename = %s\n", strCalFilename.c_str());
+  FILE *cameraCalFile = fopen(strCalFilename.c_str(), "w");
+  
+  fprintf(cameraCalFile, "C = %14.6f %14.6f %14.6f\n", c[0], c[1], c[2]);
+  fprintf(cameraCalFile, "A = %14.6f %14.6f %14.6f\n", a[0], a[1], a[2]);
+  fprintf(cameraCalFile, "H = %14.6f %14.6f %14.6f\n", h[0], h[1], h[2]);
+  fprintf(cameraCalFile, "V = %14.6f %14.6f %14.6f\n", v[0], v[1], v[2]);
+  fprintf(cameraCalFile, "W = 1024\n");
+  fprintf(cameraCalFile, "H = 1024\n");
+    /*
+W =    1024
+H =    1024
+     */
+  fclose(cameraCalFile);
+}
