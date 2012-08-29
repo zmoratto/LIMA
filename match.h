@@ -27,7 +27,7 @@
 
 #include "coregister.h"
 #include "lidar_tracks/tracks.h"
-#include "weights.h"
+#include "lidar_tracks/weights.h"
 #include "util.h"
 
 using namespace vw;
