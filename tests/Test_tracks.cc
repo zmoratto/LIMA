@@ -1,6 +1,6 @@
 #include <boost/filesystem.hpp>
 
-#include "../tracks.h"
+#include "../lidar_tracks/tracks.h"
 #include "../match.h" // For FindMatches2D()
 #include "../featuresLOLA.h" // For ComputeSalientLOLAFeature()
 #include "gtest/gtest.h"

@@ -40,7 +40,7 @@ include_directories(
 message(STATUS ${GTEST_INCLUDE_DIR})
 message(STATUS ${GTEST_LIBRARIES})
 
-set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
+set( COMMON_SRCS ../lidar_tracks/tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
 
 add_library( lima ${COMMON_SRCS})
 target_link_libraries(lima ${VW_LIBRARIES} )
@@ -48,7 +48,7 @@ target_link_libraries(lima ${ASP_LIBRARIES} )
 
 # Gets linker error without tracks.cc, even though it should be unneeded...
 # I cannot figure out why, but this will do for now
-add_executable(test_util Test_util.cc ../util.cc ../tracks.cc)
+add_executable(test_util Test_util.cc ../util.cc ../lidar_tracks/tracks.cc)
 target_link_libraries(test_util ${VW_LIBRARIES} )
 target_link_libraries(test_util ${ASP_LIBRARIES} )
 target_link_libraries(test_util ${GTEST_LIBRARIES} )

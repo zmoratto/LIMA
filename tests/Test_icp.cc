@@ -1,6 +1,6 @@
 #include <boost/filesystem.hpp>
 
-#include "../tracks.h"
+#include "../lidar_tracks/tracks.h"
 #include "../icp.h"
 #include "gtest/gtest.h"
 
