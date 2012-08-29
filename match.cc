@@ -29,7 +29,7 @@
 
 #include "coregister.h"
 #include "lidar_tracks/tracks.h"
-#include "display.h"
+#include "lidar_tracks/display.h"
 #include "lidar_tracks/weights.h"
 #include "util.h"
 
