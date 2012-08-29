@@ -30,7 +30,7 @@ include_directories(
   ${ASP_INCLUDE_DIR}
   )
 
-set( COMMON_SRCS ../tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
+set( COMMON_SRCS ../lidar_tracks/tracks.cc ../match.cc ../display.cc ../featuresLOLA.cc ../util.cc )
 
 add_library( lima ${COMMON_SRCS})
 target_link_libraries(lima ${VW_LIBRARIES} )
