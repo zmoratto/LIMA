@@ -16,7 +16,7 @@
 #include "FeatureExtraction.h"
 #include "../common/Tiling.h"
 #include "../stereo_processing/CvStereoBMProcessor.h"
-#include "../string_util.h"
+#include "../common/string_util.h"
 
 #define NO_DEPTH 0
 #define STEREO_DEPTH 1

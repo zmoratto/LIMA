@@ -108,12 +108,12 @@ struct mosaicSettings ReadMosaicSettings(const string &settingsFilename)
 
 void PrintSettings(struct mosaicSettings settings)
 {
-  cout<<"pixelSize="<<settings.pixelSize<<endl;
-  cout<<"tileWidth="<<settings.tileWidth<<endl;
-  cout<<"tileHeight="<<settings.tileHeight<<endl;
-  cout<<"scaleFactor="<<settings.scaleFactor<<endl;
-  cout<<"makeTileMosaic="<<settings.makeTileMosaic<<endl;
-  cout<<"makeImageMosaic="<<settings.makeImageMosaic<<endl;
+  cout<<"PIXEL_SIZE="<<settings.pixelSize<<endl;
+  cout<<"TILE_WIDTH="<<settings.tileWidth<<endl;
+  cout<<"TILE_HEIGHT="<<settings.tileHeight<<endl;
+  cout<<"SCALE_FACTOR="<<settings.scaleFactor<<endl;
+  cout<<"MAKE_TILE_MOSAIC="<<settings.makeTileMosaic<<endl;
+  cout<<"MAKE_IMAGE_MOSAIC="<<settings.makeImageMosaic<<endl;
 }
 
 mosaicProcessor::mosaicProcessor(const mosaicSettings &params)
@@ -846,8 +846,8 @@ void mosaicProcessor::makeTiles(string dataDir, string pcDir, string resultsDir,
 	ostringstream ss_1, ss_2;
 	ss_1 << i;
 	ss_2 << j;
-	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".jpg";
-        string xyzTileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".txt";
+	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".tif";
+        string xyzTileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+"_point_cloud.txt";
 	
 	cout<<tileFilename<<endl;
 	IplImage *tileImage = cvCreateImage(cvSize(tileWidth, tileHeight), IPL_DEPTH_8U , 1);

@@ -22,7 +22,7 @@ add_executable(FE_test FeatureExtraction_test.cpp)
 target_link_libraries(FE_test sfm)
 
 #sfmDepth Executable
-add_executable(sfmDepth_test depthSfm.cpp ../../stereo_processing/CvStereoBMProcessor.cpp ../../string_util.cc)
+add_executable(sfmDepth_test depthSfm.cpp ../../stereo_processing/CvStereoBMProcessor.cpp ../../common/string_util.cc)
 target_link_libraries(sfmDepth_test sfm)
 target_link_libraries(sfmDepth_test ${Boost_LIBRARIES})
 
