@@ -32,7 +32,7 @@ namespace fs = boost::filesystem;
 //ATK
 #include "coregister.h"
 #include "icp.h"
-#include "tracks.h"
+#include "../lidar_tracks/tracks.h"
 #include "util.h"
 
 using namespace std;
