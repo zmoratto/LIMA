@@ -34,7 +34,7 @@ using namespace vw::cartography;
 using namespace std;
 #include <math.h>
 #include "coregister.h"
-#include "tracks.h"
+#include "lidar_tracks/tracks.h"
 #include "match.h"
 
 

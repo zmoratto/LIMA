@@ -26,7 +26,7 @@
 #include <asp/IsisIO/IsisCameraModel.h>
 
 #include "coregister.h"
-#include "tracks.h"
+#include "lidar_tracks/tracks.h"
 #include "weights.h"
 #include "util.h"
 
