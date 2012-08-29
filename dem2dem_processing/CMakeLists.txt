@@ -30,7 +30,7 @@ include_directories(
   #  ${ASP_INCLUDE_DIR}
   )
 
-set( COMMON_SRCS ../icp.cc ../string_util.cc pyr_tiling.cc assembler.cc )
+set( COMMON_SRCS ../icp.cc ../common/string_util.cc pyr_tiling.cc assembler.cc )
 
 add_executable( assembler ${COMMON_SRCS})
 target_link_libraries(assembler ${VW_LIBRARIES} )
