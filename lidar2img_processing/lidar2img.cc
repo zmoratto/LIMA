@@ -45,7 +45,7 @@ using namespace std;
 #include "match.h"
 #include "coregister.h"
 #include "display.h"
-#include "weights.h"
+#include "lidar_tracks/weights.h"
 #include "featuresLOLA.h"
 
 int main( int argc, char *argv[] )
