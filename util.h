@@ -23,6 +23,11 @@ void PrintOverlapList( const std::vector<int>& );
 void SaveOverlapList( const std::string&, const std::vector<int>& );
 void SaveOverlapList( const std::string&, const std::vector<std::string>& );
 int ReadOverlapList( const std::string&, std::vector<int>&);
+//determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
+//by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 
+std::vector<std::string> AccessDataFilesFromInput(const std::string& );
+std::vector<std::string> AccessDataFilesFromInput(const std::vector<std::string>& );
+
 
 //this will be used to compute the makeOverlapList in a more general way.
 //it takes into consideration any set of overlapping images.
@@ -30,11 +35,6 @@ vw::Vector4 ComputeGeoBoundary( const std::string& );
 vw::BBox2 ComputeGeoBBox( const std::string& );
 vw::BBox2 ComputeGeoBBoxISIS( const std::string&, const vw::cartography::GeoReference& );
 vw::BBox2 ComputeGeoBBoxISIS( const std::string& filename, const std::string& datumname );
-
-//determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
-//by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 
-std::vector<std::string> AccessDataFilesFromInput(const std::string& );
-std::vector<std::string> AccessDataFilesFromInput(const std::vector<std::string>& );
 
 //this function determines the image overlap for the general case
 //it takes into consideration any set of overlapping images.
