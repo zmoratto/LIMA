@@ -31,6 +31,7 @@ namespace po = boost::program_options;
 #include "icp.h"
 #include "assembler.h"
 #include "pyr_tiling.h"
+#include "../common/string_util.h"
 
 using namespace vw;
 using namespace vw::math;

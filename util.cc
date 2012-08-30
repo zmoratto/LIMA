@@ -31,59 +31,6 @@ using namespace vw::camera;
 using namespace std;
 
 
-void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace ) 
-{ 
-
-  size_t uPos = 0; 
-  size_t uFindLen = tFind.length(); 
-  size_t uReplaceLen = tReplace.length();
-  
-  if( uFindLen != 0 ){
-    for( ;(uPos = tInput.find( tFind, uPos )) != std::string::npos; ){
-      tInput.replace( uPos, uFindLen, tReplace );
-      uPos += uReplaceLen;
-    }
-  }
-
-}
-
-///Returns the file extension
-std::string GetFilenameExt(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(0, index+1);
-  return result;
-}
-
-/// Erases a file suffix if one exists and returns the base string
-std::string GetFilenameNoExt(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-      result.erase(index, result.size());
-  return result;
-}
-/*
-/// Erases a file suffix if one exists and returns the base string less3 characters
-static std::string prefix_less3_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index-3, result.size()+3);
-  return result;
-}
-*/
-
-/// Erases a file path if one exists and returns the base string 
-std::string GetFilenameNoPath(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind("/");
-  if (index != -1)
-    result.erase(0, index+1);
-  return result;
-}
-
 void PrintOverlapList( const std::vector<int>& overlapIndices ) {
   cout << "numOverlapping = " << overlapIndices.size() << endl;
   std::vector<int>::const_iterator i;

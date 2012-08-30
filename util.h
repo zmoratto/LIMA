@@ -17,12 +17,15 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace std;
-
+/*
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace );
 std::string GetFilenameNoExt(std::string const& filename);
 std::string GetFilenameNoPath(std::string const& filename);
 std::string GetFilenameExt(std::string const& filename);
+*/
 
+
+void ReadFileList( const std::string&, std::vector<std::string>& );
 void PrintOverlapList( const std::vector<int>& );
 void SaveOverlapList( const std::string&, const std::vector<int>& );
 void SaveOverlapList( const std::string&, const std::vector<std::string>& );
@@ -34,9 +37,6 @@ vw::Vector4 ComputeGeoBoundary( const std::string& );
 vw::BBox2 ComputeGeoBBox( const std::string& );
 vw::BBox2 ComputeGeoBBoxISIS( const std::string&, const vw::cartography::GeoReference& );
 vw::BBox2 ComputeGeoBBoxISIS( const std::string& filename, const std::string& datumname );
-
-
-void ReadFileList( const std::string&, std::vector<std::string>& );
 
 //determine if inputFiles is a text file containing a list of input files, one input file or a set of input files
 //by reading the inputFiles extension. A text file containing a filename list *must* have extension .txt 
