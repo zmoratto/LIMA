@@ -13,12 +13,6 @@ Mac OS X
 7.3) cmake .
 7.4) make && make install
 
-
-7.3) cp make.inc.example make.inc
-7.4) make blaslib  # To generate the Reference BLAS Library
-7.5) make
-7.4) make && make install
-
 8) install sba (http://www.ics.forth.gr/~lourakis/sba/) 
 8.1) edit demo/CMakeLists.txt
 
