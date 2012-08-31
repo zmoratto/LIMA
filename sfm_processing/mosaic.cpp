@@ -15,32 +15,10 @@
 // Program includes
 #include "../camera_models/CAHV-to-pinhole.h"
 #include "../common/opencv_pds.h"
+#include "../common/string_util.h"
 #include "mosaic.h"
 
 using namespace std;
-
-
-// Erases a file extension if one exists and returns the base string
-string
-prefix_from_filename(string const& filename)
-{
-  string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-      result.erase(index, result.size());
-  return result;
-}
-
-// Finds the file extension
-string
-extension_from_filename(string const& filename)
-{
-  string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(0, index);
-  return result;
-}
 
 // function to read the settings
 struct mosaicSettings ReadMosaicSettings(const string &settingsFilename) 
@@ -149,7 +127,7 @@ std::vector<int> mosaicProcessor::makeOverlapListFromBB(struct BBox tileBox, std
 
 }
 
-// function to display the tile mosaic for debug
+// function to display the image mosaic from tiles
 void mosaicProcessor::displayTileMosaic(string resultsDir, BBox mosaicBBox, double radPerPixX, double radPerPixY)
 {
 
@@ -162,8 +140,8 @@ void mosaicProcessor::displayTileMosaic(string resultsDir, BBox mosaicBBox, doub
   int numHorTiles = ceil((maxPanRad-minPanRad)/tile_fov_x);
   int numVerTiles = ceil((maxTiltRad-minTiltRad)/tile_fov_y);
 
-
-  //check the output mosaick
+  cout<<"DISPLAY_TILE_MOSAIC: numHorTiles="<<numHorTiles<<"numVerTiles="<<numVerTiles<<endl;
+  //check the output mosaic
   int firstHorTile = 0;
   int lastHorTile = numHorTiles;
   int firstVerTile = 0;
@@ -180,7 +158,7 @@ void mosaicProcessor::displayTileMosaic(string resultsDir, BBox mosaicBBox, doub
 	ostringstream ss_1, ss_2;
 	ss_1 << i;
 	ss_2 << j;
-	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".jpg";
+	tileFilename = resultsDir+"tile_"+ss_1.str()+"_"+ss_2.str()+".tif";
 	cout<<tileFilename<<endl;
      
 	cv::Mat tileMat = cv::imread(tileFilename, 0);
@@ -194,7 +172,8 @@ void mosaicProcessor::displayTileMosaic(string resultsDir, BBox mosaicBBox, doub
 	  int colStart = (i-firstHorTile)*newTileWidth;
           int rowStart = (j-firstVerTile)*newTileHeight;
 
-          cout<<"colStart="<<colStart<<", rowStart="<<rowStart<<", newTileWidth="<<newTileWidth<<", newTileHeight="<<newTileHeight<<", mosaicWidth = "<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
+          cout<<"colStart="<<colStart<<", rowStart="<<rowStart<<", newTileWidth="<<newTileWidth<<", newTileHeight="<<newTileHeight<<
+               ", mosaicWidth = "<<mosaicWidth<<", mosaicHeight="<<mosaicHeight<<endl;
 	  cv::Mat mosaic_roi = mosaicMat(cv::Rect(colStart, rowStart, newTileWidth, newTileHeight));
           smallTileMat.copyTo(mosaic_roi);
        }
@@ -520,7 +499,7 @@ void mosaicProcessor::displayCorrectedImageMosaic(string resultsDir, string data
       {
 	double q[4];
 	//get rotated camera parameters and read image
-	string filenameExtension = extension_from_filename(imgPairVector[k].left);
+	string filenameExtension = GetFilenameExt(imgPairVector[k].left);//extension_from_filename(imgPairVector[k].left);
 	if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
 	  ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[k].left).c_str(), c, a, h, v, &cols, &rows);
 	  
@@ -537,7 +516,7 @@ void mosaicProcessor::displayCorrectedImageMosaic(string resultsDir, string data
 	  
 	}
 	else{
-	  string camFilename = dataDir + prefix_from_filename(imgPairVector[k].left) + string(".cahv");
+	  string camFilename = dataDir + /*prefix_from_filename*/GetFilenameNoExt(imgPairVector[k].left) + string(".cahv");
 	  ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
 	  string imgFilename = dataDir + imgPairVector[k].left;
 	  tileMat = cv::imread(imgFilename, 0);
@@ -700,8 +679,8 @@ void mosaicProcessor::makeTiles(string dataDir, string pcDir, string resultsDir,
 	  //read the image - START
 	  IplImage *leftImage;
 	  string imgFilename = dataDir + imgPairVector[p].left;
-	  string filenameExtension = extension_from_filename(imgPairVector[i].left);
-	  if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+	  string filenameExtension = GetFilenameExt(imgPairVector[i].left);//extension_from_filename(imgPairVector[i].left);
+	  if ((filenameExtension.compare(string("img")) == 0) || (filenameExtension.compare(string("IMG")) == 0) ){
 	    readPDSFileToIplImage(imgFilename, leftImage);
 	  }
 	  else{
@@ -721,13 +700,13 @@ void mosaicProcessor::makeTiles(string dataDir, string pcDir, string resultsDir,
 	  //read the image - END
 	  
 	  //read the point cloud file - START
-	  string xyzFilename = pcDir + prefix_from_filename(imgPairVector[p].left) + string("_point_cloud.txt"); 
+	  string xyzFilename = pcDir + /*prefix_from_filename*/GetFilenameNoExt(imgPairVector[p].left) + string("_point_cloud.txt"); 
           std::vector<point3D> points = readXYZFile(xyzFilename, t_rows, t_cols);
 	  //read the point cloud file - END
 
 	  //read cam params - START
 	  double c[3],a[3],h[3],v[3];
-	  if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+	  if ((filenameExtension.compare(string("img")) == 0) || (filenameExtension.compare(string("IMG")) == 0) ){
 	    ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[p].left).c_str(), c, a, h, v, &cols, &rows);
 	    // get origin rotation quaternion
 	    double q[4];
@@ -739,7 +718,7 @@ void mosaicProcessor::makeTiles(string dataDir, string pcDir, string resultsDir,
 	    rotateWithQuaternion(v,v,q);
 	  }
 	  else{
-	    string camFilename = dataDir + prefix_from_filename(imgPairVector[p].left) + string(".cahv");
+	    string camFilename = dataDir + /*prefix_from_filename*/GetFilenameNoExt(imgPairVector[p].left) + string(".cahv");
 	    ReadCamParamsFromFile((char*)camFilename.c_str(), c, a, h, v, &cols, &rows);
 	  }
 	  //read cam params - END
@@ -907,8 +886,8 @@ void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> 
   for (int i = 0; i < numPairs; i++){
     
     //read the camera models - START
-    string filenameExtension = extension_from_filename(imgPairVector[i].left);
-    if ((filenameExtension.compare(string(".img")) == 0) || (filenameExtension.compare(string(".IMG")) == 0) ){
+    string filenameExtension = GetFilenameExt(imgPairVector[i].left);//extension_from_filename(imgPairVector[i].left);
+    if ((filenameExtension.compare(string("img")) == 0) || (filenameExtension.compare(string("IMG")) == 0) ){
       ReadCamParamsFromPDSFile((char*)(dataDir + imgPairVector[i].left).c_str(), c, a, h, v, &cols, &rows);
       // get origin rotation quaternion
       double q[4];
@@ -920,7 +899,8 @@ void mosaicProcessor::calcBoundaryBoxes( string dataDir, vector<ImagePairNames> 
       rotateWithQuaternion(v,v,q);
     }
     else{
-      ReadCamParamsFromFile((char*)(dataDir + prefix_from_filename(imgPairVector[i].left) + string(".cahv")).c_str(), c, a, h, v, &cols, &rows);
+      cout<<"new="<<GetFilenameNoExt(imgPairVector[i].left)<<endl;
+      ReadCamParamsFromFile((char*)(dataDir + /*prefix_from_filename*/GetFilenameNoExt(imgPairVector[i].left) + string(".cahv")).c_str(), c, a, h, v, &cols, &rows);
     }
     //read the camera models - END
 

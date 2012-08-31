@@ -93,10 +93,10 @@ int main(int argc, char* argv[])
 
   //compute the composite mosaic from all existing tiles
   if (settings.makeTileMosaic == 1){
-    cout<<"display tile mosaic from tiles"<<endl;
-    mosaic.displayTileMosaic(resultsDir,mosaicBBox, radPerPixX, radPerPixY);
     cout<<"display image mosaic from tiles"<<endl;
-    mosaic.displayPCMosaic(resultsDir,mosaicBBox, radPerPixX, radPerPixY);
+    mosaic.displayTileMosaic(resultsDir, mosaicBBox, radPerPixX, radPerPixY);
+    cout<<"display point cloud  mosaic from tiles"<<endl;
+    mosaic.displayPCMosaic(resultsDir, mosaicBBox, radPerPixX, radPerPixY);
   }
 
   return 0;

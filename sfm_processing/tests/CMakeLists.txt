@@ -35,7 +35,7 @@ set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} 
 find_package( OAL )
 if( OAL_FOUND )
    include_directories(${OPENCV_INCLUDE_DIRS} ${OAL_INCLUDE_DIRS})
-   add_executable(mosaic_test mosaicTest.cpp ../mosaic.cpp ../../common/opencv_pds.cpp ../../common/pds_read.cpp ../../camera_models/CAHV-to-pinhole.cc)
+   add_executable(mosaic_test mosaicTest.cpp ../mosaic.cpp ../../common/opencv_pds.cpp ../../common/pds_read.cpp ../../common/string_util.cc ../../camera_models/CAHV-to-pinhole.cc)
    target_link_libraries(mosaic_test ${OpenCV_LIBS})
    target_link_libraries(mosaic_test ${OAL})
 endif( OAL_FOUND )
