@@ -4,7 +4,7 @@
 # Assumes that environment variable OALROOT is set to the root of the oal install 
 #
 # Input Environment Variables:
-# OALROOT                  : Root of ASP Install
+# OALROOT                  : Root of OAL Install
 #
 # Output Variables:
 # -----------------

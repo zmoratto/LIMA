@@ -12,6 +12,25 @@
 #include "string_util.h"
 
 using namespace std;
+vector<std::string> FindAndSplit(std::string& tInput, std::string tFind)
+{
+  vector<std::string> elems;
+  size_t uFindLen = tFind.length(); 
+  
+  if( uFindLen != 0 ){
+
+    int index = tInput.find(tFind);
+
+    while (index != -1){
+      string elem(tInput, 0, index);
+      tInput.erase(0, index+uFindLen);
+      elems.push_back(elem);
+      index = tInput.find(tFind); 
+    }
+  }
+
+  return elems;
+}
 
 void FindAndReplace( std::string& tInput, std::string tFind, std::string tReplace ) 
 { 
