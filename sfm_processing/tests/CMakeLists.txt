@@ -1,7 +1,10 @@
 project(MY_GRAND_PROJECT)
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 find_package(PCL 1.5 REQUIRED)
-find_package( OpenCV REQUIRED )
+find_package(OpenCV REQUIRED )
+
+
+
 include_directories(${OPENCV_INCLUDE_DIRS})
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -26,6 +29,24 @@ add_executable(sfmDepth_test depthSfm.cpp ../../stereo_processing/CvStereoBMProc
 target_link_libraries(sfmDepth_test sfm)
 target_link_libraries(sfmDepth_test ${Boost_LIBRARIES})
 
+#eucsbadeo executable
+set( PROJECT_SRC_DIR ".." )
+set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules ${CMAKE_MODULE_PATH} )
+find_package(SBA)
+include(CMakeFindFrameworks)
+CMAKE_FIND_FRAMEWORKS(vecLib)
+#INCLUDE_DIRECTORIES(..) 
+INCLUDE_DIRECTORIES(${SBA_INCLUDE_DIRS}) 
+LINK_DIRECTORIES(${SBA_LIB_PATH} ${LAPACKBLAS_DIR})
+ADD_EXECUTABLE(eucsbademo eucsbademo.c imgproj.c readparams.c eucsbademo.h readparams.h)
+# libraries the demo depends on
+IF(HAVE_F2C)  
+ TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB} ${BLAS_LIB} ${F2C_LIB})
+ELSE(HAVE_F2C)
+  TARGET_LINK_LIBRARIES(eucsbademo sba ${LAPACK_LIB} ${BLAS_LIB} ${vecLib_FRAMEWORKS} )
+ENDIF(HAVE_F2C)
+# make sure that the library is built before the demo
+ADD_DEPENDENCIES(eucsbademo sba)
 
 project(mosaic_project)
 set( PROJECT_SRC_DIR ".." )
