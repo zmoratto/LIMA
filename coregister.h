@@ -85,9 +85,5 @@ inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& 
 		
 	return os;
 	};
-/*
-bool ReadConfigFile(string config_filename, struct CoregistrationParams *settings);
 
-void SaveVectorToFile(vector<float> v, string filename);
-*/
 #endif /* COREGISTER_H */
