@@ -22,3 +22,8 @@ target_link_libraries( ${Boost_PROGRAM_OPTIONS_LIBRARY})
 add_executable(bm_stereo_test CvStereoBMTest.cpp ../CvStereoBMProcessor.cpp ../../common/Tiling.cpp ../../common/string_util.cc)
 target_link_libraries(bm_stereo_test ${OpenCV_LIBS})
 target_link_libraries(bm_stereo_test ${Boost_LIBRARIES})
+
+#project(stereo_calibrartion_test)
+add_executable(stereo_calibration_test CvStereoCalibrationTest.cpp ../../common/string_util.cc)
+target_link_libraries(stereo_calibration_test ${OpenCV_LIBS})
+target_link_libraries(stereo_calibration_test ${Boost_LIBRARIES})
