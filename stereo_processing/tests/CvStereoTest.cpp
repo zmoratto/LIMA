@@ -1,5 +1,5 @@
 #include "../CvStereoProcessor.h"
-#include "../../string_util.h"
+#include "../../common/string_util.h"
 
 #include <stdio.h>
 #include <iostream>
