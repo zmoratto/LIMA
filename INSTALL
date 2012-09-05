@@ -13,6 +13,12 @@ Mac OS X
 7.3) cmake .
 7.4) make && make install
 
+
+7.3) cp make.inc.example make.inc
+7.4) make blaslib  # To generate the Reference BLAS Library
+7.5) make
+7.4) make && make install
+
 8) install sba (http://www.ics.forth.gr/~lourakis/sba/) 
 8.1) edit demo/CMakeLists.txt
 
@@ -35,10 +41,11 @@ ADD_DEPENDENCIES(eucsbademo sba)
 8.2) ccmake .
 8.2.1) c e
 8.2.2) turn HAVE_F2C OFF
-8.2.3) LAPACK_LIB = -framework vecLib
+8.2.3) LAPACK_LIB = -framework vecLib (if Mac OS X)
 8.2.4) c e c e g e
 8.3) cmake .
 8.4) make
+
 8.5) copy libsba.a usr/local/lib/
 8.6) copy sba.h sba_chkjac.h compiler.h usr/local/include/
 8.7) set PATH for the directory 
