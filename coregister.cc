@@ -12,20 +12,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-#include <vw/Math.h>
-#include <vw/Math/Matrix.h>
-
-
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-
-using namespace std;
-
 #include <math.h>
 #include "coregister.h"
 
@@ -105,22 +91,8 @@ bool ReadConfigFile(string config_filename, struct CoregistrationParams *setting
 }
 
 
-/*
-void PrintModelParams(struct ModelParams *params)
-{
-  cout<<"LIGHT_POS[0]"<<params->sunPosition[0]<<endl;
-  cout<<"LIGHT_POS[1]"<<params->sunPosition[1]<<endl;
-  cout<<"LIGHT_POS[2]"<<params->sunPosition[2]<<endl;
-
-  cout<<"VIEWER_POS[0]"<<params->spacecraftPosition[0]<<endl;
-  cout<<"VIEWER_POS[1]"<<params->spacecraftPosition[1]<<endl;
-  cout<<"VIEWER_POS[2]"<<params->spacecraftPosition[2]<<endl;
-}
-*/
-
 void SaveVectorToFile(vector<float> v, string filename)
 {
- 
 
   FILE *fp;
 

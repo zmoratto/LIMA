@@ -21,16 +21,10 @@
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
-//VW
-// #include <vw/Core.h>
-// #include <vw/Image.h>
-// #include <vw/FileIO.h>
-// #include <vw/Cartography.h>
-// #include <vw/Math.h>
-// #include <vw/Math/Matrix.h>
+
 
 //ATK
-#include "coregister.h"
+#include "lidar2dem_config.h"
 #include "icp.h"
 #include "../lidar_tracks/tracks.h"
 #include "util.h"

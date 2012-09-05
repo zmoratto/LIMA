@@ -17,14 +17,10 @@
 #include <boost/lexical_cast.hpp>
 
 #include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-
 #include <vw/Math.h>
+
 using namespace vw;
 using namespace vw::math;
-using namespace vw::cartography;
 
 using namespace std;
 #include <math.h>
@@ -44,6 +40,23 @@ struct CoregistrationParams{
   double noDataVal;
   float minConvThresh;
 };
+
+struct gcp{
+  float lon;
+  float lat;
+  float rad;
+  float sigma_lon;
+  float sigma_lat;
+  float sigma_rad;
+  vector<string> filename;
+  int trackIndex;
+  int shotIndex;
+  vector<float> x;
+  vector<float> y;
+  vector<float> x_before;
+  vector<float> y_before;
+};
+
 
 inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& cp )
 	{
@@ -72,26 +85,9 @@ inline std::ostream& operator<< ( std::ostream& os, const CoregistrationParams& 
 		
 	return os;
 	};
-
-struct gcp{
-  float lon;
-  float lat;
-  float rad;
-  float sigma_lon;
-  float sigma_lat;
-  float sigma_rad;
-  vector<string> filename;
-  int trackIndex;
-  int shotIndex;
-  vector<float> x;
-  vector<float> y;
-  vector<float> x_before;
-  vector<float> y_before;
-};
-
+/*
 bool ReadConfigFile(string config_filename, struct CoregistrationParams *settings);
-// int ReadModelParamsFile(string modelParamsFilename, struct ModelParams *params);
-//void PrintModelParams(struct ModelParams *params);
 
 void SaveVectorToFile(vector<float> v, string filename);
+*/
 #endif /* COREGISTER_H */

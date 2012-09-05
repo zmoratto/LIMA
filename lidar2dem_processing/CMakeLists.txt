@@ -39,7 +39,7 @@ include_directories(
   )
 # ISIS include directories
 
-set( COMMON_SRCS ../icp.cc  ../coregister.cc ../lidar_tracks/tracks.cc  ../util.cc lidar2dem.cc )
+set( COMMON_SRCS ../icp.cc  ../lidar_tracks/tracks.cc  ../util.cc lidar2dem_config.cc lidar2dem.cc )
 
 add_executable( lidar2dem ${COMMON_SRCS})
 #target_link_libraries(lidar2dem ${Boost_LIBRARIES} )
