@@ -206,6 +206,8 @@ TEST( ICP_DEM_2_DEM, works ) {
   GeoReference foreDEMGeo;
   read_georeference( foreDEMGeo, DEMfile );
 
+  vw_log().console_log().rule_set().add_rule(vw::InfoMessage,"*");
+
   Vector2 delta( 0, 0 );
   Vector2 fives( 5, 5 );
   vector<Vector3> features = GetFeatures( foreDEM, foreDEMGeo,
@@ -215,7 +217,7 @@ TEST( ICP_DEM_2_DEM, works ) {
   }
   
   Vector3 translation;
-  Matrix<float, 3,3 > rotation;
+  Matrix<float, 3,3 > rotation = identity_matrix(3);
   Vector3 center = find_centroid( features );
   //vector<float> errors( features.size() );
   float error;
@@ -228,7 +230,7 @@ TEST( ICP_DEM_2_DEM, works ) {
 
   ICP_DEM_2_DEM( features, foreDEM, foreDEMGeo, foreDEMGeo, 3,
                  settings, translation, rotation, center, error );
-
+  cout << translation << endl;
   EXPECT_NEAR( -5.0, translation.x(), 0.1 ) << "Translation in X is wrong.";
   EXPECT_NEAR( 0.0, translation.y(), 0.1 ) << "Translation in Y is wrong.";
   EXPECT_NEAR( 0.0, translation.z(), 0.1 ) << "Translation in Z is wrong.";

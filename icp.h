@@ -30,13 +30,15 @@ vw::Vector3 ComputeDEMTranslation( const std::vector<vw::Vector3>& features,
 
 vw::Vector3 ComputeDEMTranslation( const vector<Vector3>& match, 
                                    const vector<Vector3>& reference,
-                                   const Matrix<float, 3, 3> &rotation);
+                                   const Matrix<float, 3, 3> &rotation,
+                                   const Vector3&              matchCenter );
 
 void PrintMatrix(const Matrix<float, 3, 3> &A);
 
 //compute the matching error vector and overall average error 
-valarray<float> ComputeMatchingError( const std::vector<vw::Vector3>& model, 
-                                      const std::vector<vw::Vector3>& reference );
+void ComputeMatchingError(       std::valarray<float>& errors,
+                           const std::vector<vw::Vector3>& model, 
+                           const std::vector<vw::Vector3>& reference );
 
 float ComputeMatchingError3D( const std::vector<vw::Vector3>& model, 
                               const std::vector<vw::Vector3>& reference );
@@ -366,7 +368,8 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
       std::cout << "computing DEM translation ..." << std::endl;
       //std::cout << "rotation matrix = " << std::endl;
       //PrintMatrix( rotation );
-      translation = ComputeDEMTranslation( temp_feature, temp_reference, rotation);  
+      //translation = ComputeDEMTranslation( temp_feature, temp_reference, rotation, featureCenter);  
+      translation = ComputeDEMTranslation( temp_feature, temp_reference );  
       std::cout << "translation = " << translation << std::endl; 
     } 
 
@@ -376,11 +379,12 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
 
     
     //this is really bad
-    //Vector3 zeroVector;
+    Vector3 zeroVector;
     zeroVector(0)=0;
     zeroVector(1)=0;
     zeroVector(2)=0;
-    TransformFeatures( featureArray, zeroVector, translation, rotation ); 
+    //TransformFeatures( featureArray, zeroVector, translation, rotation ); 
+    TransformFeatures( featureArray, featureCenter, translation, rotation ); 
     
     //save current rotation and translation
     translationArray.push_back( translation );
@@ -400,10 +404,8 @@ void ICP_DEM_2_DEM(       std::vector<vw::Vector3>       featureArray,
   //compute the final rotation and translation - END
 
   //for debug - START
-
-  cout<<"Alignment using the center of rotation"<<endl;
-  
-  ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter/*zeroVector*/, translation, rotation, matchError);
+  //cout<<"Alignment using the center of rotation"<<endl;
+  //ICP_Report(origFeatureArray, featureArray, referenceArray, backDEMGeo, foreDEMGeo, featureCenter/*zeroVector*/, translation, rotation, matchError);
   //for debug - END
 }
 
@@ -536,7 +538,7 @@ void ICP_LIDAR_2_DEM(       std::vector<vw::Vector3>&      xyzMatchArray,
     std::vector<bool> mask = FindMatchesFromDEM( xyzModelArray, llrModelArray, DEM, DEMGeo, 
                         xyzMatchArray, translation, rotation, xyzMatchCenter, 
                         settings.noDataVal, settings.matchWindowHalfSize );
-    
+
     unsigned int num_good_matches = 0;
     for( std::vector<bool>::const_iterator i = mask.begin(); i != mask.end(); ++i ){
       if( *i ){ ++num_good_matches; }
@@ -560,9 +562,24 @@ void ICP_LIDAR_2_DEM(       std::vector<vw::Vector3>&      xyzMatchArray,
     
     vw_out(vw::InfoMessage, "icp") << "computing the matching error ... ";
     //xyzErrorArray = ComputeMatchingError(xyzMatchArray, xyzModelArray);
-    xyzErrorArray = ComputeMatchingError(temp_xyzModel, temp_xyzMatch);
-    avgMatchError = xyzErrorArray.sum()/xyzErrorArray.size();
+    //xyzErrorArray = ComputeMatchingError(temp_xyzModel, temp_xyzMatch);
+    std::valarray<float> temp_xyzError( temp_xyzModel.size() );
+    ComputeMatchingError( temp_xyzError, temp_xyzModel, temp_xyzMatch );
+    avgMatchError = temp_xyzError.sum()/temp_xyzError.size();
     vw_out(vw::InfoMessage, "icp") << avgMatchError << endl;
+    
+    // Repopulate the xyzErrorArray from temp_xyzError
+    if( temp_xyzError.size() == xyzErrorArray.size() ){
+      xyzErrorArray = temp_xyzError;
+    } else {
+      for( unsigned int i=0, t=0; i < xyzErrorArray.size(); ++i ){
+        if( mask[i] ){
+          xyzErrorArray[i] = temp_xyzError[t];
+          ++t;
+        } else { xyzErrorArray[i] = std::numeric_limits<float>::max(); }
+      }
+    }
+
 
     //determine the xyzMatchCentroid
     vw::Vector3 xyzMatchCenter = find_centroid( temp_xyzMatch );

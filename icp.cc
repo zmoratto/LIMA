@@ -43,7 +43,8 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& match,
 //computes the translation T = avg(reference-rotation*match)
 Vector3 ComputeDEMTranslation( const vector<Vector3>& match, 
                                const vector<Vector3>& reference,
-                               const Matrix<float, 3, 3>& rotation) {
+                               const Matrix<float, 3, 3>& rotation,
+                               const Vector3&        matchCenter) {
   Vector3 translation(0,0,0);
   
   unsigned int numValidMatches = 0;
@@ -52,7 +53,7 @@ Vector3 ComputeDEMTranslation( const vector<Vector3>& match,
   
   for( unsigned int i = 0; i < match.size(); ++i ){
     if( norm_1(reference[i]) > 0 ){
-      translation += reference[i] - rotation*match[i];
+      translation += reference[i] - rotation*(match[i] - matchCenter) + matchCenter;
       ++numValidMatches;
     }
   }
@@ -70,25 +71,25 @@ void PrintMatrix(const Matrix<float, 3, 3> &A)
 }
 
 //compute the matching error vector in the form of a standard deviation 
-valarray<float> ComputeMatchingError( const vector<Vector3>& model, 
-                                      const vector<Vector3>& reference ) {
+void ComputeMatchingError(       valarray<float>& errors,
+                           const vector<Vector3>& model, 
+                           const vector<Vector3>& reference ) {
   if( model.size() != reference.size() ){
     vw_throw( ArgumentErr() << 
     "The vectors passed to ComputeMatchingError() have different sizes." ); 
   }
 
-  valarray<float> errors( model.size() );
   for( unsigned int i = 0; i < model.size(); ++i ){
     errors[i] = norm_2( model[i] - reference[i] );
   }
-  return errors;
 }
 
 // This used to return a Vector3 with errors in each dimension, now just returns total error.
 //compute the matching error vector in the form of individual errors
 float ComputeMatchingError3D( const vector<Vector3>& model, 
                               const vector<Vector3>& reference ) {
-  valarray<float> errors = ComputeMatchingError( model, reference );
+  valarray<float> errors( model.size() ); 
+  ComputeMatchingError( errors, model, reference );
   return errors.sum()/errors.size();
 }
 //compute a rotation matrix between two point clouds
