@@ -16,7 +16,8 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Math.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/Vector.h>
 #include "coregister.h"
 #include "util.h"
 

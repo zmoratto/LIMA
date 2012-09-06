@@ -20,7 +20,6 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Math.h>
 #include <vw/Math/Matrix.h>
 #include <asp/IsisIO.h>
 #include <asp/IsisIO/IsisCameraModel.h>
