@@ -1,0 +1,5 @@
+*.o
+*~
+assembler
+lidar2dem
+track_splitter

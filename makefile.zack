@@ -1,0 +1,89 @@
+# GNU Makefile
+
+OS := $(shell uname -s)
+VWPREFIX = /Users/zmoratto/projects/VisionWorkbench/build
+ASPPREFIX = /Users/zmoratto/projects/StereoPipeline/build
+
+ISISROOT=/Users/zmoratto/packages/base_system
+MACPORTS_DIR=/Users/zmoratto/packages/base_system
+QTCORE_H = /Users/zmoratto/packages/base_system/include
+SPICE_H = /Users/zmoratto/packages/base_system/include
+
+CXX = g++-4.2
+LIBTOOL = glibtool
+
+programs = lidar2dem assembler track_splitter # dem2dem
+debug: CXXFLAGS += -g -DDEBUG
+
+#VW &ASP
+CXXFLAGS =	-O3 -g \
+			-Wall -Wextra -Wno-unused-parameter\
+			-I$(VWPREFIX)/include -I$(ASPPREFIX)/include -I$(PWD)
+LDFLAGS = -L$(VWPREFIX)/lib -L$(ASPPREFIX)/lib \
+			-lvwCartography -lvwCamera -lvwStereo \
+			-lvwFileIO -lvwImage -lvwMath -lvwCore \
+			-laspIsisIO \
+			-lxerces-c-3.1
+
+INCPATH = -I$(MACPORTS_DIR)/include -I$(MACPORTS_DIR)/include/boost-1_51
+LIBPATH = -L$(MACPORTS_DIR)/lib
+
+LDBOOST = -lboost_filesystem-mt-1_51 -lboost_system-mt-1_51 \
+			-lboost_thread-mt-1_51 -lboost_program_options-mt-1_51
+LDFLAGS += $(LDBOOST)
+LDFLAGS += -lpng -lisis3
+
+# ASP dependencies
+INCISIS = -DQT_SHARED -I$(QTCORE_H) -I$(SPICE_H) -I$(QTCORE_H)/QtCore
+LIBISIS = -L$(ISISROOT)/lib -lQtCore
+
+CXXFLAGS += -arch x86_64
+
+ALL: all
+all: $(programs)
+
+debug: $(programs)
+
+
+lidar2img: tracks.o match.o coregister.o display.o map2cam.o weights.o featuresLOLA.o util.o lidar2img.o
+	$(CXX) -fopenmp $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
+
+assembler: coregister.o icp.o dem2dem_processing/assembler.o util.o dem2dem_processing/pyr_tiling.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
+
+dem2dem: coregister.o icp.o dem2dem.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
+
+lidar2dem: icp.o coregister.o tracks.o util.o lidar2dem.o 
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
+
+dem_warp: dem_warp.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -laspCore $^ -o $@
+
+dem_alt: dem_alt.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) -laspCore $^ -o $@
+
+settings_parser: settings.o settings_parser.o
+	$(CXX) $(LIBPATH) $(LDBOOST) $^ -o $@
+
+track_splitter: util.o tracks.o track_splitter.o
+	$(CXX) $(LIBISIS) $(LIBPATH) $(LDFLAGS) $^ -o $@
+
+%.o : %.cc
+	$(CXX) $(CXXFLAGS) $(INCPATH) $(INCISIS) -c $^ -o $@
+
+clean:
+	rm -f $(programs) *.o
+
+distclean: clean docclean
+
+docs: doc      
+doc:
+	pdflatex AlignmentTK.tex
+
+ifeq ($(OS),Darwin)
+	open AlignmentTK.pdf
+endif
+
+docclean:
+	rm -rf AlignmentTK.aux AlignmentTK.log AlignmentTK.pdf
