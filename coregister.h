@@ -21,7 +21,6 @@
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 
-#include <vw/Math.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
