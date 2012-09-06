@@ -44,7 +44,8 @@ class ComputeMatchingError_Test : public ::testing::Test {
 
 TEST_F( ComputeMatchingError_Test, basic ){
   valarray<float> truth( sqrt(3), 3 );
-  valarray<float> errors = ComputeMatchingError( features_, match_ );
+  valarray<float> errors;
+  ComputeMatchingError( errors, features_, match_ );
 
   for( unsigned int i = 0; i < errors.size(); ++i ){
     EXPECT_NEAR( truth[i], errors[i], 0.001 ) << "Error array mismatch.";
