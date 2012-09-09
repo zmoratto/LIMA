@@ -2,7 +2,7 @@
 
 #include "../tracks.h"
 #include "../icp.h"
-#include "gtest/gtest.h"
+#include <Helpers.h>  // Also brings in Gtest
 
 namespace fs = boost::filesystem;
 
@@ -65,7 +65,7 @@ class ComputeDEMRotation_Test : public ::testing::Test {
     features_.push_back( Vector3( 5,6,5 ) );
     features_.push_back( Vector3( 6,5,5 ) );
 
-    match_.push_back( Vector3( 5,5,4 ) );
+    match_.push_back( Vector3( 5,5,6 ) );
     match_.push_back( Vector3( 5,6,5 ) );
     match_.push_back( Vector3( 6,5,5 ) );
 
@@ -80,24 +80,33 @@ class ComputeDEMRotation_Test : public ::testing::Test {
     rotation_(2,2) = -1.0/3.0;
   }
 
-  virtual void TearDown() {}
-  
   vector<Vector3> features_;
   vector<Vector3> match_;
-  Matrix<float, 3, 3> rotation_;
+  Matrix3x3 rotation_; // Rotation transforms feature_ to match_
 };
-  
+
 TEST_F( ComputeDEMRotation_Test, 4arg ){
 
+  // Verify that we actually wrote a rotation matrix
+  ASSERT_NEAR( 1.0, det(rotation_), 1e-6 );
+
+  // Current match_ and features_ are exact copies of each other.
   Vector3 f_center = find_centroid( features_ );
   Vector3 m_center = find_centroid( match_ );
-  Matrix<float, 3, 3> test = ComputeDEMRotation( features_, match_, f_center, m_center );
+  EXPECT_VECTOR_NEAR( Vector3(5.333,5.333,5.333), f_center, 1e-3 );
+  EXPECT_VECTOR_NEAR( Vector3(5.333,5.333,5.333), m_center, 1e-3 );
+  Matrix3x3 test = ComputeDEMRotation( features_, match_, f_center, m_center );
+  EXPECT_MATRIX_NEAR( math::identity_matrix<3>(), test, 1e-3 );
 
-  for( unsigned int i = 0; i < 3; ++i ){
-    for( unsigned int j = 0; j < 3; ++j ){
-    EXPECT_NEAR( rotation_(i,j), test(i,j), 0.0001 ) << "Rotation elements aren't correct.";
-    }
+  // Now actually apply a rotation and verify that we can pull out that rotation
+  match_.clear();
+  for ( size_t i = 0; i < 3; i++ ) {
+    match_.push_back( rotation_ * features_[i] );
   }
+  m_center = find_centroid( match_ );
+  test = ComputeDEMRotation( features_, match_, f_center, m_center );
+  std::cout << "Center: " << m_center << " R: " << test << std::endl;
+  EXPECT_MATRIX_NEAR( test, rotation_, 1e-3 );
 }
 
 TEST_F( ComputeDEMRotation_Test, 2arg ){
